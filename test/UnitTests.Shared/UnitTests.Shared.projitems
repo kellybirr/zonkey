@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>0dfc182d-c8e5-4148-8736-12704c92aacb</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Zonkey.UnitTests.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\AdventureDb.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\ErrorLog.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\HumanResources_Department.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\HumanResources_Employee.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\HumanResources_EmployeeDepartmentHistory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\HumanResources_EmployeePayHistory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\HumanResources_JobCandidate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\HumanResources_vEmployee.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_AddressType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_BusinessEntity.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_BusinessEntityContact.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_ContactType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_CountryRegion.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_Password.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_Person.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_PersonPhone.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_PhoneNumberType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Person_StateProvince.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_BillOfMaterial.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_Culture.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_Illustration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_Location.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_Product.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductCategory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductCostHistory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductDescription.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductInventory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductListPriceHistory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductModelIllustration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductModelProductDescriptionCulture.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductPhoto.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductProductPhoto.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductReview.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ProductSubcategory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_ScrapReason.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_TransactionHistory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_TransactionHistoryArchive.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_UnitMeasure.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_WorkOrder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Production_WorkOrderRouting.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Purchasing_ProductVendor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Purchasing_PurchaseOrderDetail.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Purchasing_PurchaseOrderHeader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Purchasing_ShipMethod.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Purchasing_Vendor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_CountryRegionCurrency.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_CreditCard.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_Currency.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_CurrencyRate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_Customer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_PersonCreditCard.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SalesOrderDetail.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SalesOrderHeader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SalesOrderHeaderSalesReason.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SalesPerson.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SalesPersonQuotaHistory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SalesReason.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SalesTaxRate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SalesTerritory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SalesTerritoryHistory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_ShoppingCartItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SpecialOffer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_SpecialOfferProduct.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_Store.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_vIndividualCustomer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_vPersonDemographic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_vSalesPerson.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_vStoreWithContact.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\Sales_vStoreWithDemographic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SqlServer\SysObject.cs" />
+  </ItemGroup>
+</Project>
