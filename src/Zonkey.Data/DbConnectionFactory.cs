@@ -104,6 +104,31 @@ namespace Zonkey
 
             return connType.Create();
         }
+
+        /// <summary>
+        /// DbProviderFatories static class does not exist in Mono, so we're faking it
+        /// </summary>
+        /// <param name="providerName"></param>
+        /// <returns></returns>
+        internal static DbProviderFactory GetFactory(string providerName)
+        {
+#if (NETSTANDARD2_0 || DROID)
+            switch ((providerName ?? "").ToLowerInvariant())
+            {
+#if (DROID)
+                case "mono.data.sqllite":
+                    return Mono.Data.Sqlite.SqliteFactory.Instance;
+#endif
+                case "system.data.sqlclient":
+                    return System.Data.SqlClient.SqlClientFactory.Instance;
+
+                default:
+                    throw new NotSupportedException($"Provider '{providerName}' is not supported");
+            }
+#else
+            return DbProviderFactories.GetFactory(providerName);
+#endif
+        }
     }
 
     internal class DbConnectionType

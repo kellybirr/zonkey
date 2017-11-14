@@ -1,0 +1,308 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{450C5ED4-15E8-4A18-A5A4-26697D94DA56}</ProjectGuid>
+    <ProjectTypeGuids>{EFBA0AD7-5A72-4C68-AF49-83D382785DCF};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Zonkey</RootNamespace>
+    <AssemblyName>Zonkey.Droid</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+    <AndroidResgenFile>Resources\Resource.Designer.cs</AndroidResgenFile>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <AndroidUseLatestPlatformSdk>true</AndroidUseLatestPlatformSdk>
+    <TargetFrameworkVersion>v8.0</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;DROID</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;DROID</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Mono.Android" />
+    <Reference Include="Mono.Data.Sqlite" />
+    <Reference Include="mscorlib" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Zonkey.Data\AdapterBase.cs">
+      <Link>AdapterBase.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Ado\AdoDataManager.cs">
+      <Link>Ado\AdoDataManager.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Ado\DataTableAdapter.cs">
+      <Link>Ado\DataTableAdapter.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Ado\DataTableCommandBuilder.cs">
+      <Link>Ado\DataTableCommandBuilder.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Ado\Events.cs">
+      <Link>Ado\Events.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Ado\Recordset.cs">
+      <Link>Ado\Recordset.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Conflict.cs">
+      <Link>Conflict.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\Base.cs">
+      <Link>DataClassAdapter\Base.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\BulkInsert.cs">
+      <Link>DataClassAdapter\BulkInsert.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\BulkUpdate.cs">
+      <Link>DataClassAdapter\BulkUpdate.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\Common.cs">
+      <Link>DataClassAdapter\Common.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\Conflicts.cs">
+      <Link>DataClassAdapter\Conflicts.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\Delete.cs">
+      <Link>DataClassAdapter\Delete.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\Exists.cs">
+      <Link>DataClassAdapter\Exists.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\Fill.cs">
+      <Link>DataClassAdapter\Fill.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\FillRange.cs">
+      <Link>DataClassAdapter\FillRange.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\GetCount.cs">
+      <Link>DataClassAdapter\GetCount.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\GetSingleItem.cs">
+      <Link>DataClassAdapter\GetSingleItem.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\InnerJoin.cs">
+      <Link>DataClassAdapter\InnerJoin.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\OpenReader.cs">
+      <Link>DataClassAdapter\OpenReader.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\Populate.cs">
+      <Link>DataClassAdapter\Populate.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\Save.cs">
+      <Link>DataClassAdapter\Save.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\UpdateRows.cs">
+      <Link>DataClassAdapter\UpdateRows.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataListAdapter.cs">
+      <Link>DataListAdapter.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataListItem.cs">
+      <Link>DataListItem.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DataManager.cs">
+      <Link>DataManager.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DbConnectionFactory.cs">
+      <Link>DbConnectionFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\DbTransactionRegistry.cs">
+      <Link>DbTransactionRegistry.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\AccessSqlDialect.cs">
+      <Link>Dialects\AccessSqlDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\AnsiSqlDialect.cs">
+      <Link>Dialects\AnsiSqlDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\Db2SqlDialect.cs">
+      <Link>Dialects\Db2SqlDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\GenericSqlDialect.cs">
+      <Link>Dialects\GenericSqlDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\MySqlDialect.cs">
+      <Link>Dialects\MySqlDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\OracleSqlDialect.cs">
+      <Link>Dialects\OracleSqlDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\PostgrSqlDialect.cs">
+      <Link>Dialects\PostgrSqlDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\SqlDialect.cs">
+      <Link>Dialects\SqlDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\SqliteDialect.cs">
+      <Link>Dialects\SqliteDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Dialects\SqlServerDialect.cs">
+      <Link>Dialects\SqlServerDialect.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Enumerations.cs">
+      <Link>Enumerations.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\EnvironmentHelper.cs">
+      <Link>EnvironmentHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Events.cs">
+      <Link>Events.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Exceptions.cs">
+      <Link>Exceptions.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Extensions\DataClassAdapterExtensions.cs">
+      <Link>Extensions\DataClassAdapterExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Extensions\SqlFilterExtensions.cs">
+      <Link>Extensions\SqlFilterExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Extensions\SqlInHelper.cs">
+      <Link>Extensions\SqlInHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\GenericParameter.cs">
+      <Link>GenericParameter.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\GlobalSuppressions.cs">
+      <Link>GlobalSuppressions.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\ClassFactory.cs">
+      <Link>ObjectModel\ClassFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DatabaseWrapper.cs">
+      <Link>ObjectModel\DatabaseWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClass.cs">
+      <Link>ObjectModel\DataClass.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClassCollection.cs">
+      <Link>ObjectModel\DataClassCollection.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClassCommandBuilder\Common.cs">
+      <Link>ObjectModel\DataClassCommandBuilder\Common.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClassCommandBuilder\Delete.cs">
+      <Link>ObjectModel\DataClassCommandBuilder\Delete.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClassCommandBuilder\Insert.cs">
+      <Link>ObjectModel\DataClassCommandBuilder\Insert.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClassCommandBuilder\Select.cs">
+      <Link>ObjectModel\DataClassCommandBuilder\Select.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClassCommandBuilder\Update.cs">
+      <Link>ObjectModel\DataClassCommandBuilder\Update.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClassCommandBuilder\Update2.cs">
+      <Link>ObjectModel\DataClassCommandBuilder\Update2.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClassCommandBuilder\UpdateRows.cs">
+      <Link>ObjectModel\DataClassCommandBuilder\UpdateRows.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClassReader.cs">
+      <Link>ObjectModel\DataClassReader.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataComponent.cs">
+      <Link>ObjectModel\DataComponent.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataFieldAttribute.cs">
+      <Link>ObjectModel\DataFieldAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataItemAttribute.cs">
+      <Link>ObjectModel\DataItemAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataMap.cs">
+      <Link>ObjectModel\DataMap.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataMapField.cs">
+      <Link>ObjectModel\DataMapField.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataMapItem.cs">
+      <Link>ObjectModel\DataMapItem.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataRelatedAttribute.cs">
+      <Link>ObjectModel\DataRelatedAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\FieldValuesDictionary.cs">
+      <Link>ObjectModel\FieldValuesDictionary.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\Interfaces.cs">
+      <Link>ObjectModel\Interfaces.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\ListSorter.cs">
+      <Link>ObjectModel\ListSorter.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\PropertyComparer.cs">
+      <Link>ObjectModel\PropertyComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\SaveAuditor.cs">
+      <Link>ObjectModel\SaveAuditor.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\WhereExpressionParser.cs">
+      <Link>ObjectModel\WhereExpressionParser.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ResultTypes.cs">
+      <Link>ResultTypes.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\SqlFilter.cs">
+      <Link>SqlFilter.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\Utility\SqlScriptProcessor.cs">
+      <Link>Utility\SqlScriptProcessor.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\XmlAdapter.cs">
+      <Link>XmlAdapter.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Text\CsvReader.cs">
+      <Link>Text\CsvReader.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Text\DynamicCsvReader.cs">
+      <Link>Text\DynamicCsvReader.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Text\TextClassReader.cs">
+      <Link>Text\TextClassReader.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Text\TextClassRWBase.cs">
+      <Link>Text\TextClassRWBase.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Text\TextClassWriter.cs">
+      <Link>Text\TextClassWriter.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Text\TextField.cs">
+      <Link>Text\TextField.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Text\TextRecord.cs">
+      <Link>Text\TextRecord.cs</Link>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -104,7 +104,7 @@
       <Project>{4218522f-aed2-4289-97f6-09830dd6a770}</Project>
       <Name>Zonkey.Data.Fx</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\src\Zonkey.Mocks\Zonkey.Mocks.csproj">
+    <ProjectReference Include="..\..\src\Zonkey.Mocks.Fx\Zonkey.Mocks.Fx.csproj">
       <Project>{11888345-7593-4f05-a441-665248ec1252}</Project>
       <Name>Zonkey.Mocks</Name>
     </ProjectReference>

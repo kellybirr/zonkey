@@ -41,14 +41,7 @@ namespace Zonkey.Ado
         /// </summary>
         protected override void OnConnectionChanged()
         {
-#if (NETSTANDARD2_0)
-            if (! (Connection is SqlConnection))
-                throw new NotSupportedException("Only SQL Server is supported for DataTableAdapter in Zonkey .Net Standard");
-
-            _providerFactory = System.Data.SqlClient.SqlClientFactory.Instance;
-#else
-            _providerFactory = DbProviderFactories.GetFactory(Connection.GetType().Namespace);
-#endif
+            _providerFactory = DbConnectionFactory.GetFactory(Connection.GetType().Namespace);
         }
 
         /// <summary>
