@@ -13,8 +13,9 @@ namespace Zonkey.ObjectModel
 	{
 		private static readonly Dictionary<string, DataMap> _mapCache = new Dictionary<string, DataMap>();
 
-		private readonly Dictionary<PropertyInfo, IDataMapField> _propsToFields;
-		private readonly Dictionary<string, IDataMapField> _dataFieldsDict;
+		private readonly Dictionary<int, IDataMapField> _propsToFields;
+	    //private readonly Dictionary<PropertyInfo, IDataMapField> _propsToFields;
+        private readonly Dictionary<string, IDataMapField> _dataFieldsDict;
 		private readonly Dictionary<string, IDataMapField> _readableFieldsDict;
 		private readonly List<IDataMapField> _keyFields;
 
@@ -34,7 +35,7 @@ namespace Zonkey.ObjectModel
 			_readableFieldsDict = new Dictionary<string, IDataMapField>(keyComparer);
 			_dataFieldsDict = new Dictionary<string, IDataMapField>(keyComparer);
 
-			_propsToFields = new Dictionary<PropertyInfo, IDataMapField>();
+			_propsToFields = new Dictionary<int, IDataMapField>();
 			_keyFields = new List<IDataMapField>();
 		}
 
@@ -94,7 +95,7 @@ namespace Zonkey.ObjectModel
 		/// <returns>A <see cref="Zonkey.ObjectModel.IDataMapField"/> object.</returns>
 		public IDataMapField GetFieldForProperty(PropertyInfo pi)
 		{
-			return (_propsToFields.ContainsKey(pi)) ? _propsToFields[pi] : null;
+			return (_propsToFields.ContainsKey(pi.MetadataToken)) ? _propsToFields[pi.MetadataToken] : null;
 		}
 
 		/// <summary>
@@ -483,9 +484,9 @@ namespace Zonkey.ObjectModel
 				throw new Exception(string.Format("Field '{0}' already exists in _dataFieldsDict", field.FieldName));                        
 			_dataFieldsDict.Add(field.FieldName, field);
 
-			if (_propsToFields.ContainsKey(field.Property))
+			if (_propsToFields.ContainsKey(field.Property.MetadataToken))
 				throw new Exception(string.Format("Property '{0}' already exists in _propsToFields", field.Property));                        
-			_propsToFields.Add(field.Property, field);
+			_propsToFields.Add(field.Property.MetadataToken, field);
 
 			if (field.IsKeyField)
 			{
@@ -514,7 +515,7 @@ namespace Zonkey.ObjectModel
 			if (field == null) return;
 
 			_dataFieldsDict.Remove(field.FieldName);
-			_propsToFields.Remove(field.Property);
+			_propsToFields.Remove(field.Property.MetadataToken);
 
 			if (field.IsKeyField) _keyFields.Remove(field);
 
