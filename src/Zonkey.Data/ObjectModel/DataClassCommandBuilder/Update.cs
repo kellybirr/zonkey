@@ -82,7 +82,7 @@ namespace Zonkey.ObjectModel
 
                 if (selectBack > SelectBack.None)
                 {
-                    if (field.IsKeyField)
+                    if (field.IsKeyField || field.IsPartitionKey)
                     {
                         DbParameter keyParam = CreateWhereParam(updateCommand, field);
                         if (keyString.Length > 0) keyString.Append(" AND ");
@@ -103,7 +103,7 @@ namespace Zonkey.ObjectModel
                     }
                 }
 
-                if ( field.IsKeyField
+                if ( field.IsKeyField || field.IsPartitionKey
                      || (hasChanged && (criteria >= UpdateCriteria.ChangedFields))
                      || (field.IsRowVersion && (criteria == UpdateCriteria.KeyAndVersion))
                     )
@@ -206,7 +206,7 @@ namespace Zonkey.ObjectModel
             {
                 string sFieldDescr = _dialect.FormatFieldName(field.FieldName, (field.UseQuotedIdentifier ?? UseQuotedIdentifier));
 
-                if (field.IsKeyField)
+                if (field.IsKeyField || field.IsPartitionKey)
                 {
                     // A primary key or row version
                     if (whereString.Length > 0) whereString.Append(" AND ");

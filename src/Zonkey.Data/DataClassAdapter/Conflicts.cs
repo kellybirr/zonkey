@@ -17,12 +17,12 @@ namespace Zonkey
         /// <returns>A <see cref="Zonkey.Conflict"/> array.</returns>
         public async Task<Conflict[]> GetConflicts(T obj)
         {
-            ISavable objSV = obj as ISavable;
-            if (objSV == null) throw new ArgumentException("GetConflicts() is only supported on classes that implement Zonkey.ObjectModel.ISavable", nameof(obj));
+            if (!(obj is ISavable objSV))
+                throw new ArgumentException("GetConflicts() is only supported on classes that implement Zonkey.ObjectModel.ISavable", nameof(obj));
 
             FieldValuesDictionary dbValues;
             DbCommand command = CommandBuilder.GetRequeryCommand(objSV);
-            using (DbDataReader reader = await ExecuteReaderInternal(command, CommandBehavior.SingleRow))
+            using (DbDataReader reader = await ExecuteReaderInternal(command, CommandBehavior.SingleRow).ConfigureAwait(false))
             {
                 if (reader.Read())
                     dbValues = new FieldValuesDictionary(reader);
@@ -40,8 +40,7 @@ namespace Zonkey
                 if ((field == null) || (field.AccessType == AccessType.ReadOnly)) continue;
 
                 bool valueMatch = false;
-                object oDbValue;
-                if (dbValues.TryGetValue(field.FieldName, out oDbValue))
+                if (dbValues.TryGetValue(field.FieldName, out var oDbValue))
                 {
                     if (IsNullOrDbNull(original.Value) || IsNullOrDbNull(oDbValue))
                         valueMatch = (IsNullOrDbNull(original.Value) && IsNullOrDbNull(oDbValue));

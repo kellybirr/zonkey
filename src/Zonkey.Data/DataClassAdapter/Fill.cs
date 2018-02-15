@@ -97,7 +97,7 @@ namespace Zonkey
                     throw new InvalidOperationException("Either the command or the adapter must have an open connection.");
             }
 
-            using (DbDataReader reader = await ExecuteReaderInternal(command, CommandBehavior.SingleResult))
+            using (DbDataReader reader = await ExecuteReaderInternal(command, CommandBehavior.SingleResult).ConfigureAwait(false))
                 return await PopulateCollection(collection, reader);
         }
 
@@ -140,7 +140,7 @@ namespace Zonkey
                 throw new InvalidOperationException("must set connection before calling Fill()");
 
             DbCommand command = PrepCommandForSelect(text, method, parameters);
-            using (DbDataReader reader = await ExecuteReaderInternal(command, CommandBehavior.SingleResult))
+            using (DbDataReader reader = await ExecuteReaderInternal(command, CommandBehavior.SingleResult).ConfigureAwait(false))
                 return await PopulateCollection(collection, reader);
         }
 

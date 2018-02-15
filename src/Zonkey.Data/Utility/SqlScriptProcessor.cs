@@ -74,7 +74,7 @@ namespace Zonkey.Utility
                         cmd.Connection = m_cnxn;
                         cmd.Transaction = trx;
                         cmd.CommandTimeout = 120;
-                        await cmd.ExecuteNonQueryAsync();
+                        await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
                     }
                     catch (DbException)
                     {

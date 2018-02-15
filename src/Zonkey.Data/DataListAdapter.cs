@@ -70,7 +70,7 @@ namespace Zonkey
 
             var list = new List<T>();
             TypeInfo typeInfo = typeof(T).GetTypeInfo();
-            using (DbDataReader reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult))
+            using (DbDataReader reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false))
             {
                 while (await reader.ReadAsync())
                 {
@@ -99,7 +99,7 @@ namespace Zonkey
 
             var list = new List<string>();
             if (prependEmpty) list.Add(string.Empty);
-            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult))
+            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false))
             {
                 while (await reader.ReadAsync())
                 {
@@ -147,7 +147,7 @@ namespace Zonkey
             var command = PrepareCommand(sql, isProc, parameters);
 
             var sbList = new StringBuilder();
-            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult))
+            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false))
             {
                 while (await reader.ReadAsync())
                 {
@@ -205,7 +205,7 @@ namespace Zonkey
             var command = PrepareCommand(sql, isProc, parameters);
             var list = new List<DataListItem>();
 
-            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult))
+            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false))
             {
                 while (await reader.ReadAsync())
                     list.Add(new DataListItem(reader[0], reader.GetString(1)));
@@ -261,7 +261,7 @@ namespace Zonkey
             var command = PrepareCommand(sql, isProc, parameters);
             var list = new List<DataListItem<TKey>>();
 
-            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult))
+            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false))
             {
                 while (await reader.ReadAsync())
                     list.Add(new DataListItem<TKey>((TKey)reader[0], reader.GetString(1)));
@@ -312,7 +312,7 @@ namespace Zonkey
             if (list == null) throw new ArgumentNullException(nameof(list));
 
             var command = PrepareCommand(sql, isProc, parameters);
-            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult))
+            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false))
             {
                 while (await reader.ReadAsync())
                     list.Add( new T { Id = reader[0], Label = reader[1].ToString() } );
@@ -359,7 +359,7 @@ namespace Zonkey
 
             TypeInfo typeInfo = typeof(T).GetTypeInfo();
             var command = PrepareCommand(sql, isProc, parameters);
-            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult))
+            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false))
             {
                 while (await reader.ReadAsync())
                 {
@@ -407,7 +407,7 @@ namespace Zonkey
             if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
             var command = PrepareCommand(sql, isProc, parameters);
-            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult))
+            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false))
             {
                 while (await reader.ReadAsync())
                     dictionary.Add(reader[0], reader[1]);

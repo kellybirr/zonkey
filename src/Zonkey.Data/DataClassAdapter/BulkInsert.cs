@@ -31,7 +31,7 @@ namespace Zonkey
             {
                 try
                 {
-                    await BulkInsertObjectInternal(obj);
+                    await BulkInsertObjectInternal(obj).ConfigureAwait(false);
                     nRecords++;
                 }
                 catch (Exception ex)
@@ -57,7 +57,7 @@ namespace Zonkey
             // insert object/record
             try
             {
-                await BulkInsertObjectInternal(obj);
+                await BulkInsertObjectInternal(obj).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

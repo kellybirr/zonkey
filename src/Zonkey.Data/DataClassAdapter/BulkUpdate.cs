@@ -48,7 +48,7 @@ namespace Zonkey
             {
                 try
                 {
-                    await BulkUpdateObjectInternal(obj);
+                    await BulkUpdateObjectInternal(obj).ConfigureAwait(false);
                     nRecords++;
                 }
                 catch (Exception ex)
@@ -74,7 +74,7 @@ namespace Zonkey
             // update object/record
             try
             {
-                await BulkUpdateObjectInternal(obj);
+                await BulkUpdateObjectInternal(obj).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

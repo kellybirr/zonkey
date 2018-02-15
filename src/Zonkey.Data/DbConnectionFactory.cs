@@ -84,7 +84,7 @@ namespace Zonkey
         public static async Task<DbConnection> OpenConnection(string name)
         {
             var cnxn = CreateConnection(name);
-            await cnxn.OpenAsync();
+            await cnxn.OpenAsync().ConfigureAwait(false);
 
             return cnxn;
         }

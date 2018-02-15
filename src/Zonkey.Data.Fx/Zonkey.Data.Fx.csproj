@@ -223,6 +223,9 @@
     <Compile Include="..\Zonkey.Data\ObjectModel\DataClassReader.cs">
       <Link>ObjectModel\DataClassReader.cs</Link>
     </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataClass_TKey.cs">
+      <Link>ObjectModel\DataClass_TKey.cs</Link>
+    </Compile>
     <Compile Include="..\Zonkey.Data\ObjectModel\DataComponent.cs">
       <Link>ObjectModel\DataComponent.cs</Link>
     </Compile>

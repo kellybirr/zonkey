@@ -74,7 +74,7 @@ namespace Zonkey
                     throw new NotSupportedException("this fill method is not supported by GetCount");
             }
 
-            return (int)await ExecuteScalerInternal(command);
+            return (int)await ExecuteScalerInternal(command).ConfigureAwait(false);
         }
     }
 }
