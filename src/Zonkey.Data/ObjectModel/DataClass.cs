@@ -124,4 +124,12 @@ namespace Zonkey.ObjectModel
 
         #endregion
     }
+
+    public abstract class DataClass<TKey> : DataClass
+    {
+        protected DataClass(bool addingNew) : base(addingNew)
+        { }
+
+        public abstract TKey GetKey();
+    }
 }
