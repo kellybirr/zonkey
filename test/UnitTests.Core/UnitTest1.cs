@@ -40,18 +40,19 @@ namespace Zonkey.UnitTests
         }
 
         [TestMethod]
-        public async Task Test_Query_2()
+        public void Test_TupleKey_1()
         {
-            using (var db = await AdventureDb.Open())
+            (int ProductId, int BusinessEntityId) key = (1, 2);
+
+            var thing = new Purchasing_ProductVendor(false)
             {
-                var thing = await db.GetOne<Purchasing_ProductVendor>(p => p.BusinessEntityID > 0);
-                Assert.IsNotNull(thing);
+                BusinessEntityID = key.BusinessEntityId,
+                ProductID = key.ProductId
+            };
 
-                var key = thing.GetKey();
-                var key2 = (thing.ProductID, thing.BusinessEntityID);
-
-                Assert.AreEqual(key, key2);
-            }
+            var key2 = thing.GetKey();
+                
+            Assert.AreEqual(key, key2);            
         }
 
         [TestMethod]
