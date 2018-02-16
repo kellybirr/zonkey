@@ -10,11 +10,12 @@ namespace Zonkey.ObjectModel
     public abstract class DataClass<TKey> : DataClass, IKeyed, IKeyed<TKey>
         where TKey : struct
     {
-        private static readonly ConcurrentDictionary<int, Func<object, TKey>> _keyGetters;
+        private delegate TKey KeyGetter(object obj);
+        private static readonly ConcurrentDictionary<int, KeyGetter> _keyGetters;
 
         static DataClass()
         {
-            _keyGetters = new ConcurrentDictionary<int, Func<object, TKey>>();
+            _keyGetters = new ConcurrentDictionary<int, KeyGetter>();
         }
 
         protected DataClass(bool addingNew) : base(addingNew)
@@ -22,7 +23,7 @@ namespace Zonkey.ObjectModel
 
         public virtual TKey GetKey()
         {
-            Func<DataClass<TKey>, TKey> getter = _keyGetters.GetOrAdd(
+            KeyGetter getter = _keyGetters.GetOrAdd(
                 GetType().MetadataToken, 
                 t => BuildKeyGetter<TKey>( GetType() )
                 );
@@ -32,7 +33,7 @@ namespace Zonkey.ObjectModel
 
         object IKeyed.GetKey() => GetKey();        
 
-        private static Func<object, T> BuildKeyGetter<T>(Type type) where T : struct 
+        private static KeyGetter BuildKeyGetter<T>(Type type) where T : struct 
         {
             // get keys
             TypeInfo typeInfo = type.GetTypeInfo();
@@ -78,8 +79,8 @@ namespace Zonkey.ObjectModel
             generator.Emit(OpCodes.Ret);
 
             // build delegate & return
-            Delegate myFunc = method.CreateDelegate(typeof(Func<object, T>));
-            return (Func<object, T>) myFunc;
+            Delegate myFunc = method.CreateDelegate(typeof(KeyGetter));
+            return (KeyGetter) myFunc;
         }
     }
 }

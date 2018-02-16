@@ -49,10 +49,15 @@ namespace Zonkey.UnitTests
                 BusinessEntityID = key.BusinessEntityId,
                 ProductID = key.ProductId
             };
+            Assert.AreEqual(key, thing.GetKey());
 
-            var key2 = thing.GetKey();
-                
-            Assert.AreEqual(key, key2);            
+
+            var thing2 = new Purchasing_Vendor(false) { BusinessEntityID = 357 };
+            Assert.AreEqual(thing2.BusinessEntityID, thing2.GetKey());
+
+
+            var thing3 = new Person_Person(true) { BusinessEntityID = 44 };
+            Assert.AreEqual(thing3.BusinessEntityID, thing3.GetKey());
         }
 
         [TestMethod]
