@@ -114,7 +114,7 @@ namespace Zonkey.UnitTests.AdventureWorks.DataObjects
 
         #endregion
 
-        public override (int ProductID, int BusinessEntityID) GetKey() => (ProductID, BusinessEntityID);
+        //public override (int ProductID, int BusinessEntityID) GetKey() => (ProductID, BusinessEntityID);
     }
 
 }

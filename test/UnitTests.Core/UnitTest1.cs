@@ -34,6 +34,23 @@ namespace Zonkey.UnitTests
             {
                 Person_Person person = await db.GetOne<Person_Person>(p => p.BusinessEntityID == 1);
                 Assert.IsNotNull(person);
+
+                Assert.AreEqual(person.BusinessEntityID, person.GetKey());
+            }
+        }
+
+        [TestMethod]
+        public async Task Test_Query_2()
+        {
+            using (var db = await AdventureDb.Open())
+            {
+                var thing = await db.GetOne<Purchasing_ProductVendor>(p => p.BusinessEntityID > 0);
+                Assert.IsNotNull(thing);
+
+                var key = thing.GetKey();
+                var key2 = (thing.ProductID, thing.BusinessEntityID);
+
+                Assert.AreEqual(key, key2);
             }
         }
 
