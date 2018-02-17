@@ -63,7 +63,7 @@ namespace Zonkey.ObjectModel
 
                 string sFieldDescr = _dialect.FormatFieldName(field.FieldName, (field.UseQuotedIdentifier ?? UseQuotedIdentifier));
 
-                if ( field.IsKeyField
+                if ( field.IsKeyField || field.IsPartitionKey
                      || (criteria >= UpdateCriteria.ChangedFields)
                      || (field.IsRowVersion && (criteria == UpdateCriteria.KeyAndVersion))
                     )
@@ -108,7 +108,7 @@ namespace Zonkey.ObjectModel
             var keyString = new StringBuilder();
             var keyParmList = new List<DbParameter>();
 
-            foreach (IDataMapField field in _dataMap.KeyFields)
+            foreach (IDataMapField field in _dataMap.AllKeys)
             {
                 PropertyInfo pi = field.Property;
                 if (pi == null) continue;

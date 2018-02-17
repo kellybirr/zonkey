@@ -97,8 +97,8 @@ namespace Zonkey
                     throw new NotSupportedException("this fill method is not supported by FillRange");
             }
 
-            using (DbDataReader reader = await ExecuteReaderInternal(command, CommandBehavior.SingleResult))
-                return await PopulateCollection(collection, reader);                
+            using (DbDataReader reader = await ExecuteReaderInternal(command, CommandBehavior.SingleResult).ConfigureAwait(false))
+                return await PopulateCollection(collection, reader);
         }
 
 

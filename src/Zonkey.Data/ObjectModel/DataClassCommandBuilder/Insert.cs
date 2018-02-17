@@ -70,7 +70,7 @@ namespace Zonkey.ObjectModel
                     continue;
                 }
                 
-                if (field.IsKeyField)
+                if (field.IsKeyField || field.IsPartitionKey)
                 {
                     DbParameter whereParam = CreateWhereParam(command1, field);
                     if (whereString.Length > 0) whereString.Append(" AND ");

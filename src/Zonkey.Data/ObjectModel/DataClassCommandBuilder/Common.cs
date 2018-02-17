@@ -136,7 +136,7 @@ namespace Zonkey.ObjectModel
         private string BuildWhereClauseFromKeys(DbCommand command)
         {
             var whereString = new StringBuilder();
-            foreach (IDataMapField field in _dataMap.KeyFields)
+            foreach (IDataMapField field in _dataMap.AllKeys)
             {
                 DbParameter whereParam = CreateWhereParam(command, field);
 

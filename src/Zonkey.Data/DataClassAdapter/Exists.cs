@@ -74,7 +74,7 @@ namespace Zonkey
                     throw new NotSupportedException("this fill method is not supported by Exists");
             }
 
-            object result = await ExecuteScalerInternal(command);
+            object result = await ExecuteScalerInternal(command).ConfigureAwait(false);
             return ((result as int?) == 1);
         }
     }

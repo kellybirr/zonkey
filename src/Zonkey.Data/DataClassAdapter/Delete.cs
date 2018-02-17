@@ -28,7 +28,7 @@ namespace Zonkey
                 if (result.Parameters != null)
                     DataManager.AddParamsToCommand(command, SqlDialect, result.Parameters);
 
-                return await ExecuteNonQueryInternal(command);
+                return await ExecuteNonQueryInternal(command).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -52,7 +52,7 @@ namespace Zonkey
             try
             {
                 DbCommand command = CommandBuilder.GetDeleteCommand(filters);
-                return await ExecuteNonQueryInternal(command);
+                return await ExecuteNonQueryInternal(command).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -90,7 +90,7 @@ namespace Zonkey
                 if (parameters != null)
                     DataManager.AddParamsToCommand(command, SqlDialect, parameters);
 
-                return await ExecuteNonQueryInternal(command);
+                return await ExecuteNonQueryInternal(command).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -111,7 +111,7 @@ namespace Zonkey
                 throw new InvalidOperationException("must set connection before calling DeleteItem()");
 
             var keyValues = new List<object>();
-            foreach (IDataMapField field in DataMap.KeyFields)
+            foreach (IDataMapField field in DataMap.AllKeys)
                 keyValues.Add(field.Property.GetValue(obj, null));
 
             DbCommand deleteItemCommand = CommandBuilder.DeleteItemCommand;
@@ -120,7 +120,7 @@ namespace Zonkey
 
             try
             {
-                int result = await ExecuteNonQueryInternal(deleteItemCommand);
+                int result = await ExecuteNonQueryInternal(deleteItemCommand).ConfigureAwait(false);
                 return (result == 1);
             }
             catch (Exception ex)

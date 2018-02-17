@@ -34,7 +34,30 @@ namespace Zonkey.UnitTests
             {
                 Person_Person person = await db.GetOne<Person_Person>(p => p.BusinessEntityID == 1);
                 Assert.IsNotNull(person);
+
+                Assert.AreEqual(person.BusinessEntityID, person.GetKey());
             }
+        }
+
+        [TestMethod]
+        public void Test_TupleKey_1()
+        {
+            (int ProductId, int BusinessEntityId) key = (1, 2);
+
+            var thing = new Purchasing_ProductVendor(false)
+            {
+                BusinessEntityID = key.BusinessEntityId,
+                ProductID = key.ProductId
+            };
+            Assert.AreEqual(key, thing.GetKey());
+
+
+            var thing2 = new Purchasing_Vendor(false) { BusinessEntityID = 357 };
+            Assert.AreEqual(thing2.BusinessEntityID, thing2.GetKey());
+
+
+            var thing3 = new Person_Person(true) { BusinessEntityID = 44 };
+            Assert.AreEqual(thing3.BusinessEntityID, thing3.GetKey());
         }
 
         [TestMethod]

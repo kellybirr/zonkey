@@ -5,7 +5,7 @@ using Zonkey.ObjectModel;
 namespace Zonkey.UnitTests.AdventureWorks.DataObjects
 {
 	[DataItem("Vendor", SchemaName = "Purchasing")]
-	public class Purchasing_Vendor : DataClass
+	public class Purchasing_Vendor : DataClass<int>
 	{
 		#region Data Columns (Properties)
 

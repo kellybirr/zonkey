@@ -16,9 +16,8 @@ namespace Zonkey.ObjectModel
         private readonly Dictionary<int, IDataMapField> _propsToFields;
         private readonly Dictionary<string, IDataMapField> _dataFieldsDict;
         private readonly Dictionary<string, IDataMapField> _readableFieldsDict;
-        private readonly List<IDataMapField> _keyFields;
+        private readonly List<IDataMapField> _keyFields, _allKeys;
 
-        private readonly Type _objectType;
         private readonly TypeInfo _typeInfo;
 
         /// <summary>
@@ -27,7 +26,7 @@ namespace Zonkey.ObjectModel
         /// <param name="objectType">Type of the object.</param>
         public DataMap(Type objectType)
         {
-            _objectType = objectType;
+            ObjectType = objectType;
             _typeInfo = objectType.GetTypeInfo();
 
             var keyComparer = StringComparer.CurrentCultureIgnoreCase;
@@ -35,17 +34,16 @@ namespace Zonkey.ObjectModel
             _dataFieldsDict = new Dictionary<string, IDataMapField>(keyComparer);
 
             _propsToFields = new Dictionary<int, IDataMapField>();
+
             _keyFields = new List<IDataMapField>();
+            _allKeys = new List<IDataMapField>();
         }
 
         /// <summary>
         /// Gets or sets the type of the object.
         /// </summary>
         /// <value>The type of the object.</value>
-        public Type ObjectType
-        {
-            get { return _objectType; }
-        }
+        public Type ObjectType { get; }
 
         /// <summary>
         /// Gets the IDataMapItem for this instance
@@ -55,37 +53,31 @@ namespace Zonkey.ObjectModel
         /// <summary>
         /// Gets an IList of all fields
         /// </summary>
-        public ICollection<IDataMapField> DataFields
-        {
-            get { return _dataFieldsDict.Values; }
-        }
+        public ICollection<IDataMapField> DataFields => _dataFieldsDict.Values;
 
         /// <summary>
         /// Gets an IList of all fields
         /// </summary>
-        public ICollection<IDataMapField> ReadableFields
-        {
-            get { return _readableFieldsDict.Values; }
-        }
+        public ICollection<IDataMapField> ReadableFields => _readableFieldsDict.Values;
 
         /// <summary>
         /// Gets an IList of the key fields.
         /// </summary>
         /// <value>The key fields.</value>
-        public IList<IDataMapField> KeyFields
-        {
-            get { return _keyFields; }
-        }
+        public IList<IDataMapField> KeyFields => _keyFields;
+
+        /// <summary>
+        /// Gets an IList of the key fields and partition keys.
+        /// </summary>
+        /// <value>The key fields and partition keys.</value>
+        public IList<IDataMapField> AllKeys => _allKeys;
 
         /// <summary>
         /// Gets the data fields for the given field name
         /// </summary>
         /// <param name="fieldName">the field name</param>
         /// <returns>A <see cref="Zonkey.ObjectModel.IDataMapField"/> object.</returns>
-        public IDataMapField this[string fieldName]
-        {
-            get { return (_dataFieldsDict.ContainsKey(fieldName)) ? _dataFieldsDict[fieldName] : null; }
-        }
+        public IDataMapField this[string fieldName] => (_dataFieldsDict.ContainsKey(fieldName)) ? _dataFieldsDict[fieldName] : null;
 
         /// <summary>
         /// Gets the data field for a given property
@@ -490,9 +482,17 @@ namespace Zonkey.ObjectModel
             if (field.IsKeyField)
             {
                 if (_keyFields.Contains(field))
-                    throw new Exception(string.Format("Field '{0}' already exists in _keyFields", field));                        
+                    throw new Exception(string.Format("Field '{0}' already exists in KeyFields", field));                        
 
                 _keyFields.Add(field);
+                _allKeys.Add(field);
+            }
+            else if (field.IsPartitionKey)
+            {
+                if (_allKeys.Contains(field))
+                    throw new Exception(string.Format("Field '{0}' already exists in AllFields", field));
+
+                _allKeys.Add(field);
             }
 
             if (field.AccessType != AccessType.WriteOnly)
@@ -517,6 +517,7 @@ namespace Zonkey.ObjectModel
             _propsToFields.Remove(field.Property.MetadataToken);
 
             if (field.IsKeyField) _keyFields.Remove(field);
+            if (field.IsKeyField || field.IsPartitionKey) _allKeys.Remove(field);
 
             if (field.AccessType != AccessType.WriteOnly)
                 _readableFieldsDict.Remove(field.FieldName);

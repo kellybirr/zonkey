@@ -43,7 +43,7 @@ namespace Zonkey
             XmlElement xRoot = xDoc.CreateElement(rootName);
             xDoc.AppendChild(xRoot);
 
-            await FillXmlNode(xRoot, nodeName, sqlText, isProc, parameters);
+            await FillXmlNode(xRoot, nodeName, sqlText, isProc, parameters).ConfigureAwait(false);
             return xDoc;
         }
 
@@ -62,7 +62,7 @@ namespace Zonkey
             if (rootNode == null) throw new ArgumentNullException(nameof(rootNode));
 
             DbCommand command = PrepareCommand(sqlText, isProc, parameters);
-            using (DbDataReader reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult))
+            using (DbDataReader reader = await command.ExecuteReaderAsync(CommandBehavior.SingleResult).ConfigureAwait(false))
             {
                 int count = 0;
                 while (await reader.ReadAsync())

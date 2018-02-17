@@ -5,7 +5,7 @@ using Zonkey.ObjectModel;
 namespace Zonkey.UnitTests.SqlServer
 {
     [DataItem("sysobjects", AccessType = AccessType.ReadOnly)]
-    internal class SysObject : DataClass
+    internal class SysObject : DataClass<int>
     {
         #region Data Columns (Properties)
 

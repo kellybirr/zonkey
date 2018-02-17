@@ -110,10 +110,10 @@ namespace Zonkey.ObjectModel
         /// <typeparam name="Tdc">The type of the dc.</typeparam>
         /// <param name="expression">The filter expression.</param>
         /// <returns></returns>
-        public virtual async Task<Tdc> GetOne<Tdc>(Expression<Func<Tdc, bool>> expression)
+        public virtual Task<Tdc> GetOne<Tdc>(Expression<Func<Tdc, bool>> expression)
             where Tdc : class, new()
         {
-            return await Adapter<Tdc>().GetOne(expression);
+            return Adapter<Tdc>().GetOne(expression);
         }
 
         /// <summary>
@@ -122,10 +122,10 @@ namespace Zonkey.ObjectModel
         /// <typeparam name="Tdc">The type of the dc.</typeparam>
         /// <param name="expression">The filter expression.</param>
         /// <returns></returns>
-        public virtual async Task<DataClassReader<Tdc>> OpenReader<Tdc>(Expression<Func<Tdc, bool>> expression)
+        public virtual Task<DataClassReader<Tdc>> OpenReader<Tdc>(Expression<Func<Tdc, bool>> expression)
             where Tdc : class, new()
         {
-            return await Adapter<Tdc>().OpenReader(expression);
+            return Adapter<Tdc>().OpenReader(expression);
         }
 
         /// <summary>
@@ -134,10 +134,10 @@ namespace Zonkey.ObjectModel
         /// <typeparam name="Tdc">The type of the dc.</typeparam>
         /// <param name="obj">The obj.</param>
         /// <returns></returns>
-        public virtual async Task<bool> Save<Tdc>(Tdc obj)
+        public virtual Task<bool> Save<Tdc>(Tdc obj)
             where Tdc : class, ISavable, new()
         {
-            return await Adapter<Tdc>().Save(obj);
+            return Adapter<Tdc>().Save(obj);
         }
 
         /// <summary>
@@ -147,10 +147,10 @@ namespace Zonkey.ObjectModel
         /// <param name="obj">The obj.</param>
         /// <param name="updateCriteria">The update criteria</param>
         /// <returns></returns>
-        public virtual async Task<bool> Save<Tdc>(Tdc obj, UpdateCriteria updateCriteria)
+        public virtual Task<bool> Save<Tdc>(Tdc obj, UpdateCriteria updateCriteria)
             where Tdc : class, ISavable, new()
         {
-            return await Adapter<Tdc>().Save(obj, updateCriteria);
+            return Adapter<Tdc>().Save(obj, updateCriteria);
         }
 
         /// <summary>
@@ -162,10 +162,10 @@ namespace Zonkey.ObjectModel
         /// <param name="updateAffect">Affect which fields</param>
         /// <param name="selectBack">Select what back</param>
         /// <returns></returns>
-        public virtual async Task<bool> Save<Tdc>(Tdc obj, UpdateCriteria updateCriteria, UpdateAffect updateAffect, SelectBack selectBack)
+        public virtual Task<bool> Save<Tdc>(Tdc obj, UpdateCriteria updateCriteria, UpdateAffect updateAffect, SelectBack selectBack)
             where Tdc : class, ISavable, new()
         {
-            return await Adapter<Tdc>().Save(obj, updateCriteria, updateAffect, selectBack);
+            return Adapter<Tdc>().Save(obj, updateCriteria, updateAffect, selectBack);
         }
 
         /// <summary>

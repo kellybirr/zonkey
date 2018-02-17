@@ -165,11 +165,16 @@ namespace Zonkey.ObjectModel
         /// <returns></returns>
         public async Task<T> ReadAsync()
         {
+            return await ReadAsyncInternal().ConfigureAwait(false);
+        }
+
+        internal async Task<T> ReadAsyncInternal()
+        {
             if (await _reader.ReadAsync())
                 return ReadObjectInternal();
-            
-            if (! KeepOpen) Dispose();
-            return default(T);		    
+
+            if (!KeepOpen) Dispose();
+            return default(T);
         }
 
         private T ReadObjectInternal()
@@ -351,10 +356,15 @@ namespace Zonkey.ObjectModel
         /// <returns></returns>
         public async Task<int> FillAsync(ICollection<T> collection)
         {
+            return await FillAsyncInternal(collection).ConfigureAwait(false);
+        }
+
+        internal async Task<int> FillAsyncInternal(ICollection<T> collection)
+        {
             int nRecordCount = 0;
 
             T item;
-            while ((item = await ReadAsync()) != default(T))
+            while ((item = await ReadAsyncInternal()) != default(T))
             {
                 nRecordCount++;
 
@@ -364,6 +374,7 @@ namespace Zonkey.ObjectModel
 
             return nRecordCount;
         }
+
 
         /// <summary>
         /// Get a list containing the records from the reader
@@ -385,11 +396,20 @@ namespace Zonkey.ObjectModel
         /// </summary>
         /// <returns></returns>
         public async Task<List<T>> ToListAsync()
+        {            
+            return await ToListAsyncInternal().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Get a list containing the records from the reader
+        /// </summary>
+        /// <returns></returns>
+        internal async Task<List<T>> ToListAsyncInternal()
         {
             var list = new List<T>();
 
             T item;
-            while ((item = await ReadAsync()) != default(T))
+            while ((item = await ReadAsyncInternal()) != default(T))
                 list.Add(item);
 
             return list;
@@ -410,7 +430,7 @@ namespace Zonkey.ObjectModel
         /// <returns></returns>
         public async Task<T[]> ToArrayAsync()
         {
-            return (await ToListAsync()).ToArray();
+            return (await ToListAsyncInternal().ConfigureAwait(false)).ToArray();
         }
  
 

@@ -11,28 +11,28 @@ namespace Zonkey.Extensions
         public static async Task<List<T>> GetList<T>(this DataClassAdapter<T> adapter, Expression<Func<T, bool>> filterExpression) 
             where T : class 
         {
-            using (var reader = await adapter.OpenReader(filterExpression))
+            using (var reader = await adapter.OpenReader(filterExpression).ConfigureAwait(false))
                 return await reader.ToListAsync();
         }
 
         public static async Task<List<T>> GetList<T>(this DataClassAdapter<T> adapter, string filter, params object[] parameters) 
             where T : class
         {
-            using (var reader = await adapter.OpenReader(filter, parameters))
+            using (var reader = await adapter.OpenReader(filter, parameters).ConfigureAwait(false))
                 return await reader.ToListAsync();
         }
 
         public static async Task<T[]> GetArray<T>(this DataClassAdapter<T> adapter, Expression<Func<T, bool>> filterExpression) 
             where T : class
         {
-            using (var reader = await adapter.OpenReader(filterExpression))
+            using (var reader = await adapter.OpenReader(filterExpression).ConfigureAwait(false))
                 return await reader.ToArrayAsync();
         }
 
         public static async Task<T[]> GetArray<T>(this DataClassAdapter<T> adapter, string filter, params object[] parameters)
             where T : class
         {
-            using (var reader = await adapter.OpenReader(filter, parameters))
+            using (var reader = await adapter.OpenReader(filter, parameters).ConfigureAwait(false))
                 return await reader.ToArrayAsync();
         }
     }

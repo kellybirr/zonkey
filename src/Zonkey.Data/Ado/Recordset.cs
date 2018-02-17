@@ -90,7 +90,7 @@ namespace Zonkey.Ado
 
             // open connection if necessary
             if (Connection.State != ConnectionState.Open)
-                await Connection.OpenAsync();
+                await Connection.OpenAsync().ConfigureAwait(false);
 
             // save last query
             _lastQuery = new QueryInfo {Sql = sql, CommandType = commandType, Parameters = parameters};
@@ -98,7 +98,7 @@ namespace Zonkey.Ado
             // query for data
             _dt = new DataTable();
             var dm = new AdoDataManager(Connection);
-            await dm.FillDataTable(_dt, sql, commandType, parameters);
+            await dm.FillDataTable(_dt, sql, commandType, parameters).ConfigureAwait(false);
 
             // reset to first position
             Position = 0;

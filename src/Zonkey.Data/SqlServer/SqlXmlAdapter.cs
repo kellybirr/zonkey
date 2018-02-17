@@ -45,7 +45,7 @@ namespace Zonkey.SqlServer
             XmlElement xRoot = xDoc.CreateElement(rootName);
             xDoc.AppendChild(xRoot);
 
-            await FillXmlNode(xRoot, sqlText, isProc, parameters);
+            await FillXmlNode(xRoot, sqlText, isProc, parameters).ConfigureAwait(false);
             return xDoc;
         }
 
@@ -63,7 +63,7 @@ namespace Zonkey.SqlServer
             if (rootNode == null) throw new ArgumentNullException(nameof(rootNode));
 
             var command = (SqlCommand)PrepareCommand(sqlText, isProc, parameters);
-            using (XmlReader reader = await command.ExecuteXmlReaderAsync())
+            using (XmlReader reader = await command.ExecuteXmlReaderAsync().ConfigureAwait(false))
             {
                 int count = 0, depth = 0;
                 XmlElement lastElement = null;
@@ -109,7 +109,7 @@ namespace Zonkey.SqlServer
         public async Task<string> GetXmlString(string sqlText, bool isProc, params object[] parameters)
         {
             var command = (SqlCommand)PrepareCommand(sqlText, isProc, parameters);
-            using (SqlDataReader reader = await command.ExecuteReaderAsync())
+            using (SqlDataReader reader = await command.ExecuteReaderAsync().ConfigureAwait(false))
             {
                 var sb = new StringBuilder();
                 while (await reader.ReadAsync())

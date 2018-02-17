@@ -26,7 +26,7 @@ namespace Zonkey.Ado
         /// <returns>A Populated DataSet</returns>
         public async Task<DataSet> GetDataSet(string sql, CommandType commandType, params object[] parameters)
         {
-            using (DbDataReader reader = await GetDataReader(sql, commandType, parameters))
+            using (DbDataReader reader = await GetDataReader(sql, commandType, parameters).ConfigureAwait(false))
             {
                 DataSet ds = new DataSet { Locale = CultureInfo.InvariantCulture };
 
@@ -56,7 +56,7 @@ namespace Zonkey.Ado
             if (dt == null)
                 throw new ArgumentNullException(nameof(dt));
 
-            using (DbDataReader reader = await GetDataReader(sql, commandType, parameters))
+            using (DbDataReader reader = await GetDataReader(sql, commandType, parameters).ConfigureAwait(false))
                 dt.Load(reader, LoadOption.OverwriteChanges);
         }
 
