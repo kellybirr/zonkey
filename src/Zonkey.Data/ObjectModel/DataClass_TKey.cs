@@ -8,7 +8,6 @@ using System.Reflection.Emit;
 namespace Zonkey.ObjectModel
 {
     public abstract class DataClass<TKey> : DataClass, IKeyed, IKeyed<TKey>
-        where TKey : struct
     {
         private delegate TKey KeyGetter(object obj);
         private static readonly ConcurrentDictionary<int, KeyGetter> _keyGetters;
@@ -33,7 +32,7 @@ namespace Zonkey.ObjectModel
 
         object IKeyed.GetKey() => GetKey();        
 
-        private static KeyGetter BuildKeyGetter<T>(Type type) where T : struct 
+        private static KeyGetter BuildKeyGetter<T>(Type type)
         {
             // get keys
             TypeInfo typeInfo = type.GetTypeInfo();

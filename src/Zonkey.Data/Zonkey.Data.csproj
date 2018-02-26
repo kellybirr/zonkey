@@ -7,8 +7,8 @@
     <AssemblyOriginatorKeyFile>Zonkey.Data.snk</AssemblyOriginatorKeyFile>
     <DelaySign>False</DelaySign>
     <Version>5.1.0</Version>
-    <AssemblyVersion>5.1.0.1030</AssemblyVersion>
-    <FileVersion>5.1.0.1030</FileVersion>
+    <AssemblyVersion>5.1.0.1040</AssemblyVersion>
+    <FileVersion>5.1.0.1040</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

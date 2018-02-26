@@ -242,7 +242,7 @@ namespace Zonkey.ObjectModel
     /// <summary>
     /// Provides an interface that gets the key of a data object, with type safety
     /// </summary>
-    public interface IKeyed<out TKey> where TKey : struct
+    public interface IKeyed<out TKey>
     {
         /// <summary>
         /// Get the Key for the data object
