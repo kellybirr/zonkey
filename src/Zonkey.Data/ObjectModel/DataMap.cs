@@ -13,7 +13,9 @@ namespace Zonkey.ObjectModel
     {
         private static readonly Dictionary<string, DataMap> _mapCache = new Dictionary<string, DataMap>();
 
-        private readonly Dictionary<int, IDataMapField> _propsToFields;
+        private readonly Dictionary<int, IDataMapField> _propsToFieldsToken;
+        private readonly Dictionary<string, IDataMapField> _propsToFieldsName;
+
         private readonly Dictionary<string, IDataMapField> _dataFieldsDict;
         private readonly Dictionary<string, IDataMapField> _readableFieldsDict;
         private readonly List<IDataMapField> _keyFields, _allKeys;
@@ -33,7 +35,8 @@ namespace Zonkey.ObjectModel
             _readableFieldsDict = new Dictionary<string, IDataMapField>(keyComparer);
             _dataFieldsDict = new Dictionary<string, IDataMapField>(keyComparer);
 
-            _propsToFields = new Dictionary<int, IDataMapField>();
+            _propsToFieldsToken = new Dictionary<int, IDataMapField>();
+            _propsToFieldsName = new Dictionary<string, IDataMapField>();
 
             _keyFields = new List<IDataMapField>();
             _allKeys = new List<IDataMapField>();
@@ -86,7 +89,13 @@ namespace Zonkey.ObjectModel
         /// <returns>A <see cref="Zonkey.ObjectModel.IDataMapField"/> object.</returns>
         public IDataMapField GetFieldForProperty(PropertyInfo pi)
         {
-            return (_propsToFields.ContainsKey(pi.MetadataToken)) ? _propsToFields[pi.MetadataToken] : null;
+            if (_propsToFieldsToken.TryGetValue(pi.MetadataToken, out IDataMapField field))
+                return field;
+
+            if (_propsToFieldsName.TryGetValue(pi.Name, out field))
+                return field;
+
+            return null;
         }
 
         /// <summary>
@@ -472,17 +481,21 @@ namespace Zonkey.ObjectModel
         private void AppendField(IDataMapField field)
         {
             if (_dataFieldsDict.ContainsKey(field.FieldName))
-                throw new Exception(string.Format("Field '{0}' already exists in _dataFieldsDict", field.FieldName));                        
+                throw new Exception($"Field '{field.FieldName}' already exists in _dataFieldsDict");                        
             _dataFieldsDict.Add(field.FieldName, field);
 
-            if (_propsToFields.ContainsKey(field.Property.MetadataToken))
-                throw new Exception(string.Format("Property '{0}' already exists in _propsToFields", field.Property));                        
-            _propsToFields.Add(field.Property.MetadataToken, field);
+            if (_propsToFieldsToken.ContainsKey(field.Property.MetadataToken))
+                throw new Exception($"Property '{field.Property}' already exists in _propsToFieldsToken");                        
+            _propsToFieldsToken.Add(field.Property.MetadataToken, field);
+
+            if (_propsToFieldsName.ContainsKey(field.Property.Name))
+                throw new Exception($"Property '{field.Property}' already exists in _propsToFieldsName");
+            _propsToFieldsName.Add(field.Property.Name, field);
 
             if (field.IsKeyField)
             {
                 if (_keyFields.Contains(field))
-                    throw new Exception(string.Format("Field '{0}' already exists in KeyFields", field));                        
+                    throw new Exception($"Field '{field}' already exists in KeyFields");                        
 
                 _keyFields.Add(field);
                 _allKeys.Add(field);
@@ -490,7 +503,7 @@ namespace Zonkey.ObjectModel
             else if (field.IsPartitionKey)
             {
                 if (_allKeys.Contains(field))
-                    throw new Exception(string.Format("Field '{0}' already exists in AllFields", field));
+                    throw new Exception($"Field '{field}' already exists in AllFields");
 
                 _allKeys.Add(field);
             }
@@ -498,7 +511,7 @@ namespace Zonkey.ObjectModel
             if (field.AccessType != AccessType.WriteOnly)
             {
                 if (_readableFieldsDict.ContainsKey(field.FieldName))
-                    throw new Exception(string.Format("Field '{0}' already exists in _readableFieldsDict", field.FieldName));                        
+                    throw new Exception($"Field '{field.FieldName}' already exists in _readableFieldsDict");                        
 
                 _readableFieldsDict.Add(field.FieldName, field);
             }
@@ -514,7 +527,8 @@ namespace Zonkey.ObjectModel
             if (field == null) return;
 
             _dataFieldsDict.Remove(field.FieldName);
-            _propsToFields.Remove(field.Property.MetadataToken);
+            _propsToFieldsToken.Remove(field.Property.MetadataToken);
+            _propsToFieldsName.Remove(field.Property.Name);
 
             if (field.IsKeyField) _keyFields.Remove(field);
             if (field.IsKeyField || field.IsPartitionKey) _allKeys.Remove(field);
@@ -636,9 +650,8 @@ namespace Zonkey.ObjectModel
             if (keyFields == null)
                 keyFields = new[] { "-" };
 
-            DataMap map;    // try to return the object from the cache
             string sMapKey = String.Concat(type.FullName, "|", (tableName ?? "-"), "|", String.Join(",", keyFields), "|", schemaVersion);
-            if (_mapCache.TryGetValue(sMapKey, out map))
+            if (_mapCache.TryGetValue(sMapKey, out DataMap map))
                 return map;
 
             lock (_mapCache)
@@ -678,8 +691,13 @@ namespace Zonkey.ObjectModel
             // assign to data map
             map.DataItem = theDataItem;
 
+            // get property filter
+            BindingFlags flags = theDataItem.IncludePrivateProperties
+                ? BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+                : BindingFlags.Instance | BindingFlags.Public;
+
             // create fields from properties
-            foreach (var pi in type.GetTypeInfo().GetProperties())
+            foreach (var pi in type.GetTypeInfo().GetProperties(flags))
             {
                 IDataMapField field = DataFieldAttribute.GetFromProperty(pi);
 

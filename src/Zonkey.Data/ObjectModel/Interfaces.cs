@@ -110,6 +110,14 @@ namespace Zonkey.ObjectModel
         /// 	<c>true</c> if [implicit field definition]; otherwise, <c>false</c>.
         /// </value>
         bool ImplicitFieldDefinition { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether fields are private properties are included in the data map.
+        /// </summary>
+        /// <value>
+        /// 	<c>true</c> if [include private properties]; otherwise, <c>false</c>.
+        /// </value>
+        bool IncludePrivateProperties { get; set; }
     }
 
     /// <summary>
