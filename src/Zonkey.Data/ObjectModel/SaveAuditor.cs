@@ -137,7 +137,7 @@ namespace Zonkey.ObjectModel
         /// </summary>
         public SaveAudit()
         {
-            Keys = new List<SaveAuditProperty>();
+            Keys = new List<SaveAuditKey>();
             Properties = new List<SaveAuditProperty>();
         }
 
@@ -171,7 +171,7 @@ namespace Zonkey.ObjectModel
         /// <value>
         /// The keys.
         /// </value>
-        public IList<SaveAuditProperty> Keys { get; }
+        public IList<SaveAuditKey> Keys { get; }
 
         /// <summary>
         /// Gets or sets the properties.
