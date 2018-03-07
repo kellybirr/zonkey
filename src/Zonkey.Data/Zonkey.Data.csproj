@@ -6,9 +6,9 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>Zonkey.Data.snk</AssemblyOriginatorKeyFile>
     <DelaySign>False</DelaySign>
-    <Version>5.1.0</Version>
-    <AssemblyVersion>5.1.0.1050</AssemblyVersion>
-    <FileVersion>5.1.0.1050</FileVersion>
+    <Version>5.1.1</Version>
+    <AssemblyVersion>5.1.1.1060</AssemblyVersion>
+    <FileVersion>5.1.1.1060</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

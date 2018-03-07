@@ -53,7 +53,7 @@ namespace Zonkey.ObjectModel
         /// </summary>
         /// <typeparam name="T">The Type of the field</typeparam>
         /// <param name="fieldName">Exact Property name of the field</param>
-        /// <param name="fieldRef">A Refrence to the private field to hold the data</param>
+        /// <param name="fieldRef">A Reference to the private field to hold the data</param>
         /// <param name="value">The value to set the field to</param>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1045:DoNotPassTypesByReference", MessageId = "1#")]
         protected virtual void SetFieldValue<T>(ref T fieldRef, T value, [CallerMemberName] string fieldName = "")
