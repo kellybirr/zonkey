@@ -184,7 +184,7 @@ namespace Zonkey
         /// <param name="isProc">if set to <c>true</c> [is proc].</param>
         /// <param name="parameters">The parameters.</param>
         /// <returns>The number of rows affected.</returns>
-        public Task<int> ExecuteNonQuery(string sql, bool isProc, params object[] parameters)
+        public async Task<int> ExecuteNonQuery(string sql, bool isProc, params object[] parameters)
         {
             if (sql == null)
                 throw new ArgumentNullException(nameof(sql));
@@ -200,7 +200,7 @@ namespace Zonkey
                 if (parameters != null)
                     AddParamsToCommand(command, _dialect, parameters, _parameterPrefix);
 
-                return ExecuteNonQuery(command);
+                return await ExecuteNonQuery(command).ConfigureAwait(false);
             }
         }
 
@@ -251,7 +251,7 @@ namespace Zonkey
         /// <param name="isProc">if set to <c>true</c> [is proc].</param>
         /// <param name="parameters">The parameters.</param>
         /// <returns>The first column of the first row in the result set.</returns>
-        public Task<object> ExecuteScalar(string sql, bool isProc, params object[] parameters)
+        public async Task<object> ExecuteScalar(string sql, bool isProc, params object[] parameters)
         {
             if (sql == null)
                 throw new ArgumentNullException(nameof(sql));
@@ -267,7 +267,7 @@ namespace Zonkey
                 if (parameters != null)
                     AddParamsToCommand(command, _dialect, parameters, _parameterPrefix);
 
-                return ExecuteScalar(command);
+                return await ExecuteScalar(command).ConfigureAwait(false);
             }
         }
 

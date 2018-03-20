@@ -10,11 +10,11 @@ namespace Zonkey
 {
     public partial class DataClassAdapter<T>
     {
-        private Task<int> PopulateCollection(ICollection<T> collection, DbDataReader reader)
+        private async Task<int> PopulateCollection(ICollection<T> collection, DbDataReader reader)
         {
             // Get DataClassReader
-            using (var classReader = new DataClassReader<T>(reader, DataMap) {ObjectFactory = ObjectFactory})
-                return classReader.FillAsyncInternal(collection);
+            using (var classReader = new DataClassReader<T>(reader, DataMap) {ObjectFactory = ObjectFactory, KeepOpen = true})
+                return await classReader.FillAsyncInternal(collection);
         }
 
         private void PopulateSingleObject(T obj, IDataRecord record, bool skipDbNull)
