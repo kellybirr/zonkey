@@ -515,6 +515,8 @@ namespace Zonkey.ObjectModel
                 if (itemCount > 2100)
                     throw new ArgumentException("Attempted to call SqlIn(IEnumerable) where IEnumerable contained more than 2100 values, this is not supported by SQL.  Consider using SqlInInt or SqlInGuid or split the list first with SplitList() and do a looping fill");
             }
+            else if (op.Arguments[1].NodeType == ExpressionType.Call)
+                throw new NotSupportedException("Method calls in SqlIn() are not yet supported.  Get your Array/IEnumerable as a variable first, then pass the variable to SqlIn().");
 
             sb.Append("))");
             return sb.ToString();
