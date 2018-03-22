@@ -165,12 +165,7 @@ namespace Zonkey.ObjectModel
         /// <returns></returns>
         public async Task<T> ReadAsync()
         {
-            return await ReadAsyncInternal().ConfigureAwait(false);
-        }
-
-        internal async Task<T> ReadAsyncInternal()
-        {
-            if (await _reader.ReadAsync())
+            if (await _reader.ReadAsync().ConfigureAwait(false))
                 return ReadObjectInternal();
 
             if (!KeepOpen) Dispose();
@@ -290,8 +285,8 @@ namespace Zonkey.ObjectModel
 
             foreach (IDataMapField field in _dataMap.ReadableFields)
             {
-                int ordinal;
-                if (!readerFields.TryGetValue(field.FieldName, out ordinal)) continue;
+                if (!readerFields.TryGetValue(field.FieldName, out int ordinal))
+                    continue;
 
                 Type propType = field.Property.PropertyType;
                 TypeInfo propInfo = propType.GetTypeInfo();
@@ -338,13 +333,16 @@ namespace Zonkey.ObjectModel
 
             lock (collection)
             {
-                T item;
-                while ((item = Read()) != default(T))
+                while (_reader.Read())
                 {
+                    T item = ReadObjectInternal();
                     nRecordCount++;
+
                     collection.Add(item);
                 }
             }
+
+            if (!KeepOpen) Dispose();
 
             return nRecordCount;
         }
@@ -356,21 +354,19 @@ namespace Zonkey.ObjectModel
         /// <returns></returns>
         public async Task<int> FillAsync(ICollection<T> collection)
         {
-            return await FillAsyncInternal(collection).ConfigureAwait(false);
-        }
-
-        internal async Task<int> FillAsyncInternal(ICollection<T> collection)
-        {
             int nRecordCount = 0;
 
-            T item;
-            while ((item = await ReadAsyncInternal()) != default(T))
+            // TODO: Optimize This
+            while (await _reader.ReadAsync().ConfigureAwait(false))
             {
+                T item = ReadObjectInternal();
                 nRecordCount++;
 
                 lock (collection)
                     collection.Add(item);
             }
+
+            if (! KeepOpen) Dispose();
 
             return nRecordCount;
         }
@@ -384,9 +380,14 @@ namespace Zonkey.ObjectModel
         {
             var list = new List<T>();
 
-            T item;
-            while ((item = Read()) != default(T))
+            
+            while (_reader.Read())
+            {
+                T item = ReadObjectInternal();
                 list.Add(item);
+            }
+
+            if (!KeepOpen) Dispose();
 
             return list;
         }
@@ -397,20 +398,14 @@ namespace Zonkey.ObjectModel
         /// <returns></returns>
         public async Task<List<T>> ToListAsync()
         {            
-            return await ToListAsyncInternal().ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Get a list containing the records from the reader
-        /// </summary>
-        /// <returns></returns>
-        internal async Task<List<T>> ToListAsyncInternal()
-        {
             var list = new List<T>();
 
-            T item;
-            while ((item = await ReadAsyncInternal()) != default(T))
+            // TODO: Optimize This
+            while (await _reader.ReadAsync().ConfigureAwait(false))
+            {
+                T item = ReadObjectInternal();
                 list.Add(item);
+            }                
 
             return list;
         }
@@ -430,10 +425,9 @@ namespace Zonkey.ObjectModel
         /// <returns></returns>
         public async Task<T[]> ToArrayAsync()
         {
-            return (await ToListAsyncInternal().ConfigureAwait(false)).ToArray();
+            return (await ToListAsync().ConfigureAwait(false)).ToArray();
         }
  
-
         private void TestInterfaces()
         {
             _isSavable = (_typeInfo.GetInterface("ISavable", false) != null);

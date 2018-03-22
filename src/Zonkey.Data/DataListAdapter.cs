@@ -423,7 +423,7 @@ namespace Zonkey
         /// <returns>An instance of a DbCommand</returns>
         private DbCommand PrepareCommand(string sql, bool isProc, object[] parameters)
         {
-            if (sql == null)
+            if (string.IsNullOrWhiteSpace(sql))
                 throw new ArgumentNullException(nameof(sql));
 
             if (Connection == null)
@@ -435,8 +435,7 @@ namespace Zonkey
 
             if (parameters != null)
             {
-                var filters = parameters as SqlFilter[];
-                if ( (filters != null) && (! isProc) && (! sql.ToLower().Contains(" where ")) )
+                if ( (parameters is SqlFilter[] filters) && (! isProc) && (! sql.ToLower().Contains(" where ")) )
                 {
                     var sbFilter = new StringBuilder(" WHERE ");
                     for (var i = 0; i < filters.Length; i++)

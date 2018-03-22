@@ -94,7 +94,7 @@ namespace Zonkey
             }
 
             // execute insert command
-            await ExecuteNonQueryInternal(_bulkUpdateCommand);
+            await ExecuteNonQueryInternal(_bulkUpdateCommand).ConfigureAwait(false);
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Zonkey
         {
             // Get DataClassReader
             using (var classReader = new DataClassReader<T>(reader, DataMap) {ObjectFactory = ObjectFactory, KeepOpen = true})
-                return await classReader.FillAsyncInternal(collection);
+                return await classReader.FillAsync(collection).ConfigureAwait(false);
         }
 
         private void PopulateSingleObject(T obj, IDataRecord record, bool skipDbNull)
