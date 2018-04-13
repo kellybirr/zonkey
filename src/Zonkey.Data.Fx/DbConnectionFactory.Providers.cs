@@ -18,7 +18,7 @@ namespace Zonkey
                 foreach (ConnectionStringSettings connectionString in ConfigurationManager.ConnectionStrings)
                 {
                     if (string.IsNullOrWhiteSpace(connectionString.ProviderName))
-                        throw new ConfigurationErrorsException($"ConnectionString `{connectionString.Name}` does not specify a providerName");
+                      continue;
 
                     // Use DbProviderFactory to get actual connection
                     DbProviderFactory providerFactory = DbProviderFactories.GetFactory(connectionString.ProviderName);
