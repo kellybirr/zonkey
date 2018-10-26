@@ -119,21 +119,18 @@ namespace Zonkey.UnitTests
         }
 #endif
 
-#if (fasle)
         [TestMethod]
         public void Join_Test()
         {
-            Expression<Func<SysObject, Contact1, ContactDC, bool>> exp =
-                ((s, c1, cd) => s.name.Contains(c1.Name) && c1.Email == cd.Email2);
+            Expression<Func<Sales_SalesOrderHeader, Sales_SalesOrderDetail, Sales_SalesReason, bool>> exp =
+                ((h, d, r) => h.SalesOrderID == d.SalesOrderID && h.Comment.Contains(r.Name));
 
             var parser = new ObjectModel.WhereExpressionParser();
             var result = parser.Parse(exp);
 
-            Assert.AreEqual("((sysobjects.name Like ('%'+Contact.Name+'%')) AND (Contact.Email = Contacts.Email2))", result.SqlText);
+            Assert.AreEqual("((SalesOrderHeader.SalesOrderID = SalesOrderDetail.SalesOrderID) AND (SalesOrderHeader.Comment Like ('%'+SalesReason.Name+'%')))", result.SqlText);
             Assert.AreEqual(0, result.Parameters.Length);
-
         }
-#endif
 
         [TestMethod]
         public void Linq_SqlInGuid_Test_1()

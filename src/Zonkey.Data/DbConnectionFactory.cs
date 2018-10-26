@@ -37,7 +37,7 @@ namespace Zonkey
             {
                 Name = name,
                 Type = typeof(TConnection),
-                ConnecitonString = connectionString,
+                ConnectionString = connectionString,
                 UseSystemEnvironment = useSystemEnvironment
             };
         }
@@ -70,7 +70,7 @@ namespace Zonkey
             {
                 Name = name,
                 Type = type,
-                ConnecitonString = connectionString,
+                ConnectionString = connectionString,
                 UseSystemEnvironment = useSystemEnvironment
             };
         }
@@ -134,7 +134,7 @@ namespace Zonkey
     internal class DbConnectionType
     {
         internal string Name { get; set; }
-        internal string ConnecitonString { get; set; }
+        internal string ConnectionString { get; set; }
         internal Type Type { get; set; }
 
         internal bool UseSystemEnvironment { get; set; }
@@ -143,8 +143,8 @@ namespace Zonkey
         {
             var cnxn = (DbConnection) Activator.CreateInstance(Type);
             cnxn.ConnectionString = (UseSystemEnvironment)
-                ? EnvironmentHelper.ProcessString(ConnecitonString)
-                : ConnecitonString;
+                ? EnvironmentHelper.ProcessString(ConnectionString)
+                : ConnectionString;
 
             return cnxn;
         }
