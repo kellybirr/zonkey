@@ -17,7 +17,7 @@ namespace Zonkey.UnitTests.AdventureWorks
                     case "DILBERT7":
                         return "Server=(local);Database=AdventureWorks2014;Trusted_Connection=Yes;";
                     case "LKEC1799":
-                        return "Server=(local)\\SqlExpress;Database=AdventureWorks2014;Trusted_Connection=Yes;";
+                        return "Server=(local);Database=AdventureWorks2014;Trusted_Connection=Yes;";
                     default:
                         throw new Exception("Unknown Dev/Test Machine");
                 }

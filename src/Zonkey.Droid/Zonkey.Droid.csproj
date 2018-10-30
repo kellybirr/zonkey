@@ -95,11 +95,8 @@
     <Compile Include="..\Zonkey.Data\DataClassAdapter\GetCount.cs">
       <Link>DataClassAdapter\GetCount.cs</Link>
     </Compile>
-    <Compile Include="..\Zonkey.Data\DataClassAdapter\GetSingleItem.cs">
-      <Link>DataClassAdapter\GetSingleItem.cs</Link>
-    </Compile>
-    <Compile Include="..\Zonkey.Data\DataClassAdapter\InnerJoin.cs">
-      <Link>DataClassAdapter\InnerJoin.cs</Link>
+    <Compile Include="..\Zonkey.Data\DataClassAdapter\GetOne.cs">
+      <Link>DataClassAdapter\GetOne.cs</Link>
     </Compile>
     <Compile Include="..\Zonkey.Data\DataClassAdapter\OpenReader.cs">
       <Link>DataClassAdapter\OpenReader.cs</Link>
@@ -232,6 +229,9 @@
     </Compile>
     <Compile Include="..\Zonkey.Data\ObjectModel\DataItemAttribute.cs">
       <Link>ObjectModel\DataItemAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\DataJoin.cs">
+      <Link>ObjectModel\DataJoin.cs</Link>
     </Compile>
     <Compile Include="..\Zonkey.Data\ObjectModel\DataMap.cs">
       <Link>ObjectModel\DataMap.cs</Link>

@@ -299,7 +299,7 @@ namespace Zonkey.ObjectModel
 					}
 
 					if (columnsSb.Length == 0)
-						throw new InvalidOperationException(String.Format("Class '{0}' does not contain any properties with DataFieldAttribute(s) or all fields are WriteOnly.", _dataObjectType.FullName));
+						throw new InvalidOperationException($"Class '{_dataObjectType.FullName}' does not contain any properties with DataFieldAttribute(s) or all fields are WriteOnly.");
 
 					_builtColumnsStr = columnsSb.ToString();
 				}

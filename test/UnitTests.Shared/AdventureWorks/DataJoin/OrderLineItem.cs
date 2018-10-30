@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Linq.Expressions;
+using Zonkey.Extensions;
 using Zonkey.ObjectModel;
 using Zonkey.UnitTests.AdventureWorks.DataObjects;
 
@@ -113,19 +114,12 @@ namespace Zonkey.UnitTests.Shared.AdventureWorks.DataJoin
 
         #endregion
 
-        class OrderLineJoin : JoinDefinition
-        {
-            public OrderLineJoin()
-            {
-                JoinTypes.Add(typeof(Sales_SalesOrderDetail));
-                JoinTypes.Add(typeof(Production_Product));
-
-                // join logic
-                Expression<Func<Sales_SalesOrderDetail, Production_Product, bool>> joinExpr = 
-                    (d, p) => d.ProductID == p.ProductID;
-
-                JoinExpression = joinExpr;
-            }
+        class OrderLineJoin : JoinDefinition<
+            Sales_SalesOrderDetail, 
+            Production_Product
+        > {
+            public override Expression<Func<Sales_SalesOrderDetail, Production_Product, bool>> JoinFunc 
+                => (d, p) => d.ProductID == p.ProductID;
         }
     }
 }

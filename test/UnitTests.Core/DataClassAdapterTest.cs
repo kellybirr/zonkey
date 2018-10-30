@@ -27,13 +27,15 @@ namespace Zonkey.UnitTests
         {
             using (var db = await AdventureDb.Open())
             {
-                var lineItem = await db.GetOne<OrderLineItem>(d => d.SalesOrderID == 43659);
+                var adapter = db.Adapter<OrderLineItem>();
+                adapter.BeforeExecuteCommand += (sender, args) => Console.WriteLine(args.Command.CommandText);
+
+                var lineItem = await adapter.GetOne(d => d.SalesOrderID == 43659);
                 Assert.IsNotNull(lineItem);
 
                 Assert.AreEqual(lineItem.SalesOrderDetailID, lineItem.GetKey());
             }
         }
-
 
 #if (false)
         [TestMethod]
