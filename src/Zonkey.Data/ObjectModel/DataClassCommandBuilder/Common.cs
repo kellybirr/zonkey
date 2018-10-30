@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -50,6 +51,9 @@ namespace Zonkey.ObjectModel
             _dataObjectType = type;
             _dataObjectInfo = type.GetTypeInfo();
             _dataMap = map;
+
+            if (_dataMap.JoinDefinition != null)
+                UseTableWithFieldNames = true;
         }
 
         /// <summary>
@@ -180,9 +184,22 @@ namespace Zonkey.ObjectModel
         {
             get
             {
-                return (NoLock && _dialect.SupportsNoLock)
-                        ? TableName + " WITH (NOLOCK)"
-                        : TableName;
+                bool noLock = (NoLock && _dialect.SupportsNoLock);
+
+                if (_dataMap.JoinDefinition != null)
+                {
+                    string[] tableNames = (
+                        from dt in _dataMap.JoinDefinition.JoinTypes
+                        let dia = DataItemAttribute.GetFromType(dt)
+                        let useQuoted = (dia.UseQuotedIdentifier ?? UseQuotedIdentifier)
+                        let tblName = _dialect.FormatTableName(dia.TableName, dia.SchemaName, useQuoted)
+                        select (noLock) ? tblName + " WITH (NOLOCK)" : tblName
+                    ).ToArray();
+
+                    return string.Join(", ", tableNames);
+                }
+
+                return (noLock) ? TableName + " WITH (NOLOCK)" : TableName;
             }
         }
 

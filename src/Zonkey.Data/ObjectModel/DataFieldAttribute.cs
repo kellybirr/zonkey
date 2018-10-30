@@ -144,6 +144,8 @@ namespace Zonkey.ObjectModel
         /// <inheritdoc />
         public bool IsPartitionKey { get; set; }
 
+        public Type SourceType { get; set; }
+
         /// <summary>
         /// Gets or sets the property info object.
         /// </summary>

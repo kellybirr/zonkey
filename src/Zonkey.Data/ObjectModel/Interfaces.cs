@@ -233,6 +233,8 @@ namespace Zonkey.ObjectModel
         /// This has no effect on fields marked as IsKeyField as they are always included.
         /// </summary>
         bool IsPartitionKey { get; set; }
+
+        Type SourceType { get; set; }
     }
 
     /// <summary>

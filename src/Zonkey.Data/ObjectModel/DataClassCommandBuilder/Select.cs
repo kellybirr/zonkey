@@ -50,7 +50,17 @@ namespace Zonkey.ObjectModel
 			var commandText = new StringBuilder();
 			commandText.AppendFormat("SELECT {0} FROM {1}", ColumnsString, SelectTableName);
 
-			if (! string.IsNullOrEmpty(filter))
+		    if (_dataMap.JoinDefinition != null)
+		    {
+                var joinParser = new WhereExpressionParser(new[] { _dataMap }) { SqlDialect = _dialect };
+		        SqlWhereClause joinClause = joinParser.Parse(_dataMap.JoinDefinition.JoinExpression);
+
+		        commandText.AppendFormat(" WHERE {0}", joinClause.SqlText);
+
+		        if (!string.IsNullOrEmpty(filter))
+		            commandText.AppendFormat(" AND {0}", filter);
+            }
+		    else if (! string.IsNullOrEmpty(filter))
 				commandText.AppendFormat(" WHERE {0}", filter);
 
 			if ( (! string.IsNullOrEmpty(sort)) && (string.IsNullOrEmpty(filter) || (! filter.ToUpper().Contains("ORDER BY"))))
@@ -266,7 +276,24 @@ namespace Zonkey.ObjectModel
 					{
 						if (columnsSb.Length > 0) columnsSb.Append(", ");
 
-						if (_useTableWithFieldNames) columnsSb.Append(TableName + ".");
+					    if (field.SourceType != null)
+					    {
+					        IDataMapItem fieldDataItem = DataItemAttribute.GetFromType(field.SourceType);
+					        if (fieldDataItem != null)
+					        {
+                                string fieldTableName = _dialect.FormatTableName(
+					                    fieldDataItem.TableName,
+					                    fieldDataItem.SchemaName,
+					                    (fieldDataItem.UseQuotedIdentifier ?? UseQuotedIdentifier)
+					                );
+
+                                columnsSb.Append(fieldTableName + ".");
+                            }
+					    }
+                        else if (_useTableWithFieldNames)
+					    {
+					        columnsSb.Append(TableName + ".");
+					    }
 
 						columnsSb.Append(_dialect.FormatFieldName(field.FieldName, (field.UseQuotedIdentifier ?? UseQuotedIdentifier)));
 					}

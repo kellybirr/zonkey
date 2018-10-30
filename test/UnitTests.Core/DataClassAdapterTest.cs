@@ -4,14 +4,37 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Globalization;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zonkey.ObjectModel;
+using Zonkey.UnitTests.AdventureWorks;
+using Zonkey.UnitTests.AdventureWorks.DataObjects;
+using Zonkey.UnitTests.Shared.AdventureWorks.DataJoin;
 
 namespace Zonkey.UnitTests
 {
-    [TestClass, Ignore]
+    [TestClass]
     public class DataClassAdapterTest
     {
+        [ClassInitialize]
+        public static void Initialize(TestContext context)
+        {
+            DbConnectionFactory.Register<SqlConnection>(AdventureDb.Name, AdventureDb.ConnectionString);
+        }
+
+        [TestMethod]
+        public async Task Join_Test_1()
+        {
+            using (var db = await AdventureDb.Open())
+            {
+                var lineItem = await db.GetOne<OrderLineItem>(d => d.SalesOrderID == 43659);
+                Assert.IsNotNull(lineItem);
+
+                Assert.AreEqual(lineItem.SalesOrderDetailID, lineItem.GetKey());
+            }
+        }
+
+
 #if (false)
         [TestMethod]
         public void FillRange_Test_String()

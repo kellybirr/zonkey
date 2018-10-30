@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Data;
 using System.Reflection;
+using System.Text;
 
 namespace Zonkey.ObjectModel
 {
@@ -74,6 +75,8 @@ namespace Zonkey.ObjectModel
         /// </summary>
         /// <value>The key fields and partition keys.</value>
         public IList<IDataMapField> AllKeys => _allKeys;
+
+        public JoinDefinition JoinDefinition { get; set; }
 
         /// <summary>
         /// Gets the data fields for the given field name
@@ -678,11 +681,28 @@ namespace Zonkey.ObjectModel
 
             var map = new DataMap(type);
 
-            // get or create data item
-            IDataMapItem theDataItem = DataItemAttribute.GetFromType(type);
+            IDataMapItem theDataItem;
+
+            // check if Join
+            var theDataJoin = DataJoinAttribute.GetFromType(type);
+            if (theDataJoin != null)
+            {
+                // get the join definition
+                var joinDef = (JoinDefinition)Activator.CreateInstance(theDataJoin.JoinDefinition);
+                map.JoinDefinition = joinDef;
+
+                // get or create data item from join table 0
+                theDataItem = DataItemAttribute.GetFromType(joinDef.JoinTypes[0]);
+            }
+            else
+            {
+                // get or create data item
+                theDataItem = DataItemAttribute.GetFromType(type);
+            }
+
             if (theDataItem != null)
             {
-                if (!string.IsNullOrEmpty(tableName))
+                if (! string.IsNullOrEmpty(tableName))
                     theDataItem.TableName = tableName;
             }
             else

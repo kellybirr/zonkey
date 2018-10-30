@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\AdventureDb.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataJoin\OrderLineItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\ErrorLog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\HumanResources_Department.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AdventureWorks\DataObjects\HumanResources_Employee.cs" />

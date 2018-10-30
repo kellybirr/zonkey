@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using Zonkey.Dialects;
@@ -17,7 +18,11 @@ namespace Zonkey.ObjectModel
         public WhereExpressionParser(DataMap map) : this(map, null)
         { }
 
-        public WhereExpressionParser(DataMap map, SqlDialect dialect) : base(new[] { map })
+        public WhereExpressionParser(DataMap map, SqlDialect dialect) 
+            : this( new[] { map }, dialect )
+        { }
+
+        public WhereExpressionParser(IEnumerable<DataMap> maps, SqlDialect dialect) : base(maps)
         {
             SqlDialect = dialect;
         }
@@ -62,6 +67,15 @@ namespace Zonkey.ObjectModel
         public WhereExpressionParser(IEnumerable<DataMap> maps)
         {
             _mapHints = maps;
+
+            foreach (DataMap map in _mapHints)
+            {
+                if (map.JoinDefinition != null)
+                {
+                    UseTableWithFieldNames = true;
+                    break;
+                }
+            }
 
             AnsiNullCompensation = true;
             ParameterizeLiterals = true;
