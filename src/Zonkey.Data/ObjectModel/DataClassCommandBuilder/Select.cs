@@ -48,7 +48,7 @@ namespace Zonkey.ObjectModel
 		public DbCommand GetSelectCommand(string filter, string sort)
 		{
 			var commandText = new StringBuilder();
-			commandText.AppendFormat("SELECT {0} FROM {1}", ColumnsString, SelectTableName);
+			commandText.AppendFormat("SELECT {0} FROM {1}", GetProjectionString(), SelectTableName);
 
 			if (! string.IsNullOrEmpty(filter))
 				commandText.AppendFormat(" WHERE {0}", filter);
@@ -281,6 +281,12 @@ namespace Zonkey.ObjectModel
 			}
 		}
 
-		private string _builtColumnsStr;		
+		private string _builtColumnsStr;
+
+	    private string GetProjectionString()
+	    {
+	        var projection = _projectionBuilder.FromDataMap(_dataMap);
+	        return _projectionParser.GetQueryString(projection);
+	    }
 	}
 }

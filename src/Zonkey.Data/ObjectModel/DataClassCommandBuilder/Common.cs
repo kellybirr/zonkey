@@ -3,6 +3,7 @@ using System.Data;
 using System.Data.Common;
 using System.Reflection;
 using System.Text;
+using Zonkey.ObjectModel.Projection;
 
 namespace Zonkey.ObjectModel
 {
@@ -11,6 +12,8 @@ namespace Zonkey.ObjectModel
     /// </summary>
     public partial class DataClassCommandBuilder
     {
+        private readonly IProjectionMapBuilder _projectionBuilder;
+        private readonly IProjectionParser _projectionParser;
         private readonly Type _dataObjectType;
         private readonly TypeInfo _dataObjectInfo;
         private readonly DataMap _dataMap;
@@ -50,6 +53,9 @@ namespace Zonkey.ObjectModel
             _dataObjectType = type;
             _dataObjectInfo = type.GetTypeInfo();
             _dataMap = map;
+
+            _projectionBuilder = new ProjectionMapBuilder();
+            _projectionParser = new ProjectionParser(_dialect);
         }
 
         /// <summary>

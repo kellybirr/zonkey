@@ -256,6 +256,27 @@
     <Compile Include="..\Zonkey.Data\ObjectModel\ListSorter.cs">
       <Link>ObjectModel\ListSorter.cs</Link>
     </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\Projection\IProjectionMapBuilder.cs">
+      <Link>ObjectModel\Projection\IProjectionMapBuilder.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\Projection\IProjectionParser.cs">
+      <Link>ObjectModel\Projection\IProjectionParser.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\Projection\ProjectionField.cs">
+      <Link>ObjectModel\Projection\ProjectionField.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\Projection\ProjectionMap.cs">
+      <Link>ObjectModel\Projection\ProjectionMap.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\Projection\ProjectionMapBuilder.cs">
+      <Link>ObjectModel\Projection\ProjectionMapBuilder.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\Projection\ProjectionParser.cs">
+      <Link>ObjectModel\Projection\ProjectionParser.cs</Link>
+    </Compile>
+    <Compile Include="..\Zonkey.Data\ObjectModel\Projection\SimpleProjectionField.cs">
+      <Link>ObjectModel\Projection\SimpleProjectionField.cs</Link>
+    </Compile>
     <Compile Include="..\Zonkey.Data\ObjectModel\PropertyComparer.cs">
       <Link>ObjectModel\PropertyComparer.cs</Link>
     </Compile>

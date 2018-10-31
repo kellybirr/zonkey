@@ -5,6 +5,7 @@ using System.Data.Common;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading.Tasks;
+using Zonkey.ObjectModel.Projection;
 
 namespace Zonkey.ObjectModel
 {
@@ -12,9 +13,10 @@ namespace Zonkey.ObjectModel
     /// A class that reads DCs from a DataReader
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class DataClassReader<T> : IEnumerable<T>, IDisposable where T : class 
+    public class DataClassReader<T> : IEnumerable<T>, IDisposable where T : class
     {
-        private readonly DataMap _dataMap;
+        private readonly IProjectionMapBuilder _projectionBuilder = new ProjectionMapBuilder();
+        private readonly ProjectionMap _projectionMap;
         private readonly DbDataReader _reader;
         private QuickFillInfo[] _fillInfo;
         //private Func<IDataRecord, T> _builder;
@@ -35,16 +37,8 @@ namespace Zonkey.ObjectModel
         /// </summary>
         /// <param name="reader">The reader.</param>
         public DataClassReader(DbDataReader reader)
-        {
-            _objectType = typeof(T);
-            _typeInfo = _objectType.GetTypeInfo();
-
-            _dataMap = DataMap.GenerateCached(_objectType);
-            _reader = reader;
-
-            DisposeBaseReader = true;
-            TestInterfaces();
-        }
+            : this(reader, DataMap.GenerateCached(typeof(T)), true)
+        { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DataClassReader&lt;T&gt;"/> class.
@@ -52,16 +46,8 @@ namespace Zonkey.ObjectModel
         /// <param name="reader">The reader.</param>
         /// <param name="disposeReader">if set to <c>true</c> [dispose reader].</param>
         public DataClassReader(DbDataReader reader, bool disposeReader)
-        {
-            _objectType = typeof(T);
-            _typeInfo = _objectType.GetTypeInfo();
-
-            _dataMap = DataMap.GenerateCached(_objectType);
-            _reader = reader;
-
-            DisposeBaseReader = disposeReader;
-            TestInterfaces();
-        }
+            : this(reader, DataMap.GenerateCached(typeof(T)), disposeReader)
+        { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DataClassReader&lt;T&gt;"/> class.
@@ -69,16 +55,8 @@ namespace Zonkey.ObjectModel
         /// <param name="reader">The reader.</param>
         /// <param name="map">The map.</param>
         public DataClassReader(DbDataReader reader, DataMap map)
-        {
-            _objectType = typeof(T);
-            _typeInfo = _objectType.GetTypeInfo();
-
-            _dataMap = map;
-            _reader = reader;
-
-            DisposeBaseReader = true;
-            TestInterfaces();
-        }
+            : this(reader, map, true)
+        { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DataClassReader&lt;T&gt;"/> class.
@@ -91,7 +69,7 @@ namespace Zonkey.ObjectModel
             _objectType = typeof(T);
             _typeInfo = _objectType.GetTypeInfo();
 
-            _dataMap = map;
+            _projectionMap = _projectionBuilder.FromDataMap(map);
             _reader = reader;
 
             DisposeBaseReader = disposeReader;
@@ -226,11 +204,6 @@ namespace Zonkey.ObjectModel
                         else
                             info.PropertyInfo.SetValue(obj, Convert.ChangeType(oValue, info.PropertyType), null);
                     }
-                    else if ((oValue is DateTime) && (info.MapField.DateTimeKind != DateTimeKind.Unspecified))
-                    {	// special date/time handling for UTC and Local times
-                        var dtValue = new DateTime(((DateTime)oValue).Ticks, info.MapField.DateTimeKind);
-                        info.PropertyInfo.SetValue(obj, dtValue, null);
-                    }
                     else
                         info.PropertyInfo.SetValue(obj, oValue, null);
                 }
@@ -283,12 +256,12 @@ namespace Zonkey.ObjectModel
             for (int i = 0; i < reader.VisibleFieldCount; i++)
                 readerFields.Add(reader.GetName(i), i);
 
-            foreach (IDataMapField field in _dataMap.ReadableFields)
+            foreach (KeyValuePair<PropertyInfo, ProjectionField> entry in _projectionMap.Map)
             {
-                if (!readerFields.TryGetValue(field.FieldName, out int ordinal))
+                if (!readerFields.TryGetValue(entry.Value.ExpressionField, out int ordinal))
                     continue;
 
-                Type propType = field.Property.PropertyType;
+                Type propType = entry.Key.PropertyType;
                 TypeInfo propInfo = propType.GetTypeInfo();
                 if (propInfo.IsEnum)
                 {
@@ -298,8 +271,8 @@ namespace Zonkey.ObjectModel
 
                 var qfi = new QuickFillInfo
                             {
-                                MapField = field,
-                                PropertyInfo = field.Property, 
+                                MapField = entry.Value,
+                                PropertyInfo = entry.Key, 
                                 PropertyType = propType, 
                                 FieldType = reader.GetFieldType(ordinal),								
                             };
@@ -443,7 +416,7 @@ namespace Zonkey.ObjectModel
 
         private class QuickFillInfo
         {
-            public IDataMapField MapField;
+            public ProjectionField MapField;
             public Type FieldType;
             public bool IsAssignable;
             public PropertyInfo PropertyInfo;
