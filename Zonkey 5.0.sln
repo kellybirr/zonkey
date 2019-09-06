@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27004.2008
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29230.47
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zonkey.Data", "src\Zonkey.Data\Zonkey.Data.csproj", "{47B046C4-9646-4395-936B-7E35E713C8D0}"
 EndProject
@@ -20,6 +20,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zonkey.Text.Fx", "src\Zonkey.Text.Fx\Zonkey.Text.Fx.csproj", "{F075F3E2-0374-4AB2-BF4B-6963B5E84B4C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zonkey.Droid", "src\Zonkey.Droid\Zonkey.Droid.csproj", "{450C5ED4-15E8-4A18-A5A4-26697D94DA56}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zonkey.Data.Compat.Fx", "src\Zonkey.Data.Compat.Fx\Zonkey.Data.Compat.Fx.csproj", "{98589D3C-2A0B-4C0C-B329-79F937B38ABE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zonkey.Data.Compat", "src\Zonkey.Data.Compat\Zonkey.Data.Compat.csproj", "{24F06950-773C-4925-A6DF-38B7AB5B9A77}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -63,6 +67,14 @@ Global
 		{450C5ED4-15E8-4A18-A5A4-26697D94DA56}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{450C5ED4-15E8-4A18-A5A4-26697D94DA56}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{450C5ED4-15E8-4A18-A5A4-26697D94DA56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98589D3C-2A0B-4C0C-B329-79F937B38ABE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98589D3C-2A0B-4C0C-B329-79F937B38ABE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98589D3C-2A0B-4C0C-B329-79F937B38ABE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98589D3C-2A0B-4C0C-B329-79F937B38ABE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{24F06950-773C-4925-A6DF-38B7AB5B9A77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24F06950-773C-4925-A6DF-38B7AB5B9A77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24F06950-773C-4925-A6DF-38B7AB5B9A77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24F06950-773C-4925-A6DF-38B7AB5B9A77}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
