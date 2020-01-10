@@ -8,7 +8,7 @@ You can you Visual Studio RegEx Find/Replace with the following values to automa
 
 **FIND**
 
-SetFieldValue\(("\w+"), ref (\w+), value\);
+SetFieldValue\\(("\w+"), ref (\w+), value\\);
 
 **REPLACE**
 
