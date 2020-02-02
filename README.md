@@ -1,3 +1,5 @@
+[![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=kellybirr_zonkey)](https://sonarcloud.io/dashboard?id=kellybirr_zonkey)
+
 # Zonkey
 Zonkey ORM (and then some) libraries for .Net
 
