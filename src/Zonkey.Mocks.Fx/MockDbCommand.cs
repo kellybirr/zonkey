@@ -24,7 +24,7 @@ namespace Zonkey.Mocks
         /// <summary>
         /// Hook this delegate for testing when Cancel() is called.
         /// </summary>
-        public Action<MockDbCommand> DoCancel;
+        public Action<MockDbCommand> DoCancel { get; set; }
 
         /// <summary>
         /// Gets or sets the text command to run against the data source.
@@ -103,7 +103,7 @@ namespace Zonkey.Mocks
             return new MockDbDataReader(DoExecuteReader(this));
         }
 
-        public Func<MockDbCommand, object> DoExecuteReader;
+        public Func<MockDbCommand, object> DoExecuteReader { get; set; }
 
         /// <summary>
         /// Executes a SQL statement against a connection object.
@@ -117,7 +117,7 @@ namespace Zonkey.Mocks
         /// <summary>
         /// Hook this delegate for testing when ExecuteNonQuery() is called
         /// </summary>
-        public Func<MockDbCommand, int> DoExecuteNonQuery;
+        public Func<MockDbCommand, int> DoExecuteNonQuery { get; set; }
 
         /// <summary>
         /// Executes the query and returns the first column of the first row in the result set returned by the query. All other columns and rows are ignored.
@@ -133,7 +133,7 @@ namespace Zonkey.Mocks
         /// <summary>
         /// Hook this delegate for testing when ExecuteScalar() is called
         /// </summary>
-        public Func<MockDbCommand, object> DoExecuteScalar;
+        public Func<MockDbCommand, object> DoExecuteScalar { get; set; }
 
         /// <summary>
         /// Creates a prepared (or compiled) version of the command on the data source.
