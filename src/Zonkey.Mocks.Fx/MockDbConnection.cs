@@ -90,12 +90,12 @@ namespace Zonkey.Mocks
         /// <summary>
         /// Hook this delegate to override command creation (not usually required)
         /// </summary>
-        public Func<MockDbConnection, MockDbCommand> CreateCommandFunc;
+        public Func<MockDbConnection, MockDbCommand> CreateCommandFunc { get; set; }
 
         /// <summary>
         /// Hook this delegate to control command setup (common)
         /// </summary>
-        public Action<MockDbCommand> SetupCommandFunc;
+        public Action<MockDbCommand> SetupCommandFunc { get; set; }
 
         /// <summary>
         /// Gets the name of the database server to which to connect.
