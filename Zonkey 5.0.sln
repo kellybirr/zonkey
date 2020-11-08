@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27004.2008
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30621.155
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zonkey.Data", "src\Zonkey.Data\Zonkey.Data.csproj", "{47B046C4-9646-4395-936B-7E35E713C8D0}"
 EndProject
@@ -25,6 +25,7 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		test\UnitTests.Shared\UnitTests.Shared.projitems*{0dfc182d-c8e5-4148-8736-12704c92aacb}*SharedItemsImports = 13
 		test\UnitTests.Shared\UnitTests.Shared.projitems*{73488e8d-30cc-46cd-b84c-f968c806710a}*SharedItemsImports = 4
+		test\UnitTests.Shared\UnitTests.Shared.projitems*{a665a288-b7dd-4d5b-b13c-72115cdc5a88}*SharedItemsImports = 5
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
