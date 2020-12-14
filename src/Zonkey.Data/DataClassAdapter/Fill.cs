@@ -29,7 +29,11 @@ namespace Zonkey
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures")]
         public Task<int> Fill(ICollection<T> collection, Expression<Func<T, bool>> filterExpression)
         {
-            var parser = new ObjectModel.WhereExpressionParser<T>(DataMap, SqlDialect) { UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier };
+            var parser = new ObjectModel.WhereExpressionParser<T>(DataMap, SqlDialect)
+            {
+                UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier,
+                NoLock = this.NoLock
+            };
             var result = parser.Parse(filterExpression);
 
             return FillInternal(collection, result.SqlText, FillMethod.FilterText, result.Parameters);

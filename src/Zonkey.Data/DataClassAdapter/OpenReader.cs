@@ -12,7 +12,11 @@ namespace Zonkey
     {
         public Task<DataClassReader<T>> OpenReader(Expression<Func<T, bool>> filterExpression)
         {
-            var parser = new WhereExpressionParser<T>(DataMap, SqlDialect) { UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier };
+            var parser = new WhereExpressionParser<T>(DataMap, SqlDialect)
+            {
+                UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier,
+                NoLock = this.NoLock
+            };
             var result = parser.Parse(filterExpression);
 
             return OpenReaderInternal(result.SqlText, FillMethod.FilterText, result.Parameters);
