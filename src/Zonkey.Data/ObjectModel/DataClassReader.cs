@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
-using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+#pragma warning disable 8424
+#pragma warning disable CS1066
 
 namespace Zonkey.ObjectModel
 {
@@ -12,7 +14,13 @@ namespace Zonkey.ObjectModel
     /// A class that reads DCs from a DataReader
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class DataClassReader<T> : IEnumerable<T>, IDisposable where T : class 
+#if (NETSTANDARD2_1)
+    public class DataClassReader<T> : IEnumerable<T>, IAsyncEnumerable<T>, IDisposable, IAsyncDisposable where T : class
+#elif (NETSTANDARD2_0)
+    public class DataClassReader<T> : IEnumerable<T>, IAsyncEnumerable<T>, IDisposable where T : class
+#else
+    public class DataClassReader<T> : IEnumerable<T>, IDisposable where T : class
+#endif
     {
         private readonly DataMap _dataMap;
         private readonly DbDataReader _reader;
@@ -130,21 +138,40 @@ namespace Zonkey.ObjectModel
             return GetEnumerator();
         }
 
+#if (NETSTANDARD)
+        async IAsyncEnumerator<T> IAsyncEnumerable<T>.GetAsyncEnumerator([EnumeratorCancellation] System.Threading.CancellationToken cancellationToken = default)
+        {
+            T item;
+            while (((item = (await ReadAsync())) != null) && (!cancellationToken.IsCancellationRequested))
+                yield return item;
+        }
+#endif
+
         public void Dispose()
         {
-            if (_disposed) return;
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
-            if (DisposeBaseReader) 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (DisposeBaseReader && !_disposed) 
                 _reader.Dispose();
 
-            GC.SuppressFinalize(this);
             _disposed = true;
         }
 
-        ~DataClassReader()
+        ~DataClassReader() => Dispose(false);
+
+#if (NETSTANDARD2_1)
+        public async ValueTask DisposeAsync()
         {
-            Dispose();
+            if (DisposeBaseReader && !_disposed)
+                await _reader.DisposeAsync();
+
+            _disposed = true;
         }
+#endif
 
         /// <summary>
         /// Reads the next record class from the reader.
