@@ -97,7 +97,7 @@ namespace Zonkey.UnitTests
             DoParseTest2<Person_Person>(c => (c.ModifiedDate != null), "(ModifiedDate IS NOT NULL)", 0);
         }
 
-#if (fasle)
+#if (false)
         [TestMethod]
         public void ParseTest_Converted()
         {
@@ -119,7 +119,7 @@ namespace Zonkey.UnitTests
         }
 #endif
 
-#if (fasle)
+#if (false)
         [TestMethod]
         public void Join_Test()
         {
@@ -382,6 +382,63 @@ namespace Zonkey.UnitTests
             Assert.AreEqual(3, result.Parameters.Length);
         }
 #endif
+        [TestMethod]
+        public void Linq_SqlIn_Test_Nolock_9_a()
+        {
+            const string productName = "Test";
+            const string size = "Small";
+            const string productModelName = "Model";
+
+            Expression<Func<Production_Product, bool>> exp = (p =>
+                p.Name == productName && p.Size == size &&
+                p.ProductModelID.SqlIn((Production_ProductModel pm) => pm.Name == productModelName)
+                );
+
+            var parser = new ObjectModel.WhereExpressionParser { SqlDialect = new SqlServerDialect(), NoLock = true };
+            var result = parser.Parse(exp);
+
+            Assert.AreEqual("((([Name] = $0) AND ([Size] = $1)) AND ([ProductModelID] IN (SELECT [ProductModelID] FROM [Production].[ProductModel] WITH (NOLOCK) WHERE ([Name] = $2))))", result.SqlText);
+            Assert.AreEqual(3, result.Parameters.Length);
+        }
+
+        [TestMethod]
+        public void Linq_SqlIn_Test_Unsupported_Nolock_9_b()
+        {
+            const string productName = "Test";
+            const string size = "Small";
+            const string productModelName = "Model";
+
+            Expression<Func<Production_Product, bool>> exp = (p =>
+                    p.Name == productName && p.Size == size &&
+                    p.ProductModelID.SqlIn((Production_ProductModel pm) => pm.Name == productModelName)
+                );
+
+            var parser = new ObjectModel.WhereExpressionParser { SqlDialect = new MySqlDialect(), NoLock = true };
+            var result = parser.Parse(exp);
+
+            Assert.AreEqual("(((Name = $0) AND (Size = $1)) AND (ProductModelID IN (SELECT ProductModelID FROM Production.ProductModel WHERE (Name = $2))))", result.SqlText);
+            Assert.AreEqual(3, result.Parameters.Length);
+        }
+
+        [TestMethod]
+        public void Linq_SqlIn_Test_No_Nolock_10()
+        {
+            const string productName = "Test";
+            const string size = "Small";
+            const string productModelName = "Model";
+
+            Expression<Func<Production_Product, bool>> exp = (p =>
+                p.Name == productName && p.Size == size &&
+                p.ProductModelID.SqlIn((Production_ProductModel pm) => pm.Name == productModelName)
+                );
+
+            var parser = new ObjectModel.WhereExpressionParser { SqlDialect = new SqlServerDialect() };
+            var result = parser.Parse(exp);
+
+            Assert.AreEqual("((([Name] = $0) AND ([Size] = $1)) AND ([ProductModelID] IN (SELECT [ProductModelID] FROM [Production].[ProductModel] WHERE ([Name] = $2))))", result.SqlText);
+            Assert.AreEqual(3, result.Parameters.Length);
+        }
+
         [TestMethod]
         public void ParseTest_Bool_Unary_True()
         {

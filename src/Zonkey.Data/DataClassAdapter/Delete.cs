@@ -19,7 +19,11 @@ namespace Zonkey
             if (Connection == null)
                 throw new InvalidOperationException("must set connection before calling Delete()");
 
-            var parser = new WhereExpressionParser<T>(DataMap, SqlDialect) { UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier };
+            var parser = new WhereExpressionParser<T>(DataMap, SqlDialect)
+            {
+                UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier,
+                NoLock = this.NoLock
+            };
             var result = parser.Parse(filterExpression);
 
             try

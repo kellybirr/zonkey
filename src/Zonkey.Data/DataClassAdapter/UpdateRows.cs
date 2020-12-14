@@ -40,9 +40,10 @@ namespace Zonkey
             if (setClause.Count == 0) throw new ArgumentException("Empty Set Clause");
 
             var parser = new WhereExpressionParser<T>(DataMap, SqlDialect)
-                            {
-                                UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier
-                            };
+            {
+                UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier,
+                NoLock = this.NoLock
+            };
             var parsedWhere = parser.Parse(whereExpression);
 
             DbCommand command = CommandBuilder.GetUpdateRowsCommand(setClause, parsedWhere.SqlText);

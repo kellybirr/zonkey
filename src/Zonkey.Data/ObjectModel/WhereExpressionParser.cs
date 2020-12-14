@@ -50,13 +50,16 @@ namespace Zonkey.ObjectModel
 
         public bool AnsiNullCompensation { get; set; }
 
+        public bool NoLock { get; set; }
+
         public WhereExpressionParser()
         {
             _mapHints = new DataMap[0];
 
             AnsiNullCompensation = true;
             ParameterizeLiterals = true;
-            ParameterPrefix = '$';            
+            ParameterPrefix = '$';
+            NoLock = false;
         }
 
         public WhereExpressionParser(IEnumerable<DataMap> maps)
@@ -456,7 +459,7 @@ namespace Zonkey.ObjectModel
 
             if (op.Arguments.Count == 3)
             {
-                var parser = new WhereExpressionParser { SqlDialect = SqlDialect };
+                var parser = new WhereExpressionParser { SqlDialect = SqlDialect, NoLock = NoLock };
                 
                 string selectField = parser.Parse((LambdaExpression)op.Arguments[1]).SqlText;
                 string whereClause = parser.Parse((LambdaExpression)op.Arguments[2], _parmList).SqlText;
@@ -467,13 +470,16 @@ namespace Zonkey.ObjectModel
                     ? SqlDialect.FormatTableName(mapItem.TableName, mapItem.SchemaName, (mapItem.UseQuotedIdentifier ?? UseQuotedIdentifier))
                     : mapItem.TableName;
 
+                if (NoLock && SqlDialect.SupportsNoLock)
+                    tableName += " WITH (NOLOCK)";
+
                 sb.AppendFormat("SELECT {0} FROM {1} WHERE {2}", selectField, tableName, whereClause);
             }
             else if (op.Arguments.Count != 2)
                 throw new NotSupportedException();
             else if (op.Arguments[1].NodeType == ExpressionType.Lambda)
             {
-                var parser = new WhereExpressionParser { SqlDialect = SqlDialect };
+                var parser = new WhereExpressionParser { SqlDialect = SqlDialect, NoLock = NoLock };
 
                 string rawSelectField = ((MemberExpression) op.Arguments[0]).Member.Name;
                 string selectField = (SqlDialect != null)
@@ -487,6 +493,9 @@ namespace Zonkey.ObjectModel
                 string tableName = (SqlDialect != null)
                     ? SqlDialect.FormatTableName(mapItem.TableName, mapItem.SchemaName, (mapItem.UseQuotedIdentifier ?? UseQuotedIdentifier))
                     : mapItem.TableName;
+
+                if (NoLock && SqlDialect.SupportsNoLock)
+                    tableName += " WITH (NOLOCK)";
 
                 // verify select field
                 if (! parser._dataMaps[tableParamName].ContainsField(rawSelectField))

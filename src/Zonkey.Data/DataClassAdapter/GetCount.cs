@@ -15,7 +15,11 @@ namespace Zonkey
         /// <returns></returns>
         public Task<int> GetCount(Expression<Func<T, bool>> filterExpression)
         {
-            var parser = new ObjectModel.WhereExpressionParser<T>(DataMap, SqlDialect) { UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier };
+            var parser = new ObjectModel.WhereExpressionParser<T>(DataMap, SqlDialect)
+            {
+                UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier,
+                NoLock = this.NoLock
+            };
             var result = parser.Parse(filterExpression);
 
             return GetCountInternal(result.SqlText, FillMethod.FilterText, result.Parameters);
