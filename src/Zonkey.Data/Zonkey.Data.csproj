@@ -7,7 +7,7 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>Zonkey.Data.snk</AssemblyOriginatorKeyFile>
     <DelaySign>False</DelaySign>
-    <Version>5.2.0.1400</Version>
+    <Version>5.2.0.1440</Version>
   </PropertyGroup>
 
   <ItemGroup>

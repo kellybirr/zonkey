@@ -21,8 +21,7 @@ namespace Zonkey
 
             var parser = new WhereExpressionParser<T>(DataMap, SqlDialect)
             {
-                UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier,
-                NoLock = this.NoLock
+                UseQuotedIdentifier = CommandBuilder.UseQuotedIdentifier
             };
             var result = parser.Parse(filterExpression);
 
