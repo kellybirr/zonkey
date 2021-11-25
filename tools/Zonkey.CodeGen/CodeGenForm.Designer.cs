@@ -65,6 +65,7 @@
             this.btnTableClear = new System.Windows.Forms.Button();
             this.btnViewClear = new System.Windows.Forms.Button();
             this.chkDCAdapter = new System.Windows.Forms.CheckBox();
+            this.chkNullable = new System.Windows.Forms.CheckBox();
             this.menuStrip1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
@@ -197,7 +198,7 @@
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(92, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(93, 22);
             this.exitToolStripMenuItem.Text = "E&xit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -215,14 +216,14 @@
             this.cToolStripMenuItem.Checked = true;
             this.cToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.cToolStripMenuItem.Name = "cToolStripMenuItem";
-            this.cToolStripMenuItem.Size = new System.Drawing.Size(113, 22);
+            this.cToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
             this.cToolStripMenuItem.Text = "C#";
             this.cToolStripMenuItem.Click += new System.EventHandler(this.cToolStripMenuItem_Click);
             // 
             // vBNETToolStripMenuItem
             // 
             this.vBNETToolStripMenuItem.Name = "vBNETToolStripMenuItem";
-            this.vBNETToolStripMenuItem.Size = new System.Drawing.Size(113, 22);
+            this.vBNETToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
             this.vBNETToolStripMenuItem.Text = "VB.NET";
             this.vBNETToolStripMenuItem.Click += new System.EventHandler(this.vBNETToolStripMenuItem_Click);
             // 
@@ -430,10 +431,22 @@
             this.chkDCAdapter.Text = "Generate DCAdapter<T>";
             this.chkDCAdapter.UseVisualStyleBackColor = true;
             // 
+            // chkNullable
+            // 
+            this.chkNullable.AutoSize = true;
+            this.chkNullable.Location = new System.Drawing.Point(232, 541);
+            this.chkNullable.Name = "chkNullable";
+            this.chkNullable.Size = new System.Drawing.Size(69, 17);
+            this.chkNullable.TabIndex = 35;
+            this.chkNullable.Text = "#nullable";
+            this.chkNullable.UseVisualStyleBackColor = true;
+            this.chkNullable.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
+            // 
             // CodeGenForm
             // 
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
             this.ClientSize = new System.Drawing.Size(450, 688);
+            this.Controls.Add(this.chkNullable);
             this.Controls.Add(this.chkDCAdapter);
             this.Controls.Add(this.btnViewClear);
             this.Controls.Add(this.btnTableClear);
@@ -515,6 +528,7 @@
 		private System.Windows.Forms.Button btnTableClear;
 		private System.Windows.Forms.Button btnViewClear;
         private System.Windows.Forms.CheckBox chkDCAdapter;
+        private System.Windows.Forms.CheckBox chkNullable;
     }
 }
 

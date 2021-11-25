@@ -225,6 +225,8 @@ namespace ZonkeyCodeGen
                 gen.VirtualProperties = false;
                 gen.PrivateFieldsAtTop = false;
 
+                gen.CsNullable = chkNullable.Checked;
+
                 for (var i = 0; i < lbTables.SelectedItems.Count; i++)
                 {
                     var name = lbTables.SelectedItems[i].ToString();
@@ -623,5 +625,10 @@ namespace ZonkeyCodeGen
         }
 
         #endregion
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

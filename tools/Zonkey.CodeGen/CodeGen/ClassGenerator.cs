@@ -16,6 +16,12 @@ namespace ZonkeyCodeGen.CodeGen
         public bool PrivateFieldsAtTop { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to support C# nullable ref types.
+        /// </summary>
+        /// <value><c>true</c> if [cs nullable]; otherwise, <c>false</c>.</value>
+        public bool CsNullable { get; set; }
+
+        /// <summary>
         /// Gets or sets the tab level.
         /// </summary>
         /// <value>The tab level.</value>

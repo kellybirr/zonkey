@@ -245,7 +245,7 @@ namespace ZonkeyCodeGen.CodeGen
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1807:AvoidUnnecessaryStringCreation", MessageId = "sType"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1304:SpecifyCultureInfo", MessageId = "System.String.ToLower"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1807:AvoidUnnecessaryStringCreation", MessageId = "local1")]
-        private static string GetNativeType(DataRow row)
+        private string GetNativeType(DataRow row)
         {
             bool allowNull = (bool)row["AllowDbNull"];
 
@@ -255,11 +255,11 @@ namespace ZonkeyCodeGen.CodeGen
             switch (sType.ToLower())
             {
                 case "string":
-                    return "string";
+                    return (CsNullable) ? "string?" : "string";
                 case "byte[]":
                     return "byte[]";
                 case "decimal":
-                    return "decimal";
+                    return (allowNull) ? "decimal?" : "decimal";
                 case "boolean":
                     return "bool";
                 default:
