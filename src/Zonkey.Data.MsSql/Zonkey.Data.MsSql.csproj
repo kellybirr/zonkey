@@ -1,15 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net48;</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net48;</TargetFrameworks>
+	  <Version>6.0.0.1600</Version>
     <RootNamespace>Zonkey</RootNamespace>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>Zonkey.Data.MsSql.snk</AssemblyOriginatorKeyFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Zonkey MS-SQL Extension</Title>
+    <Authors>Kelly Birr</Authors>
+    <Description>MS-SQL Extensions for Zoneky.Data 6+</Description>
+    <PackageProjectUrl>https://github.com/kellybirr/zonkey</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/kellybirr/zonkey</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.0" />
   </ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.0" />
+	</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Zonkey.Data\Zonkey.Data.csproj" />

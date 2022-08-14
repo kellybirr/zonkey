@@ -8,6 +8,16 @@
 		<AssemblyOriginatorKeyFile>Zonkey.Data.snk</AssemblyOriginatorKeyFile>
 		<DelaySign>False</DelaySign>
 		<Version>6.0.0.1600</Version>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Title>Zonkey ORM</Title>
+		<Authors>Kelly Birr</Authors>
+		<Company />
+		<Description>Zonkey ORM Library</Description>
+		<PackageProjectUrl>https://github.com/kellybirr/zonkey</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/kellybirr/zonkey</RepositoryUrl>
+		<PackageReleaseNotes>And Now for Something Completely Different</PackageReleaseNotes>
+		<IncludeSymbols>False</IncludeSymbols>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">

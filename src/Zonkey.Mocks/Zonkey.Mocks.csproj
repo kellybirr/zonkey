@@ -1,13 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	  <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+	  <TargetFrameworks>netstandard2.0;netstandard2.1;net48</TargetFrameworks>
 	  <LangVersion>latest</LangVersion>
 	  <RootNamespace>Zonkey.Mocks</RootNamespace>
 	  <SignAssembly>True</SignAssembly>
 	  <AssemblyOriginatorKeyFile>Zonkey.Mocks.snk</AssemblyOriginatorKeyFile>
 	  <DelaySign>False</DelaySign>
 	  <Version>6.0.0.1600</Version>
+	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	  <Title>Zonkey Mocking</Title>
+	  <Authors>Kelly Birr</Authors>
+	  <Description>Zonkey's taek on a Mocking Library</Description>
+	  <PackageProjectUrl>https://github.com/kellybirr/zonkey</PackageProjectUrl>
+	  <RepositoryUrl>https://github.com/kellybirr/zonkey</RepositoryUrl>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
 </Project>
