@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>    
-    <TargetFramework>netcoreapp2.1</TargetFramework>    
+    <TargetFramework>net6.0</TargetFramework>    
     <RootNamespace>Zonkey.UnitTests</RootNamespace>    
     <SignAssembly>True</SignAssembly>    
     <AssemblyOriginatorKeyFile>Zonkey.UnitTests.snk</AssemblyOriginatorKeyFile>    
-    <DelaySign>False</DelaySign>    
-    <AssemblyName>Zonkey.UnitTests</AssemblyName>
+    <DelaySign>False</DelaySign>        <AssemblyName>Zonkey.UnitTests</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Zonkey.Data.MsSql\Zonkey.Data.MsSql.csproj" />
     <ProjectReference Include="..\..\src\Zonkey.Data\Zonkey.Data.csproj" />
     <ProjectReference Include="..\..\src\Zonkey.Text\Zonkey.Text.csproj" />
   </ItemGroup>
@@ -23,7 +23,5 @@
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
   </ItemGroup>
-
-  <Import Project="..\UnitTests.Shared\UnitTests.Shared.projitems" Label="Shared" />
 
 </Project>

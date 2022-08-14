@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+	  <LangVersion>latest</LangVersion>
+	  <RootNamespace>Zonkey.Mocks</RootNamespace>
+	  <SignAssembly>True</SignAssembly>
+	  <AssemblyOriginatorKeyFile>Zonkey.Mocks.snk</AssemblyOriginatorKeyFile>
+	  <DelaySign>False</DelaySign>
+	  <Version>6.0.0.1600</Version>
+  </PropertyGroup>
+
+</Project>

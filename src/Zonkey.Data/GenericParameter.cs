@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
-using System.Reflection;
 
 namespace Zonkey
 {
@@ -289,42 +287,22 @@ namespace Zonkey
         }
     }
 
-    static class DbParameterExtensions
+    public static class DbParameterExtensions
     {
+        private static readonly IDictionary<(Type, DbType), Action<DbParameter>> _smartTypes 
+            = new Dictionary<(Type, DbType), Action<DbParameter>>();
+
+        public static void UseTypeSetter<TParam>(DbType dataType, Action<DbParameter> setter) where TParam : DbParameter
+        {
+            _smartTypes[(typeof(TParam), dataType)] = setter;
+        }
+
         internal static void SmartSetType(this DbParameter parameter, DbType dbType)
         {
             parameter.DbType = dbType;
 
-            // This is a hack for a MS defect in the SqlParameter Class when using Time types.
-            if ( (dbType == DbType.Time) && (parameter is SqlParameter sqlParameter) )
-                sqlParameter.SqlDbType = SqlDbType.Time;
+            if (_smartTypes.TryGetValue((parameter.GetType(), dbType), out Action<DbParameter> setter))
+                setter(parameter);
         }
-
-#if (false)
-        internal static void SmartSetType(this DbParameter parameter, DbType dbType)
-        {
-            parameter.DbType = dbType;
-
-            if (dbType == DbType.Time)
-                FixSqlServerTime(parameter);
-        }
-
-        /// <summary>
-        /// This is a hack for a MS defect in the SqlParameter Class when using Time types.
-        /// </summary>
-        /// <param name="parameter"></param>
-        private static void FixSqlServerTime(DbParameter parameter)
-        {
-            Type objType = parameter.GetType();
-            if (objType.FullName == "System.Data.SqlClient.SqlParameter")
-            {
-                PropertyInfo propInfo = objType.GetTypeInfo().GetProperty("SqlDbType");
-                propInfo?.SetValue(parameter, SqlDbType_Time);
-            }
-        }
-
-        // I hate this, but i don't want to have a reference to System.Data.SqlClient in Zonkey Core
-        private const int SqlDbType_Time = 32;
-#endif
     }
 }

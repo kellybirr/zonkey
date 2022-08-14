@@ -23,6 +23,10 @@ namespace ZonkeyCodeGen.CodeGen
             DataTable dt = reader.GetSchemaTable();
             reader.Close();
 
+            var ds = new DataSet("schema_set");
+            ds.Tables.Add(dt);
+            ds.WriteXml($"C:\\Temp\\Enforce_Schema\\{TableName}.xml");
+
             WriteLine("using System;");
             WriteLine("using System.Data;");
 
@@ -58,10 +62,12 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteEndLine();
                 foreach (DataRow row in dt.Rows)
                 {
+                    string propertyName = FormatPropertyName(row["ColumnName"].ToString(), ClassName);
+
                     WriteBeginLine();
                     Write("private {0} _", GetNativeType(row));
-                    Write(row["ColumnName"].ToString().Substring(0, 1).ToLower());
-                    Write(row["ColumnName"].ToString().Substring(1));
+                    Write(propertyName.Substring(0, 1).ToLower());
+                    Write(propertyName.Substring(1));
                     Write(";");
                     WriteEndLine();
                 }
@@ -76,9 +82,11 @@ namespace ZonkeyCodeGen.CodeGen
             WriteEndLine();
             foreach (DataRow row in dt.Rows)
             {
+                string propertyName = FormatPropertyName(row["ColumnName"].ToString(), ClassName);
+
                 string sDbType = GetDbType(row);
                 string sNativeType = GetNativeType(row);
-                string sPrivateName = "_"+row["ColumnName"].ToString().Substring(0, 1).ToLower() + row["ColumnName"].ToString().Substring(1);
+                string sPrivateName = "_"+propertyName.Substring(0, 1).ToLower() + propertyName.Substring(1);
                 //bool isKeyField = String.Equals((string)row["ColumnName"], KeyFieldName, StringComparison.CurrentCultureIgnoreCase);
                 var isKeyField = KeyFieldName.Contains((string)row["ColumnName"]);
                 
@@ -87,12 +95,24 @@ namespace ZonkeyCodeGen.CodeGen
 
                 WriteBeginLine();
                 Write("[DataField(\"{0}\", DbType.{1}, ", row["ColumnName"], sDbType);
-                Write(((bool)row["AllowDbNull"]) ? "true" : "false");
-                if ((sDbType == "Binary") || (sDbType.IndexOf("String") >= 0))
+                Write(AllowDbNull(row) ? "true" : "false");
+                if ((sDbType == "Binary" || sDbType.IndexOf("String") >= 0) && (int)row["ColumnSize"] > 0)
                     Write(", Length = {0}", row["ColumnSize"]);
                 if (isKeyField) Write(", IsKeyField = true");
                 if ((bool)row["IsAutoIncrement"]) Write(", IsAutoIncrement = true");
                 if ((bool)row["IsRowVersion"]) Write(", IsRowVersion = true");
+
+                string seqName = SequenceNameFunc?.Invoke(row["ColumnName"].ToString());
+                if (!string.IsNullOrEmpty(seqName))
+                    Write($", SequenceName = \"{seqName}\"");
+
+                if (sDbType.StartsWith("Date"))
+                {
+                    DateTimeKind? kind = DateTimeKindFunc?.Invoke(TableName, row["ColumnName"].ToString());
+                    if (kind.HasValue && kind != DateTimeKind.Unspecified)
+                        Write($", DateTimeKind = DateTimeKind.{kind}");
+                }
+
                 Write(")]");
                 WriteEndLine();
 
@@ -101,7 +121,7 @@ namespace ZonkeyCodeGen.CodeGen
                 if (VirtualProperties) Write("virtual ");
                 Write(sNativeType);
                 Write(" ");
-                Write(row["ColumnName"].ToString());
+                Write(propertyName);
                 WriteEndLine();
 
                 WriteLine("{");
@@ -247,7 +267,7 @@ namespace ZonkeyCodeGen.CodeGen
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1807:AvoidUnnecessaryStringCreation", MessageId = "sType"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1304:SpecifyCultureInfo", MessageId = "System.String.ToLower"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1807:AvoidUnnecessaryStringCreation", MessageId = "local1")]
         private string GetNativeType(DataRow row)
         {
-            bool allowNull = (bool)row["AllowDbNull"];
+            bool allowNull = AllowDbNull(row);
 
             string sType = row["DataType"].ToString();
             sType = sType.Substring(sType.IndexOf('.') + 1);
@@ -259,12 +279,24 @@ namespace ZonkeyCodeGen.CodeGen
                 case "byte[]":
                     return "byte[]";
                 case "decimal":
-                    return (allowNull) ? "decimal?" : "decimal";
+                {
+                    string numType = "decimal";
+                    if ((int)row["NumericScale"] == 0)
+                        numType = ((int)row["NumericPrecision"] >= 10) ? "long" : "int";
+
+                    return (allowNull) ? $"{numType}?" : numType;
+                }
                 case "boolean":
                     return "bool";
                 default:
                     return (allowNull) ? sType + "?" : sType;
             }
+        }
+
+        private bool AllowDbNull(DataRow row)
+        {
+            return NullableCheck?.Invoke(TableName, (string)row["ColumnName"]) 
+                   ?? (bool)row["AllowDbNull"];
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1304:SpecifyCultureInfo", MessageId = "System.String.ToLower"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1807:AvoidUnnecessaryStringCreation", MessageId = "stack0")]
@@ -284,10 +316,22 @@ namespace ZonkeyCodeGen.CodeGen
                         return "String";
                 }
             }
-            else if (sType == "Byte[]")
+
+            if (sType == "DateTime")
+            {
+                switch (row["DataTypeName"].ToString().ToLower())
+                {
+                    case "timestamp without time zone":
+                        return "DateTime2";
+                    default:
+                        return "DateTime";
+                }
+            }
+
+            if (sType == "Byte[]")
                 return "Binary";
-            else
-                return sType;
+            
+            return sType;
         }
     }
 }

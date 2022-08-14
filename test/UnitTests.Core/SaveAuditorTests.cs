@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zonkey.ObjectModel;
 using Zonkey.UnitTests.AdventureWorks;
 using Zonkey.UnitTests.AdventureWorks.DataObjects;
-using System.Xml.Linq;
+
+#if (NET5_0_OR_GREATER)
+    using Microsoft.Data.SqlClient;
+#else
+    using System.Data.SqlClient;
+#endif
 
 namespace Zonkey.UnitTests
 {

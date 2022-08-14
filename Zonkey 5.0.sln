@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30621.155
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zonkey.Data", "src\Zonkey.Data\Zonkey.Data.csproj", "{47B046C4-9646-4395-936B-7E35E713C8D0}"
 EndProject
@@ -9,24 +9,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zonkey.Text", "src\Zonkey.T
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTests", "test\UnitTests.Core\UnitTests.csproj", "{A665A288-B7DD-4D5B-B13C-72115CDC5A88}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests.Fx", "test\UnitTests.NetFx\UnitTests.Fx.csproj", "{73488E8D-30CC-46CD-B84C-F968C806710A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zonkey.Data.MsSql", "src\Zonkey.Data.MsSql\Zonkey.Data.MsSql.csproj", "{F6FD14BF-68D5-47D3-AAF7-74F03ECCCD07}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "UnitTests.Shared", "test\UnitTests.Shared\UnitTests.Shared.shproj", "{0DFC182D-C8E5-4148-8736-12704C92AACB}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zonkey.Mocks.Fx", "src\Zonkey.Mocks.Fx\Zonkey.Mocks.Fx.csproj", "{11888345-7593-4F05-A441-665248EC1252}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zonkey.Data.Fx", "src\Zonkey.Data.Fx\Zonkey.Data.Fx.csproj", "{4218522F-AED2-4289-97F6-09830DD6A770}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zonkey.Text.Fx", "src\Zonkey.Text.Fx\Zonkey.Text.Fx.csproj", "{F075F3E2-0374-4AB2-BF4B-6963B5E84B4C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zonkey.Droid", "src\Zonkey.Droid\Zonkey.Droid.csproj", "{450C5ED4-15E8-4A18-A5A4-26697D94DA56}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zonkey.Mocks", "src\Zonkey.Mocks\Zonkey.Mocks.csproj", "{91B0115F-FF8C-4096-81A6-6542A3C625FF}"
 EndProject
 Global
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		test\UnitTests.Shared\UnitTests.Shared.projitems*{0dfc182d-c8e5-4148-8736-12704c92aacb}*SharedItemsImports = 13
-		test\UnitTests.Shared\UnitTests.Shared.projitems*{73488e8d-30cc-46cd-b84c-f968c806710a}*SharedItemsImports = 4
-		test\UnitTests.Shared\UnitTests.Shared.projitems*{a665a288-b7dd-4d5b-b13c-72115cdc5a88}*SharedItemsImports = 5
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -44,26 +31,14 @@ Global
 		{A665A288-B7DD-4D5B-B13C-72115CDC5A88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A665A288-B7DD-4D5B-B13C-72115CDC5A88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A665A288-B7DD-4D5B-B13C-72115CDC5A88}.Release|Any CPU.Build.0 = Release|Any CPU
-		{73488E8D-30CC-46CD-B84C-F968C806710A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{73488E8D-30CC-46CD-B84C-F968C806710A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{73488E8D-30CC-46CD-B84C-F968C806710A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{73488E8D-30CC-46CD-B84C-F968C806710A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{11888345-7593-4F05-A441-665248EC1252}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{11888345-7593-4F05-A441-665248EC1252}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{11888345-7593-4F05-A441-665248EC1252}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{11888345-7593-4F05-A441-665248EC1252}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4218522F-AED2-4289-97F6-09830DD6A770}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4218522F-AED2-4289-97F6-09830DD6A770}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4218522F-AED2-4289-97F6-09830DD6A770}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4218522F-AED2-4289-97F6-09830DD6A770}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F075F3E2-0374-4AB2-BF4B-6963B5E84B4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F075F3E2-0374-4AB2-BF4B-6963B5E84B4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F075F3E2-0374-4AB2-BF4B-6963B5E84B4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F075F3E2-0374-4AB2-BF4B-6963B5E84B4C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{450C5ED4-15E8-4A18-A5A4-26697D94DA56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{450C5ED4-15E8-4A18-A5A4-26697D94DA56}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{450C5ED4-15E8-4A18-A5A4-26697D94DA56}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{450C5ED4-15E8-4A18-A5A4-26697D94DA56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6FD14BF-68D5-47D3-AAF7-74F03ECCCD07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6FD14BF-68D5-47D3-AAF7-74F03ECCCD07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6FD14BF-68D5-47D3-AAF7-74F03ECCCD07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6FD14BF-68D5-47D3-AAF7-74F03ECCCD07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91B0115F-FF8C-4096-81A6-6542A3C625FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91B0115F-FF8C-4096-81A6-6542A3C625FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91B0115F-FF8C-4096-81A6-6542A3C625FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91B0115F-FF8C-4096-81A6-6542A3C625FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

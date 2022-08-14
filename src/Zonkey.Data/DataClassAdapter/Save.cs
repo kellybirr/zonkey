@@ -27,7 +27,18 @@ namespace Zonkey
         /// <returns>true/false</returns>
         public async Task<bool> Save(T obj, UpdateCriteria criteria)
         {
-            return HandleSaveResult( await TrySave(obj, criteria, UpdateAffect.ChangedFields, SelectBack.Default).ConfigureAwait(false));
+            return HandleSaveResult( await TrySave(obj, criteria, UpdateAffect.ChangedFields, SelectBack.Default).ConfigureAwait(false) );
+        }
+
+        /// <summary>
+        /// Saves the specified object
+        /// </summary>
+        /// <param name="obj">The object to save</param>
+        /// <param name="selectBack">The <see cref="Zonkey.SelectBack"/> value that determines whether to select back the changed rows.</param>
+        /// <returns>true/false</returns>
+        public async Task<bool> Save(T obj, SelectBack selectBack)
+        {
+            return HandleSaveResult( await TrySave(obj, UpdateCriteria.Default, UpdateAffect.ChangedFields, selectBack).ConfigureAwait(false) );
         }
 
         /// <summary>
@@ -40,7 +51,7 @@ namespace Zonkey
         /// <returns>true/false</returns>
         public async Task<bool> Save(T obj, UpdateCriteria criteria, UpdateAffect affect, SelectBack selectBack)
         {
-            return HandleSaveResult( await TrySave(obj, criteria, affect, selectBack).ConfigureAwait(false));
+            return HandleSaveResult( await TrySave(obj, criteria, affect, selectBack).ConfigureAwait(false) );
         }
 
         /// <summary>
@@ -62,6 +73,17 @@ namespace Zonkey
         public Task<SaveResult> TrySave(T obj, UpdateCriteria criteria)
         {
             return TrySave(obj, criteria, UpdateAffect.ChangedFields, SelectBack.Default);
+        }
+
+        /// <summary>
+        /// Tries to save the object
+        /// </summary>
+        /// <param name="obj">The object to save</param>
+        /// <param name="selectBack">The <see cref="Zonkey.SelectBack"/> value that determines whether to select back the changed rows.</param>
+        /// <returns>A value of type <see cref="SaveResultStatus"/></returns>
+        public Task<SaveResult> TrySave(T obj, SelectBack selectBack)
+        {
+            return TrySave(obj, UpdateCriteria.Default, UpdateAffect.ChangedFields, selectBack);
         }
 
         /// <summary>
@@ -408,7 +430,7 @@ namespace Zonkey
                     if ((nRecordsAffected == 1) || IgnoreUpdateRowCount)
                     {
                         PopulateSingleObject(obj, reader, false);
-                        return new SaveResult(SaveResultStatus.Success, SaveType.Update, nRecordsAffected);						
+                        return new SaveResult(SaveResultStatus.Success, SaveType.Update, nRecordsAffected);                     
                     }
 
                     return new SaveResult(SaveResultStatus.Conflict, SaveType.Update, nRecordsAffected);

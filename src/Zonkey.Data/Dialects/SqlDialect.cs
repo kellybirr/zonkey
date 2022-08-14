@@ -14,6 +14,7 @@ namespace Zonkey.Dialects
         {
             Factories = new Dictionary<string, Func<DbConnection, SqlDialect>>(StringComparer.OrdinalIgnoreCase)
             {
+                { "Microsoft.Data.SqlClient.SqlConnection", _ => new SqlServerDialect() },
                 { "System.Data.SqlClient.SqlConnection", _ => new SqlServerDialect() },
                 { "System.Data.SqlServerCe.SqlCeConnection", _ => new SqlServerDialect() },
                 { "CoreLab.MySql.MySqlConnection", _ => new MySqlDialect() },
@@ -21,7 +22,7 @@ namespace Zonkey.Dialects
                 { "MySql.Data.MySqlClient.MySqlConnection", _ => new MySqlDialect() },
                 { "System.Data.OracleClient.OracleConnection", _ => new OracleSqlDialect() },
                 { "IBM.Data.DB2.DB2Connection", _ => new DB2SqlDialect() },
-                { "Npgsql.NpgsqlConnection", _ => new PostgrSqlDialect() },
+                { "Npgsql.NpgsqlConnection", _ => new PostgreSqlDialect() },
                 { "Mono.Data.Sqlite.SqliteConnection", _ => new SqliteDialect() }
             };
         }

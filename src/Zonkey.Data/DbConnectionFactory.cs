@@ -37,7 +37,7 @@ namespace Zonkey
             {
                 Name = name,
                 Type = typeof(TConnection),
-                ConnecitonString = connectionString,
+                ConnectionString = connectionString,
                 UseSystemEnvironment = useSystemEnvironment
             };
         }
@@ -70,7 +70,7 @@ namespace Zonkey
             {
                 Name = name,
                 Type = type,
-                ConnecitonString = connectionString,
+                ConnectionString = connectionString,
                 UseSystemEnvironment = useSystemEnvironment
             };
         }
@@ -105,36 +105,42 @@ namespace Zonkey
             return connType.Create();
         }
 
+#if (NET48)
         /// <summary>
-        /// DbProviderFatories static class does not exist in Mono, so we're faking it
+        /// Loads the connectionStrings from the web.config/app.config 
         /// </summary>
-        /// <param name="providerName"></param>
-        /// <returns></returns>
-        internal static DbProviderFactory GetFactory(string providerName)
+        /// <param name="useEnvironment">Should environment variables be processed on connection strings</param>
+        public static void LoadConnectionStrings(bool useEnvironment=true)
         {
-#if (NETSTANDARD2_0 || DROID)
-            switch ((providerName ?? "").ToLowerInvariant())
+            lock (_loadLocker)
             {
-#if (DROID)
-                case "mono.data.sqllite":
-                    return Mono.Data.Sqlite.SqliteFactory.Instance;
-#endif
-                case "system.data.sqlclient":
-                    return System.Data.SqlClient.SqlClientFactory.Instance;
+                foreach (System.Configuration.ConnectionStringSettings connectionString in System.Configuration.ConfigurationManager.ConnectionStrings)
+                {
+                    if (string.IsNullOrWhiteSpace(connectionString.ProviderName))
+                        continue;
 
-                default:
-                    throw new NotSupportedException($"Provider '{providerName}' is not supported");
+                    // Use DbProviderFactory to get actual connection
+                    DbProviderFactory providerFactory = DbProviderFactories.GetFactory(connectionString.ProviderName);
+                    DbConnection cnxn = providerFactory.CreateConnection();
+                    if (cnxn == null) throw new System.Configuration.ConfigurationErrorsException($"Unable to get connection for provider `{connectionString.ProviderName}`");
+
+                    Register(
+                        name: connectionString.Name, 
+                        type: cnxn.GetType(), 
+                        connectionString: connectionString.ConnectionString, 
+                        useSystemEnvironment: useEnvironment
+                    );
+                }
             }
-#else
-            return DbProviderFactories.GetFactory(providerName);
-#endif
         }
+        private static readonly object _loadLocker = new();
+#endif
     }
 
     internal class DbConnectionType
     {
         internal string Name { get; set; }
-        internal string ConnecitonString { get; set; }
+        internal string ConnectionString { get; set; }
         internal Type Type { get; set; }
 
         internal bool UseSystemEnvironment { get; set; }
@@ -143,8 +149,8 @@ namespace Zonkey
         {
             var cnxn = (DbConnection) Activator.CreateInstance(Type);
             cnxn.ConnectionString = (UseSystemEnvironment)
-                ? EnvironmentHelper.ProcessString(ConnecitonString)
-                : ConnecitonString;
+                ? EnvironmentHelper.ProcessString(ConnectionString)
+                : ConnectionString;
 
             return cnxn;
         }

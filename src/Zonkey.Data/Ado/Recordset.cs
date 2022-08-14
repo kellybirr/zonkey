@@ -97,7 +97,7 @@ namespace Zonkey.Ado
 
             // query for data
             _dt = new DataTable();
-            var dm = new AdoDataManager(Connection);
+            var dm = new DataManager(Connection);
             await dm.FillDataTable(_dt, sql, commandType, parameters).ConfigureAwait(false);
 
             // reset to first position

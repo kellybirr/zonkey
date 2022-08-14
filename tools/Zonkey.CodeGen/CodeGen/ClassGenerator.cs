@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
@@ -93,7 +94,7 @@ namespace ZonkeyCodeGen.CodeGen
         /// Gets or sets a value indicating whether [generate typed adapters].
         /// </summary>
         /// <value>
-        /// 	<c>true</c> if [generate typed adapters]; otherwise, <c>false</c>.
+        ///     <c>true</c> if [generate typed adapters]; otherwise, <c>false</c>.
         /// </value>
         public bool GenerateTypedAdapters { get; set; }
 
@@ -171,11 +172,50 @@ namespace ZonkeyCodeGen.CodeGen
             _output.Write(s);
         }
 
+        public PropertyNameFormatter FormatPropertyName { get; set; } = (fn,cn) => fn;
+
+        public NullableChecker NullableCheck { get; set; }
+
+        public SequenceNameLookup SequenceNameFunc { get; set; }
+
+        public DateTimeKindChecker DateTimeKindFunc { get; set; }
+
         /// <summary>
         /// Generates this instance.
         /// </summary>
         public abstract void Generate();
     }
+
+    /// <summary>
+    /// A delegate to handle formatting property names
+    /// </summary>
+    /// <param name="fieldName"></param>
+    /// <param name="className"></param>
+    /// <returns></returns>
+    public delegate string PropertyNameFormatter(string fieldName, string className);
+
+    /// <summary>
+    /// A delegate to override checking for nullability of fields
+    /// </summary>
+    /// <param name="tableName">The name of the table</param>
+    /// <param name="columnName">The name of the column</param>
+    /// <returns></returns>
+    public delegate bool NullableChecker(string tableName, string columnName);
+
+    /// <summary>
+    /// A delegate to lookup sequence names
+    /// </summary>
+    /// <param name="columnName"></param>
+    /// <returns></returns>
+    public delegate string SequenceNameLookup(string columnName);
+
+    /// <summary>
+    /// A delegate to check the Kind (Unspecified/Local/Utc) of a DateTime column
+    /// </summary>
+    /// <param name="tableName"></param>
+    /// <param name="columnName"></param>
+    /// <returns></returns>
+    public delegate DateTimeKind DateTimeKindChecker(string tableName, string columnName);
 
     /// <summary>
     /// Enumeration that describes the inheritance of a <see cref="Zonkey.ObjectModel.DataClass"/> collection.

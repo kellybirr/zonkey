@@ -158,6 +158,19 @@ namespace Zonkey.ObjectModel
         /// </summary>
         /// <typeparam name="Tdc">The type of the dc.</typeparam>
         /// <param name="obj">The obj.</param>
+        /// <param name="selectBack">Select what back</param>
+        /// <returns></returns>
+        public virtual Task<bool> Save<Tdc>(Tdc obj, SelectBack selectBack)
+            where Tdc : class, ISavable, new()
+        {
+            return Adapter<Tdc>().Save(obj, selectBack);
+        }
+
+        /// <summary>
+        /// Equivalent to calling DataClassAdapter.Save
+        /// </summary>
+        /// <typeparam name="Tdc">The type of the dc.</typeparam>
+        /// <param name="obj">The obj.</param>
         /// <param name="updateCriteria">The update criteria</param>
         /// <param name="updateAffect">Affect which fields</param>
         /// <param name="selectBack">Select what back</param>
@@ -172,7 +185,7 @@ namespace Zonkey.ObjectModel
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()
-        {			
+        {           
             Dispose(true);
         }
 

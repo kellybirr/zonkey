@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Globalization;
-using System.Linq.Expressions;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using Zonkey.Dialects;
@@ -379,7 +379,10 @@ namespace Zonkey.ObjectModel
             if (op.Expression != null)
             {
                 if (op.Expression.NodeType == ExpressionType.MemberAccess)
+                {
                     obj = GetMemberData(op.Expression as MemberExpression, op.Member);
+                    if (m2 == null) return obj;
+                }
                 else
                 {
                     obj = ((ConstantExpression)op.Expression).Value;
