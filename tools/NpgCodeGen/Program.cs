@@ -110,7 +110,7 @@ namespace NpgCodeGen
                 foreach (DataRow table in tables.Rows)
                 {
                     gen.TableName = table["table_name"].ToString();
-                    gen.ClassName = TableClassPrefix + WormCase2PascalCase(gen.TableName.TrimEnd('s'));
+                    gen.ClassName = TableClassPrefix + WormCase2PascalCase(MakeSingular(gen.TableName));
                     gen.KeyFieldName = GetKeyFields(gen.TableName);
 
                     string filePath = Path.Combine(OutputFolder, gen.ClassName + ".cs");
@@ -152,6 +152,14 @@ namespace NpgCodeGen
             }
 
             return sb.ToString();
+        }
+
+        private static string MakeSingular(string s)
+        {
+            if (s.EndsWith("ies"))
+                return $"{s.Substring(0, s.Length - 3)}y";
+
+            return (s.EndsWith("s") && !s.EndsWith("ss")) ? s.TrimEnd('s') : s;
         }
     }
 }
