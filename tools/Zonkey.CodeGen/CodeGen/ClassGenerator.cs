@@ -22,6 +22,11 @@ namespace ZonkeyCodeGen.CodeGen
         /// <value><c>true</c> if [cs nullable]; otherwise, <c>false</c>.</value>
         public bool CsNullable { get; set; }
 
+        /// <summary>Gets or sets a value indicating whether to create partial classes.</summary>
+        /// <value>
+        ///   <c>true</c> if partial classes; otherwise, <c>false</c>.</value>
+        public bool PartialClasses { get; set; }
+
         /// <summary>
         /// Gets or sets the tab level.
         /// </summary>
@@ -72,17 +77,12 @@ namespace ZonkeyCodeGen.CodeGen
         /// <summary>
         /// One or more lines of code to be added the the (addingnew) constructor
         /// </summary>
-        public IList<string> AddConstructorCode
-        {
-            get 
-            {
-                if (_addConstructorCode == null)
-                    _addConstructorCode = new List<string>();
+        public List<string> AddConstructorCode { get; set; } = new List<string>();
 
-                return _addConstructorCode; 
-            }
-        }
-        private List<string> _addConstructorCode;
+        /// <summary>
+        /// One or more fields to be ignored
+        /// </summary>
+        public List<string> IgnoreFields { get; set; } = new List<string>();
 
         /// <summary>
         /// Gets or sets the generate collections mode.

@@ -51,7 +51,10 @@ namespace ZonkeyCodeGen.CodeGen
             else
                 WriteLine("[DataItem(\"{0}\", SchemaName = \"{1}\")]", (TableName.Split('.'))[1], SchemaName);
 
-            WriteLine("public class {0} : DataClass", ClassName);
+            if (PartialClasses)
+                WriteLine("public partial class {0} : DataClass", ClassName);
+            else
+                WriteLine("public class {0} : DataClass", ClassName);
 
             WriteLine("{");
             TabLevel++;
@@ -62,7 +65,10 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteEndLine();
                 foreach (DataRow row in dt.Rows)
                 {
-                    string propertyName = FormatPropertyName(row["ColumnName"].ToString(), ClassName);
+                    string fieldName = row["ColumnName"].ToString();
+                    if (IgnoreFields.Contains(fieldName)) continue;
+
+                    string propertyName = FormatPropertyName(fieldName, ClassName);
 
                     WriteBeginLine();
                     Write("private {0} _", GetNativeType(row));
@@ -82,13 +88,16 @@ namespace ZonkeyCodeGen.CodeGen
             WriteEndLine();
             foreach (DataRow row in dt.Rows)
             {
-                string propertyName = FormatPropertyName(row["ColumnName"].ToString(), ClassName);
+                string fieldName = row["ColumnName"].ToString();
+                if (IgnoreFields.Contains(fieldName)) continue;
+
+                string propertyName = FormatPropertyName(fieldName, ClassName);
 
                 string sDbType = GetDbType(row);
                 string sNativeType = GetNativeType(row);
                 string sPrivateName = "_"+propertyName.Substring(0, 1).ToLower() + propertyName.Substring(1);
                 //bool isKeyField = String.Equals((string)row["ColumnName"], KeyFieldName, StringComparison.CurrentCultureIgnoreCase);
-                var isKeyField = KeyFieldName.Contains((string)row["ColumnName"]);
+                var isKeyField = KeyFieldName.Contains(fieldName);
                 
                 if (isKeyField && (sNativeType == "Guid"))
                     guidToInit = sPrivateName;
@@ -282,7 +291,7 @@ namespace ZonkeyCodeGen.CodeGen
                 {
                     string numType = "decimal";
                     if ((int)row["NumericScale"] == 0)
-                        numType = ((int)row["NumericPrecision"] >= 10) ? "long" : "int";
+                        numType = ((int)row["NumericPrecision"] >= 10) ? "Int64" : "Int32";
 
                     return (allowNull) ? $"{numType}?" : numType;
                 }

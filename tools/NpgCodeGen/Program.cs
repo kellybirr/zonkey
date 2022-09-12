@@ -16,6 +16,11 @@ namespace NpgCodeGen
         const string OutputFolder = "";
         const string ConnStr = "";
 
+        public static Dictionary<string,string[]> IgnoreFieldSet = new Dictionary<string, string[]>()
+        {
+            { "table_1", new[] {"depricated_field_1"} }
+        };
+
         static void Main(string[] args)
         {
             using (var cnxn = new NpgsqlConnection(ConnStr))
@@ -102,7 +107,8 @@ namespace NpgCodeGen
                     NullableCheck = IsNullable,
                     PrivateFieldsAtTop = false,
                     //SequenceNameFunc = GetSequenceName,
-                    VirtualProperties = false
+                    VirtualProperties = false,
+                    PartialClasses = true
                 };
 
 
@@ -112,6 +118,10 @@ namespace NpgCodeGen
                     gen.TableName = table["table_name"].ToString();
                     gen.ClassName = TableClassPrefix + WormCase2PascalCase(MakeSingular(gen.TableName));
                     gen.KeyFieldName = GetKeyFields(gen.TableName);
+
+                    gen.IgnoreFields.Clear();
+                    if (IgnoreFieldSet.TryGetValue(gen.TableName, out string[] fields))
+                        gen.IgnoreFields.AddRange(fields);
 
                     string filePath = Path.Combine(OutputFolder, gen.ClassName + ".cs");
                     gen.Output = new StreamWriter(filePath, false, Encoding.ASCII);
