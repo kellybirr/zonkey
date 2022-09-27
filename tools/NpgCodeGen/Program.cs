@@ -16,6 +16,8 @@ namespace NpgCodeGen
         const string OutputFolder = "";
         const string ConnStr = "";
 
+        public static string[] IgnoreTables = Array.Empty<string>();
+
         public static Dictionary<string,string[]> IgnoreFieldSet = new Dictionary<string, string[]>()
         {
             { "table_1", new[] {"depricated_field_1"} }
@@ -116,6 +118,8 @@ namespace NpgCodeGen
                 foreach (DataRow table in tables.Rows)
                 {
                     gen.TableName = table["table_name"].ToString();
+                    if (IgnoreTables.Contains(gen.TableName, StringComparer.OrdinalIgnoreCase)) continue;
+
                     gen.ClassName = TableClassPrefix + WormCase2PascalCase(MakeSingular(gen.TableName));
                     gen.KeyFieldName = GetKeyFields(gen.TableName);
 
