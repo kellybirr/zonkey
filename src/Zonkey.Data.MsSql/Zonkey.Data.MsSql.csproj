@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net48;</TargetFrameworks>
-	  <Version>6.0.0.1600</Version>
+	  <Version>6.1.0.1700</Version>
     <RootNamespace>Zonkey</RootNamespace>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>Zonkey.Data.MsSql.snk</AssemblyOriginatorKeyFile>

@@ -242,5 +242,25 @@ namespace Zonkey.Dialects
         /// <param name="commandType">Type of the command.</param>
         /// <returns></returns>
         public abstract string FormatParameterName(int index, CommandType commandType);
+
+        /// <summary>
+        /// Parses the where function.
+        /// </summary>
+        /// <param name="functionName">Name of the function.</param>
+        /// <param name="left">The left argument.</param>
+        /// <param name="right">The right argument.</param>
+        /// <returns>System.String.</returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public virtual string ParseWhereFunction(string functionName, string left, string right)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Formats the unary boolean.
+        /// </summary>
+        /// <param name="fieldName">Name of the field.</param>
+        /// <returns>System.String.</returns>
+        public virtual string FormatUnaryBoolean(string fieldName) => $"({fieldName} = 1)";
     }
 }

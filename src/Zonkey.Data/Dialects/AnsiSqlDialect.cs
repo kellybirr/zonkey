@@ -103,5 +103,20 @@ namespace Zonkey.Dialects
         {
             return (commandType == CommandType.Text) ? string.Concat(":p", index) : "?";
         }
+
+        public override string ParseWhereFunction(string functionName, string left, string right)
+        {
+            switch (functionName)
+            {
+                case "StartsWith":
+                    return $"({left} LIKE CONCAT({right},'%'))";
+                case "EndsWith":
+                    return $"({left} LIKE CONCAT('%',{right}))";
+                case "Contains":
+                    return $"({left} LIKE CONCAT('%',{right},'%'))";
+                default:
+                    throw new NotSupportedException();
+            }
+        }
     }
 }

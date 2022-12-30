@@ -105,5 +105,20 @@ namespace Zonkey.Dialects
         {
             return $"SELECT {columnString} FROM {tableName} WHERE {whereText} ORDER BY {orderBy} LIMIT {start} OFFSET {length};";
         }
+
+        public override string ParseWhereFunction(string functionName, string left, string right)
+        {
+            switch (functionName)
+            {
+                case "StartsWith":
+                    return $"({left} LIKE ({right} || '%'))";
+                case "EndsWith":
+                    return $"({left} LIKE ('%' || {right}))";
+                case "Contains":
+                    return $"({left} LIKE ('%' || {right} || '%'))";
+                default:
+                    throw new NotSupportedException();
+            }
+        }
     }
 }

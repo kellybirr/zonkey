@@ -11,16 +11,11 @@ namespace Zonkey.ObjectModel
 {
     class WhereExpressionParser<T> : WhereExpressionParser
     {
-        public WhereExpressionParser()
+        public WhereExpressionParser(SqlDialect dialect) : base(dialect)
         { }
 
-        public WhereExpressionParser(DataMap map) : this(map, null)
+        public WhereExpressionParser(DataMap map, SqlDialect dialect) : base(new[] { map }, dialect)
         { }
-
-        public WhereExpressionParser(DataMap map, SqlDialect dialect) : base(new[] { map })
-        {
-            SqlDialect = dialect;
-        }
 
         public SqlWhereClause Parse(Expression<Func<T, bool>> expression)
         {
@@ -52,19 +47,13 @@ namespace Zonkey.ObjectModel
 
         public bool NoLock { get; set; }
 
-        public WhereExpressionParser()
-        {
-            _mapHints = new DataMap[0];
+        public WhereExpressionParser(SqlDialect dialect) : this(new DataMap[0], dialect)
+        { }
 
-            AnsiNullCompensation = true;
-            ParameterizeLiterals = true;
-            ParameterPrefix = '$';
-            NoLock = false;
-        }
-
-        public WhereExpressionParser(IEnumerable<DataMap> maps)
+        public WhereExpressionParser(IEnumerable<DataMap> maps, SqlDialect dialect)
         {
-            _mapHints = maps;
+            _mapHints = maps ?? throw new ArgumentNullException(nameof(maps));
+            SqlDialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
 
             AnsiNullCompensation = true;
             ParameterizeLiterals = true;
@@ -102,13 +91,15 @@ namespace Zonkey.ObjectModel
             // fix unary bools
             if ((_boolFields.Count == 1) && (sql == _boolFields[0]))
             {
-                sql = string.Format("({0} = 1)", _boolFields[0]);
+                sql = SqlDialect.FormatUnaryBoolean(_boolFields[0]);
             }
             else
             {
                 foreach (string f in _boolFields)
                 {
-                    sql = sql.Replace(string.Format("({0})", f), string.Format("({0} = 1)", f));
+                    string from = string.Format("({0})", f);
+                    string to = SqlDialect.FormatUnaryBoolean(f);
+                    sql = sql.Replace(from, to);
                 }
             }
 
@@ -209,11 +200,11 @@ namespace Zonkey.ObjectModel
             if (NeedsExtraParens(op.Left))
             {
                 sb.Append('(');
-                sb.Append(ParseExpression(op.Left));    
-                sb.Append(')');                
-            }            
+                sb.Append(ParseExpression(op.Left));
+                sb.Append(')');
+            }
             else
-                sb.Append(ParseExpression(op.Left));    
+                sb.Append(ParseExpression(op.Left));
 
             sb.Append(operatorSymbol);
 
@@ -222,11 +213,11 @@ namespace Zonkey.ObjectModel
                 sb.Append('(');
                 sb.Append(ParseExpression(op.Right));
                 sb.Append(')');
-            }            
+            }
             else
                 sb.Append(ParseExpression(op.Right));
 
-            sb.Append(')');                
+            sb.Append(')');
             return sb.ToString();
         }
 
@@ -250,7 +241,7 @@ namespace Zonkey.ObjectModel
                 {
                     sb.Append(" IS NOT NULL)");
                     return sb.ToString();
-                }                
+                }
             }
 
             sb.Append(operatorSymbol);
@@ -420,37 +411,13 @@ namespace Zonkey.ObjectModel
             if (op.Method.Name == "SqlInGuid")
                 return ParseSqlInExpression2(op);
 
-            if (op.Method.DeclaringType == typeof(string))
+            if (op.Method.DeclaringType == typeof(string) && SqlDialect != null)
             {
-                var sb = new StringBuilder("(");
-                switch (op.Method.Name)
-                {
-                    case "StartsWith":
-                        sb.Append(ParseExpression(op.Object));
-                        sb.Append(" Like (");
-                        sb.Append(ParseExpression(op.Arguments[0]));
-                        sb.Append("+'%')");
-                        break;
-                    case "EndsWith":
-                        sb.Append(ParseExpression(op.Object));
-                        sb.Append(" Like ('%'+");
-                        sb.Append(ParseExpression(op.Arguments[0]));
-                        sb.Append(")");
-                        break;
-                    case "Contains":
-                        sb.Append(ParseExpression(op.Object));
-                        sb.Append(" Like ('%'+");
-                        sb.Append(ParseExpression(op.Arguments[0]));
-                        sb.Append("+'%')");
-                        break;
-                    default:
-                        throw new NotSupportedException();
-                }
-
-                sb.Append(')');
-                return sb.ToString();
+                string left = ParseExpression(op.Object);
+                string right = ParseExpression(op.Arguments[0]);
+                return SqlDialect.ParseWhereFunction(op.Method.Name, left, right);
             }
-                        
+
             throw new NotSupportedException();
         }
 
@@ -462,7 +429,7 @@ namespace Zonkey.ObjectModel
 
             if (op.Arguments.Count == 3)
             {
-                var parser = new WhereExpressionParser { SqlDialect = SqlDialect, NoLock = NoLock };
+                var parser = new WhereExpressionParser(SqlDialect) { NoLock = NoLock };
                 
                 string selectField = parser.Parse((LambdaExpression)op.Arguments[1]).SqlText;
                 string whereClause = parser.Parse((LambdaExpression)op.Arguments[2], _parmList).SqlText;
@@ -482,7 +449,7 @@ namespace Zonkey.ObjectModel
                 throw new NotSupportedException();
             else if (op.Arguments[1].NodeType == ExpressionType.Lambda)
             {
-                var parser = new WhereExpressionParser { SqlDialect = SqlDialect, NoLock = NoLock };
+                var parser = new WhereExpressionParser(SqlDialect) { NoLock = NoLock };
 
                 string rawSelectField = ((MemberExpression) op.Arguments[0]).Member.Name;
                 string selectField = (SqlDialect != null)

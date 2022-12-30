@@ -1,3 +1,4 @@
+using System;
 using System.Data;
 using System.Data.Common;
 
@@ -81,6 +82,21 @@ namespace Zonkey.Dialects
 
             string cmdWOselect = command.CommandText.Substring(6);
             command.CommandText = "SELECT TOP 1" + cmdWOselect;
+        }
+
+        public override string ParseWhereFunction(string functionName, string left, string right)
+        {
+            switch (functionName)
+            {
+                case "StartsWith":
+                    return $"({left} LIKE ({right} & '%'))";
+                case "EndsWith":
+                    return $"({left} LIKE ('%' & {right}))";
+                case "Contains":
+                    return $"({left} LIKE ('%' & {right} & '%'))";
+                default:
+                    throw new NotSupportedException();
+            }
         }
     }
 }

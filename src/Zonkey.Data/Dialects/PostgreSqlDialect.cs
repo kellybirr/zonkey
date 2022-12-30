@@ -46,5 +46,13 @@
         {
             command.CommandText += " LIMIT 1";
         }
+
+        /// <summary>
+        /// Formats the unary boolean.
+        /// </summary>
+        /// <param name="fieldName">Name of the field.</param>
+        /// <returns>System.String.</returns>
+        public override string FormatUnaryBoolean(string fieldName) => $"({fieldName})";
+
     }
 }

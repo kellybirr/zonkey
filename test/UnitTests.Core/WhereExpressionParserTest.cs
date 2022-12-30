@@ -24,7 +24,7 @@ namespace Zonkey.UnitTests
 
         static void DoParseTest1(bool pl, char pf, string expectedSql, int expectedParms)
         {
-            var parser = new ObjectModel.WhereExpressionParser<SysObject>
+            var parser = new ObjectModel.WhereExpressionParser<SysObject>(new GenericSqlDialect())
             {
                 ParameterizeLiterals = pl,
                 ParameterPrefix = pf
@@ -51,7 +51,7 @@ namespace Zonkey.UnitTests
             DateTime? myDate = null;
             int id = default(int);
 
-            var parser = new ObjectModel.WhereExpressionParser<Person_Person>
+            var parser = new ObjectModel.WhereExpressionParser<Person_Person>(new GenericSqlDialect())
             {
                 AnsiNullCompensation = true, 
                 ParameterizeLiterals = true
@@ -142,7 +142,7 @@ namespace Zonkey.UnitTests
 
             Expression<Func<Person_Person, bool>> exp = (c => c.rowguid.SqlInGuid(guidArray));
 
-            var parser = new ObjectModel.WhereExpressionParser();
+            var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect());
             var result = parser.Parse(exp);
 
             Assert.AreEqual(string.Format("(rowguid IN ('{0}','{1}','{2}','{3}'))", guidArray[0], guidArray[1], guidArray[2], guidArray[3])
@@ -160,7 +160,7 @@ namespace Zonkey.UnitTests
 
             Expression<Func<Person_Person, bool>> exp = (c => c.rowguid.SqlInGuid(gArray));
 
-            var parser = new ObjectModel.WhereExpressionParser();
+            var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect());
             var result = parser.Parse(exp);
 
             var sb = new StringBuilder();
@@ -187,7 +187,7 @@ namespace Zonkey.UnitTests
 
             Expression<Func<Production_Product, bool>> exp = (c => c.ProductSubcategoryID.SqlInInt(intArray));
 
-            var parser = new ObjectModel.WhereExpressionParser();
+            var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect());
             var result = parser.Parse(exp);
 
             Assert.AreEqual("(ProductSubcategoryID IN (1,2,3,4,5,6,7,8,9))", result.SqlText);
@@ -204,7 +204,7 @@ namespace Zonkey.UnitTests
 
             Expression<Func<Person_Person, bool>> exp = (c => c.BusinessEntityID.SqlInInt(intArray));
 
-            var parser = new ObjectModel.WhereExpressionParser();
+            var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect());
             var result = parser.Parse(exp);
 
             var sb = new StringBuilder();
@@ -231,7 +231,7 @@ namespace Zonkey.UnitTests
 
             Expression<Func<Production_Product, bool>> exp = (c => c.ProductSubcategoryID.SqlIn(intArray));
 
-            var parser = new ObjectModel.WhereExpressionParser();
+            var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect());
             var result = parser.Parse(exp);
 
             Assert.AreEqual("(ProductSubcategoryID IN ($0,$1,$2,$3,$4,$5,$6,$7,$8))", result.SqlText);
@@ -247,7 +247,7 @@ namespace Zonkey.UnitTests
 
             Expression<Func<Person_Person, bool>> exp = (c => c.Title.SqlIn(intArray));
 
-            var parser = new ObjectModel.WhereExpressionParser();
+            var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect());
             var result = parser.Parse(exp);
 
             Assert.AreEqual("(Title IN ($0,$1,$2,$3,$4))", result.SqlText);
@@ -262,7 +262,7 @@ namespace Zonkey.UnitTests
 
             Expression<Func<Person_Person, bool>> exp = (c => c.Title.SqlIn(intArray));
 
-            var parser = new ObjectModel.WhereExpressionParser {ParameterIndexModifier = 6};
+            var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect()) { ParameterIndexModifier = 6};
             var result = parser.Parse(exp);
 
             Assert.AreEqual("(Title IN ($6,$7,$8,$9,$10))", result.SqlText);
@@ -279,7 +279,7 @@ namespace Zonkey.UnitTests
 
             Expression<Func<Person_Person, bool>> exp = (c => c.BusinessEntityID.SqlIn(intArray));
 
-            var parser = new ObjectModel.WhereExpressionParser();
+            var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect());
             parser.Parse(exp);
         }
 #if (false)
@@ -394,7 +394,7 @@ namespace Zonkey.UnitTests
                 p.ProductModelID.SqlIn((Production_ProductModel pm) => pm.Name == productModelName)
                 );
 
-            var parser = new ObjectModel.WhereExpressionParser { SqlDialect = new SqlServerDialect(), NoLock = true };
+            var parser = new ObjectModel.WhereExpressionParser(new SqlServerDialect()) { NoLock = true };
             var result = parser.Parse(exp);
 
             Assert.AreEqual("((([Name] = $0) AND ([Size] = $1)) AND ([ProductModelID] IN (SELECT [ProductModelID] FROM [Production].[ProductModel] WITH (NOLOCK) WHERE ([Name] = $2))))", result.SqlText);
@@ -413,7 +413,7 @@ namespace Zonkey.UnitTests
                     p.ProductModelID.SqlIn((Production_ProductModel pm) => pm.Name == productModelName)
                 );
 
-            var parser = new ObjectModel.WhereExpressionParser { SqlDialect = new MySqlDialect(), NoLock = true };
+            var parser = new ObjectModel.WhereExpressionParser(new MySqlDialect()) { NoLock = true };
             var result = parser.Parse(exp);
 
             Assert.AreEqual("(((Name = $0) AND (Size = $1)) AND (ProductModelID IN (SELECT ProductModelID FROM Production.ProductModel WHERE (Name = $2))))", result.SqlText);
@@ -432,7 +432,7 @@ namespace Zonkey.UnitTests
                 p.ProductModelID.SqlIn((Production_ProductModel pm) => pm.Name == productModelName)
                 );
 
-            var parser = new ObjectModel.WhereExpressionParser { SqlDialect = new SqlServerDialect() };
+            var parser = new ObjectModel.WhereExpressionParser(new SqlServerDialect());
             var result = parser.Parse(exp);
 
             Assert.AreEqual("((([Name] = $0) AND ([Size] = $1)) AND ([ProductModelID] IN (SELECT [ProductModelID] FROM [Production].[ProductModel] WHERE ([Name] = $2))))", result.SqlText);
@@ -453,7 +453,7 @@ namespace Zonkey.UnitTests
 
         static void DoParseTest2<T>(Expression<Func<T, bool>> expression, string expectedSql, int expectedParms)
         {
-            var parser = new ObjectModel.WhereExpressionParser<T>();
+            var parser = new ObjectModel.WhereExpressionParser<T>(new GenericSqlDialect());
             var result = parser.Parse(expression);
 
             Assert.AreEqual(expectedSql, result.SqlText);
