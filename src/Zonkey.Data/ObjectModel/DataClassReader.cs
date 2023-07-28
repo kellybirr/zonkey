@@ -237,36 +237,9 @@ namespace Zonkey.ObjectModel
             for (int i = 0; i < _fillInfo.Length; i++)
             {
                 QuickFillInfo info = _fillInfo[i];
-                if (info == null) continue;
+                if (info == null || record.IsDBNull(i)) continue;
 
-                if (record.IsDBNull(i)) continue;
-                object oValue = record.GetValue(i);             
-
-                try
-                {
-                    if (!info.IsAssignable)
-                    {
-                        if ((info.PropertyType == typeof(Guid)) && (oValue is string))
-                            info.PropertyInfo.SetValue(obj, new Guid(oValue.ToString()), null);
-                        else if (info.FieldType.Name.EndsWith("SqlHierarchyId")) // if the column is a HierarchyID type, then just treat it as a string (SQL server can implicitly convert between the two)
-                            info.PropertyInfo.SetValue(obj, oValue.ToString(), null);
-                        else if (oValue != null && info.PropertyType.Name == "Nullable`1")
-                            info.PropertyInfo.SetValue(obj, Convert.ChangeType(oValue, info.PropertyType.GenericTypeArguments[0]), null);
-                        else
-                            info.PropertyInfo.SetValue(obj, Convert.ChangeType(oValue, info.PropertyType), null);
-                    }
-                    else if ((oValue is DateTime dt) && (info.MapField.DateTimeKind != DateTimeKind.Unspecified))
-                    {   // special date/time handling for UTC and Local times
-                        var dtValue = new DateTime(dt.Ticks, info.MapField.DateTimeKind);
-                        info.PropertyInfo.SetValue(obj, dtValue, null);
-                    }
-                    else
-                        info.PropertyInfo.SetValue(obj, oValue, null);
-                }
-                catch (Exception ex)
-                {   
-                    throw new PropertyReadException(info.PropertyInfo, oValue, ex);
-                }
+                FieldHandler.SetValue(obj, record.GetValue(i), info.MapField, info.FieldType, info.PropertyInfo, info.PropertyType, info.IsAssignable);
             }
 
             return obj;
@@ -330,7 +303,7 @@ namespace Zonkey.ObjectModel
                                 MapField = field,
                                 PropertyInfo = field.Property, 
                                 PropertyType = propType, 
-                                FieldType = reader.GetFieldType(ordinal),                               
+                                FieldType = reader.GetFieldType(ordinal),
                             };
                 
                 // determine quickly if is assignable

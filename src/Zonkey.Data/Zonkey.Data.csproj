@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;netstandard2.1;net48;</TargetFrameworks>
+		<TargetFrameworks>netstandard2.0;netstandard2.1;net60;net48;</TargetFrameworks>
 		<LangVersion>latest</LangVersion>
 		<RootNamespace>Zonkey</RootNamespace>
 		<SignAssembly>True</SignAssembly>
 		<AssemblyOriginatorKeyFile>Zonkey.Data.snk</AssemblyOriginatorKeyFile>
 		<DelaySign>False</DelaySign>
-		<Version>6.1.0.1700</Version>
+		<Version>6.2.0.1900</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Title>Zonkey ORM</Title>
 		<Authors>Kelly Birr</Authors>

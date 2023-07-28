@@ -43,31 +43,7 @@ namespace Zonkey
                     {
                         object oValue = record.GetValue(i);
                         Type dbFieldType = record.GetFieldType(i);
-                        try
-                        {
-                            if (! typeInfo.IsAssignableFrom(dbFieldType))
-                            {
-                                if ( (propType == typeof(Guid)) && (oValue is string) )
-                                    pi.SetValue(obj, new Guid(oValue.ToString()), null);
-                                else if (dbFieldType.Name.EndsWith("SqlHierarchyId")) // if the column is a HierarchyID type, then just treat it as a string (SQL server can implicitly convert between the two)
-                                    pi.SetValue(obj, oValue.ToString(), null);
-                                else if (oValue != null && propType.Name == "Nullable`1")
-                                    pi.SetValue(obj, Convert.ChangeType(oValue, propType.GenericTypeArguments[0]), null);
-                                else
-                                    pi.SetValue(obj, Convert.ChangeType(oValue, propType), null);
-                            }
-                            else if ((oValue is DateTime dt) && (field.DateTimeKind != DateTimeKind.Unspecified))
-                            {   // special date/time handling for UTC and Local times
-                                var dtValue = new DateTime(dt.Ticks, field.DateTimeKind);
-                                pi.SetValue(obj, dtValue, null);
-                            }
-                            else
-                                pi.SetValue(obj, oValue, null);
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new PropertyReadException(pi, oValue, ex);
-                        }
+                        FieldHandler.SetValue(obj, oValue, field, dbFieldType, pi, propType);
                     }
                 }
             }
