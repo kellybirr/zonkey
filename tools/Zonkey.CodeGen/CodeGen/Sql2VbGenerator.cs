@@ -30,7 +30,7 @@ namespace ZonkeyCodeGen.CodeGen
             if (! String.IsNullOrEmpty(Namespace))
             {
                 WriteLine("Namespace {0}", Namespace);
-                TabLevel++;
+                IndentLevel++;
             }
 
             //WriteLine("<DataItem(\"{0}\")> _", TableName);
@@ -40,7 +40,7 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteLine("<DataItem(\"{0}\", SchemaName = \"{1}\")> _", (TableName.Split('.'))[1], SchemaName);          
             
             WriteLine("Public Class {0}", ClassName);
-            TabLevel++;
+            IndentLevel++;
 
             WriteLine("Inherits Zonkey.ObjectModel.DataClass");
             WriteEndLine();
@@ -95,7 +95,7 @@ namespace ZonkeyCodeGen.CodeGen
                 Write(" As ");
                 Write(sNativeType);
                 WriteEndLine();
-                TabLevel++;
+                IndentLevel++;
 
                 WriteLine("Get");
                 WriteLine("\tReturn m_{0}", row["ColumnName"]);
@@ -105,7 +105,7 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteLine("\tSetFieldValue(\"{0}\", m_{0}, Value)", row["ColumnName"]);
                 WriteLine("End Set");
 
-                TabLevel--;
+                IndentLevel--;
                 WriteLine("End Property");
 
                 if (! PrivateFieldsAtTop)
@@ -120,11 +120,11 @@ namespace ZonkeyCodeGen.CodeGen
             WriteEndLine();
 
             WriteLine("Public Sub New(ByVal addingNew As Boolean)");
-            TabLevel++;
+            IndentLevel++;
 
             WriteLine("MyBase.New(addingNew)");
             WriteLine("If addingNew Then");
-            TabLevel++;
+            IndentLevel++;
             if (!string.IsNullOrEmpty(guidToInit))
             {
                 WriteBeginLine();
@@ -136,10 +136,10 @@ namespace ZonkeyCodeGen.CodeGen
             foreach (string line in AddConstructorCode)
                 WriteLine(line);
 
-            TabLevel--;                
+            IndentLevel--;                
             WriteLine("End If");
 
-            TabLevel--;
+            IndentLevel--;
             WriteLine("End Sub");
             WriteEndLine();
 
@@ -152,7 +152,7 @@ namespace ZonkeyCodeGen.CodeGen
             WriteLine("#End Region");
             WriteEndLine();
 
-            TabLevel--;
+            IndentLevel--;
             WriteLine("End Class"); // end class
             WriteEndLine();
 
@@ -162,7 +162,7 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteEndLine();
 
                 WriteLine("Public Class {0}Collection", ClassName);
-                TabLevel++;
+                IndentLevel++;
 
                 if (GenerateCollections == GenerateCollectionMode.GenericCollection)
                 {
@@ -190,7 +190,7 @@ namespace ZonkeyCodeGen.CodeGen
                     WriteEndLine();
                 }
 
-                TabLevel--;
+                IndentLevel--;
                 WriteLine("End Class");
                 WriteEndLine();
 
@@ -204,7 +204,7 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteEndLine();
 
                 WriteLine("Public Class {0}Adapter", ClassName);
-                TabLevel++;
+                IndentLevel++;
 
                 WriteLine("Inherits DCAdapterBase(Of {0})", ClassName);
                 WriteEndLine();
@@ -214,7 +214,7 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteLine("End Sub");
                 WriteEndLine();
 
-                TabLevel--;
+                IndentLevel--;
                 WriteLine("End Class");
                 WriteEndLine();
 
@@ -224,7 +224,7 @@ namespace ZonkeyCodeGen.CodeGen
 
             if (! String.IsNullOrEmpty(Namespace))
             {
-                TabLevel--;
+                IndentLevel--;
                 WriteLine("End Namespace"); // end namespace
             }
 

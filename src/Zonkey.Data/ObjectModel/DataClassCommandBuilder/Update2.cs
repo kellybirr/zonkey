@@ -85,6 +85,8 @@ namespace Zonkey.ObjectModel
                         whereString.Append(whereParam.ParameterName);
 
                         whereParam.Value = oParmValue;
+
+                        _dialect.FixParameter(whereParam);
                         whereParmList.Add(whereParam);
                     }
                 }
@@ -101,6 +103,7 @@ namespace Zonkey.ObjectModel
                 else             
                     setParm.Value = (pi.GetValue(obj, null) ?? DBNull.Value);
 
+                _dialect.FixParameter(setParm);
                 setParmList.Add(setParm);
             }
             if (setParmList.Count == 0) return null;
@@ -125,6 +128,8 @@ namespace Zonkey.ObjectModel
 
 
                     keyParam.Value = pi.GetValue(obj, null);
+
+                    _dialect.FixParameter(keyParam);
                     keyParmList.Add(keyParam);
                 }
 
@@ -149,6 +154,8 @@ namespace Zonkey.ObjectModel
                     whereString.Append(whereParam.ParameterName);
 
                     whereParam.Value = oParmValue;
+
+                    _dialect.FixParameter(whereParam);
                     whereParmList.Add(whereParam);
                 }
             }

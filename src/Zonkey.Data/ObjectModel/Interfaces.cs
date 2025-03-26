@@ -138,6 +138,11 @@ namespace Zonkey.ObjectModel
         System.Data.DbType DataType { get; set; }
 
         /// <summary>
+        /// Gets or sets the native type for the field.
+        /// </summary>
+        object NativeType { get; set; }
+
+        /// <summary>
         /// Gets or sets the name of the field.
         /// </summary>
         /// <value>The name of the database field.</value>

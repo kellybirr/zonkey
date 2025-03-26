@@ -42,7 +42,7 @@ namespace ZonkeyCodeGen.CodeGen
             {
                 WriteLine("namespace {0}", Namespace);
                 WriteLine("{");
-                TabLevel++;
+                IndentLevel++;
             }
 
             //WriteLine("[DataItem(\"{0}\")]", TableName);
@@ -57,7 +57,7 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteLine("public class {0} : DataClass", ClassName);
 
             WriteLine("{");
-            TabLevel++;
+            IndentLevel++;
 
             if (PrivateFieldsAtTop)
             {
@@ -134,7 +134,7 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteEndLine();
 
                 WriteLine("{");
-                TabLevel++;
+                IndentLevel++;
 
                 WriteBeginLine();
                 Write("get => ");
@@ -148,7 +148,7 @@ namespace ZonkeyCodeGen.CodeGen
                 Write(", value);");
                 WriteEndLine();
 
-                TabLevel--;
+                IndentLevel--;
                 WriteLine("}");
 
                 if (! PrivateFieldsAtTop)
@@ -171,28 +171,28 @@ namespace ZonkeyCodeGen.CodeGen
 
             WriteLine("public {0}(bool addingNew) : base(addingNew)", ClassName);
             WriteLine("{");
-            TabLevel++;
+            IndentLevel++;
 
             WriteLine("if (addingNew)");
             WriteLine("{");            
             if (! string.IsNullOrEmpty(guidToInit))
             {
-                TabLevel++;
+                IndentLevel++;
                 WriteBeginLine();
                 Write(guidToInit);
                 Write(" = Guid.NewGuid();");
                 WriteEndLine();
-                TabLevel--;
+                IndentLevel--;
             }
 
-            TabLevel++;
+            IndentLevel++;
             foreach (string line in AddConstructorCode)
                 WriteLine(line);    
-            TabLevel--;                
+            IndentLevel--;                
 
             WriteLine("}");
 
-            TabLevel--;
+            IndentLevel--;
             WriteLine("}");
             WriteEndLine();
 
@@ -204,7 +204,7 @@ namespace ZonkeyCodeGen.CodeGen
             WriteLine("#endregion");
             WriteEndLine();
 
-            TabLevel--;
+            IndentLevel--;
             WriteLine("}"); // end class
             WriteEndLine();
 
@@ -229,12 +229,12 @@ namespace ZonkeyCodeGen.CodeGen
                 {
                     WriteLine("public class {0}Collection : BindableCollection<{0}>", ClassName);
                     WriteLine("{");
-                    TabLevel++;
+                    IndentLevel++;
                     WriteLine("public {0}Collection() {{ }}", ClassName);
                     WriteEndLine();
                     WriteLine("public {0}Collection(IContainer container)", ClassName);
                     WriteLine("\t: base(container) { }");
-                    TabLevel--;
+                    IndentLevel--;
                 }
 
                 WriteLine("}");
@@ -252,9 +252,9 @@ namespace ZonkeyCodeGen.CodeGen
                 WriteLine("public class {0}Adapter : DCAdapterBase<{0}>", ClassName);
                 WriteLine("{");
 
-                TabLevel++;
+                IndentLevel++;
                 WriteLine("public {0}Adapter(): base(ConnectionName.Core) {{ }}", ClassName);
-                TabLevel--;
+                IndentLevel--;
 
                 WriteEndLine();
                 WriteLine("}");
@@ -266,7 +266,7 @@ namespace ZonkeyCodeGen.CodeGen
 
             if (! String.IsNullOrEmpty(Namespace))
             {
-                TabLevel--;
+                IndentLevel--;
                 WriteLine("}"); // end namespace
             }
 

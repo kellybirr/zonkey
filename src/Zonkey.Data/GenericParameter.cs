@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using Zonkey.ObjectModel;
 
 namespace Zonkey
 {
@@ -213,11 +214,12 @@ namespace Zonkey
                 _nativeParam.ParameterName = dialect.FormatParameterName(_parameterName, command.CommandType);
 
             _nativeParam.Direction = _direction;
-            _nativeParam.SmartSetType(_dbType);
 
             if (_size != 0) _nativeParam.Size = _size;
             _nativeParam.SourceColumn = _sourceColumn;
             _nativeParam.Value = (_value ?? DBNull.Value);
+
+            _nativeParam.SmartSetType(_dbType);
 
             dialect.FixParameter(_nativeParam);
             command.Parameters.Add(_nativeParam);
@@ -289,20 +291,28 @@ namespace Zonkey
 
     public static class DbParameterExtensions
     {
-        private static readonly IDictionary<(Type, DbType), Action<DbParameter>> _smartTypes 
-            = new Dictionary<(Type, DbType), Action<DbParameter>>();
+        private static readonly IDictionary<(Type, DbType), Action<DbParameter, IDataMapField>> _smartTypes 
+            = new Dictionary<(Type, DbType), Action<DbParameter, IDataMapField>>();
 
-        public static void UseTypeSetter<TParam>(DbType dataType, Action<DbParameter> setter) where TParam : DbParameter
+        public static void UseTypeSetter<TParam>(DbType dataType, Action<DbParameter, IDataMapField> setter) where TParam : DbParameter
         {
             _smartTypes[(typeof(TParam), dataType)] = setter;
+        }
+
+        internal static void SmartSetType(this DbParameter parameter, IDataMapField field)
+        {
+            parameter.DbType = field.DataType;
+
+            if (_smartTypes.TryGetValue((parameter.GetType(), field.DataType), out Action<DbParameter, IDataMapField> setter))
+                setter(parameter, field);
         }
 
         internal static void SmartSetType(this DbParameter parameter, DbType dbType)
         {
             parameter.DbType = dbType;
 
-            if (_smartTypes.TryGetValue((parameter.GetType(), dbType), out Action<DbParameter> setter))
-                setter(parameter);
+            if (_smartTypes.TryGetValue((parameter.GetType(), dbType), out Action<DbParameter, IDataMapField> setter))
+                setter(parameter, null);
         }
     }
 }

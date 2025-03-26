@@ -19,10 +19,15 @@ namespace Zonkey.ObjectModel
             {
                 if (!isAssignable)
                 {
-                    if (dstType == typeof(Guid) && value is string valStr)
+                    if ((dstType == typeof(Guid) || dstType == typeof(Guid?)) && value is string valStr)
+                    { 
                         dstInfo.SetValue(obj, new Guid(valStr), null);
-                    else if (srcType.Name.EndsWith("SqlHierarchyId")) // if the column is a HierarchyID type, then just treat it as a string (SQL server can implicitly convert between the two)
+                    }
+                    else if (srcType.Name.EndsWith("SqlHierarchyId"))
+                    {
+                        // if the column is a HierarchyID type, then just treat it as a string (SQL server can implicitly convert between the two)
                         dstInfo.SetValue(obj, value.ToString(), null);
+                    }
 #if (NET6_0_OR_GREATER)
                     else if (dstType == typeof(DateOnly) || dstType == typeof(DateOnly?))
                     {
@@ -41,10 +46,21 @@ namespace Zonkey.ObjectModel
                             dstInfo.SetValue(obj, TimeOnly.Parse(value.ToString()), null);
                     }
 #endif
-                    else if (value != null && dstType.Name == "Nullable`1")
-                        dstInfo.SetValue(obj, Convert.ChangeType(value, dstType.GenericTypeArguments[0]), null);
+                    else if (value != null && Nullable.GetUnderlyingType(dstType) is Type nullableType)
+                    {
+                        if (nullableType.IsEnum)
+                        {
+                            dstInfo.SetValue(obj, Enum.ToObject(nullableType, value), null);
+                        }
+                        else
+                        {
+                            dstInfo.SetValue(obj, Convert.ChangeType(value, nullableType), null);
+                        }
+                    }
                     else
+                    { 
                         dstInfo.SetValue(obj, Convert.ChangeType(value, dstType), null);
+                    }
                 }
                 else if ((value is DateTime dt) && (mapField.DateTimeKind != DateTimeKind.Unspecified))
                 {   // special date/time handling for UTC and Local times
@@ -52,7 +68,9 @@ namespace Zonkey.ObjectModel
                     dstInfo.SetValue(obj, dtValue, null);
                 }
                 else
+                { 
                     dstInfo.SetValue(obj, value, null);
+                }
             }
             catch (Exception ex)
             {

@@ -74,7 +74,7 @@ namespace Zonkey.ObjectModel
             DbParameter param = command.CreateParameter();
             param.ParameterName = _dialect.FormatParameterName(field.FieldName, command.CommandType);
             param.SourceColumn = field.FieldName;
-            param.SmartSetType(field.DataType);
+            param.SmartSetType(field);
 
             if (field.Length >= 0) param.Size = field.Length;
 
@@ -92,7 +92,7 @@ namespace Zonkey.ObjectModel
             DbParameter param = command.CreateParameter();
             param.ParameterName = _dialect.FormatParameterName("old_" + field.FieldName, command.CommandType);
             param.SourceColumn = field.FieldName;
-            param.SmartSetType(field.DataType);
+            param.SmartSetType(field);
 
             if (field.Length >= 0) param.Size = field.Length;
 

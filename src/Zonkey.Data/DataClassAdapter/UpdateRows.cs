@@ -20,7 +20,7 @@ namespace Zonkey
         {
             var collection = new Dictionary<string, object>();
 
-            PropertyInfo[] properties = setClause.GetType().GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance);			
+            PropertyInfo[] properties = setClause.GetType().GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (PropertyInfo pi in properties)
                 collection[pi.Name] = pi.GetValue(setClause, null);
 

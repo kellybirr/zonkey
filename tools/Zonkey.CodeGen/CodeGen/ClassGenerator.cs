@@ -31,7 +31,12 @@ namespace ZonkeyCodeGen.CodeGen
         /// Gets or sets the tab level.
         /// </summary>
         /// <value>The tab level.</value>
-        protected int TabLevel { get; set; }
+        protected int IndentLevel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the indent string.
+        /// </summary>
+        protected string IndentString { get; set; } = new string(' ', 4);
 
         /// <summary>
         /// Gets or sets a value indicating whether [virtual properties].
@@ -121,7 +126,8 @@ namespace ZonkeyCodeGen.CodeGen
         /// </summary>
         protected void WriteBeginLine()
         {
-            _output.Write(new string('\t', TabLevel));
+            for (int i = 0; i < IndentLevel; i++)
+                _output.Write(IndentString);
         }
 
         /// <summary>

@@ -1,7 +1,7 @@
 ﻿using System.Data;
 
 #if (NETSTANDARD2_0_OR_GREATER)
-    using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 #elif (NET48)
     using System.Data.SqlClient;
 #endif
@@ -17,7 +17,7 @@ namespace Zonkey
             Zonkey.DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", SqlClientFactory.Instance);
 #endif
 
-            DbParameterExtensions.UseTypeSetter<SqlParameter>(DbType.Time, p =>
+            DbParameterExtensions.UseTypeSetter<SqlParameter>(DbType.Time, (p,f) =>
             {
                 ((SqlParameter)p).SqlDbType = SqlDbType.Time;
             });

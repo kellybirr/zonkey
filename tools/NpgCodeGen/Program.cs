@@ -12,6 +12,7 @@ namespace NpgCodeGen
     internal class Program
     {
         const string TableClassPrefix = "";
+        const string TableClassSuffix = "";
         const string OutputNamespace = "";
         const string OutputFolder = "";
         const string ConnStr = "";
@@ -120,7 +121,7 @@ namespace NpgCodeGen
                     gen.TableName = table["table_name"].ToString();
                     if (IgnoreTables.Contains(gen.TableName, StringComparer.OrdinalIgnoreCase)) continue;
 
-                    gen.ClassName = TableClassPrefix + WormCase2PascalCase(MakeSingular(gen.TableName));
+                    gen.ClassName = TableClassPrefix + WormCase2PascalCase(MakeSingular(gen.TableName)) + TableClassSuffix;
                     gen.KeyFieldName = GetKeyFields(gen.TableName);
 
                     gen.IgnoreFields.Clear();
@@ -137,11 +138,16 @@ namespace NpgCodeGen
                 }
             }
         }
+
         private static string FormatPropertyName(string fieldName, string className)
         {
             string n = WormCase2PascalCase(fieldName);
             string prefix = className.Substring(TableClassPrefix.Length);
-            return (n != prefix && n.StartsWith(prefix)) ? n.Substring(prefix.Length) : n;
+            string suffix = className.Substring(0, className.Length - TableClassSuffix.Length);
+
+            n = (n != prefix && n.StartsWith(prefix)) ? n.Substring(prefix.Length) : n;
+            n = (n != suffix && n.EndsWith(suffix)) ? n.Substring(0, n.Length - suffix.Length) : n;
+            return n;
         }
 
         private static string WormCase2PascalCase(string worm)
@@ -173,7 +179,7 @@ namespace NpgCodeGen
             if (s.EndsWith("ies"))
                 return $"{s.Substring(0, s.Length - 3)}y";
 
-            return (s.EndsWith("s") && !s.EndsWith("ss")) ? s.TrimEnd('s') : s;
+            return (s.EndsWith("s") && !s.EndsWith("ss") && !s.EndsWith("us")) ? s.TrimEnd('s') : s;
         }
     }
 }

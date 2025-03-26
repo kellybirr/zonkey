@@ -1,4 +1,8 @@
-﻿namespace Zonkey.Dialects
+﻿using System;
+using System.Data;
+using System.Data.Common;
+
+namespace Zonkey.Dialects
 {
     /// <summary>
     /// Provides properties and methods specific to PostgrSQL Database Server.
@@ -54,5 +58,29 @@
         /// <returns>System.String.</returns>
         public override string FormatUnaryBoolean(string fieldName) => $"({fieldName})";
 
+
+        public override void FixParameter(DbParameter parameter)
+        {
+            if (parameter.Value?.GetType() is Type vt && vt.IsEnum)
+            { 
+                switch (parameter.DbType)
+                {
+                    case DbType.Byte:
+                        parameter.Value = Convert.ChangeType(parameter.Value, typeof(Byte));
+                        break;
+                    case DbType.Int16:
+                        parameter.Value = Convert.ChangeType(parameter.Value, typeof(Int16));
+                        break;
+                    case DbType.Int32:
+                        parameter.Value = Convert.ChangeType(parameter.Value, typeof(Int32));
+                        break;
+                    case DbType.Int64:
+                        parameter.Value = Convert.ChangeType(parameter.Value, typeof(Int64));
+                        break;
+                }
+            }
+
+            base.FixParameter(parameter);
+        }
     }
 }
