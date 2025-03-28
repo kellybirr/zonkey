@@ -7,7 +7,7 @@
 		<SignAssembly>True</SignAssembly>
 		<AssemblyOriginatorKeyFile>Zonkey.Data.snk</AssemblyOriginatorKeyFile>
 		<DelaySign>False</DelaySign>
-		<Version>6.5.0.5000-rc2</Version>
+		<Version>6.5.0.5000-rc3</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Title>Zonkey ORM</Title>
 		<Authors>Kelly Birr</Authors>
