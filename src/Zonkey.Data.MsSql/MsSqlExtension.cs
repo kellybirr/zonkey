@@ -1,9 +1,9 @@
 ﻿using System.Data;
 
-#if (NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER)
+#if NET6_0_OR_GREATER
 using Microsoft.Data.SqlClient;
-#elif (NET48)
-    using System.Data.SqlClient;
+#else
+using System.Data.SqlClient;
 #endif
 
 namespace Zonkey
@@ -12,11 +12,6 @@ namespace Zonkey
     {
         public static void Initialize()
         {
-#if (NETSTANDARD2_0)
-            // ReSharper disable once RedundantNameQualifier
-            Zonkey.DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", SqlClientFactory.Instance);
-#endif
-
             DbParameterExtensions.UseTypeSetter<SqlParameter>(DbType.Time, (p,f) =>
             {
                 ((SqlParameter)p).SqlDbType = SqlDbType.Time;

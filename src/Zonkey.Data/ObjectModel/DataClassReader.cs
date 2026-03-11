@@ -14,10 +14,8 @@ namespace Zonkey.ObjectModel
     /// A class that reads DCs from a DataReader
     /// </summary>
     /// <typeparam name="T"></typeparam>
-#if (NETSTANDARD2_1)
+#if NET6_0_OR_GREATER
     public class DataClassReader<T> : IEnumerable<T>, IAsyncEnumerable<T>, IDisposable, IAsyncDisposable where T : class
-#elif (NETSTANDARD2_0)
-    public class DataClassReader<T> : IEnumerable<T>, IAsyncEnumerable<T>, IDisposable where T : class
 #else
     public class DataClassReader<T> : IEnumerable<T>, IDisposable where T : class
 #endif
@@ -138,7 +136,7 @@ namespace Zonkey.ObjectModel
             return GetEnumerator();
         }
 
-#if (NETSTANDARD2_0_OR_GREATER)
+#if NET6_0_OR_GREATER
         async IAsyncEnumerator<T> IAsyncEnumerable<T>.GetAsyncEnumerator([EnumeratorCancellation] System.Threading.CancellationToken cancellationToken = default)
         {
             T item;
@@ -163,7 +161,7 @@ namespace Zonkey.ObjectModel
 
         ~DataClassReader() => Dispose(false);
 
-#if (NETSTANDARD2_1)
+#if NET6_0_OR_GREATER
         public async ValueTask DisposeAsync()
         {
             if (DisposeBaseReader && !_disposed)

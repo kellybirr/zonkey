@@ -5,10 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
-#if (NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER)
-    using Microsoft.Data.SqlClient;
-#elif (NET48)
-    using System.Data.SqlClient;
+#if NET6_0_OR_GREATER
+using Microsoft.Data.SqlClient;
+#else
+using System.Data.SqlClient;
 #endif
 
 namespace Zonkey.SqlServer
