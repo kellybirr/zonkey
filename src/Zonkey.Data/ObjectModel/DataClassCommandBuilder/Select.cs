@@ -262,13 +262,13 @@ namespace Zonkey.ObjectModel
 				if (_builtColumnsStr == null)
 				{
 					var columnsSb = new StringBuilder();
-					foreach (IDataMapField field in _dataMap.ReadableFields)
+					foreach (IDataMapField mapField in _dataMap.ReadableFields)
 					{
 						if (columnsSb.Length > 0) columnsSb.Append(", ");
 
 						if (_useTableWithFieldNames) columnsSb.Append(TableName + ".");
 
-						columnsSb.Append(_dialect.FormatFieldName(field.FieldName, (field.UseQuotedIdentifier ?? UseQuotedIdentifier)));
+						columnsSb.Append(_dialect.FormatFieldName(mapField.FieldName, (mapField.UseQuotedIdentifier ?? UseQuotedIdentifier)));
 					}
 
 					if (columnsSb.Length == 0)

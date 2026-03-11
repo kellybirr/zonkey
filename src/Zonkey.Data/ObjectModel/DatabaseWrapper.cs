@@ -84,16 +84,16 @@ namespace Zonkey.ObjectModel
         }
 
         /// <summary>
-        /// Executes an action within a DB transaction
+        /// Executes an async function within a DB transaction
         /// </summary>
-        /// <param name="code">The code to execute</param>
-        public void WithTransaction(Action<DbTransaction> code)
+        /// <param name="code">The async code to execute</param>
+        public async Task WithTransaction(Func<DbTransaction, Task> code)
         {
             using (var trx = BeginTransaction())
             {
                 try
                 {
-                    code(trx);
+                    await code(trx);
                     trx.Commit();
                 }
                 catch
