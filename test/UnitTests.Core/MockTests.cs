@@ -118,7 +118,7 @@ namespace Zonkey.UnitTests
 
             int r = da.FillAll(col).Result;
 
-            Assert.AreEqual(r, 20);
+            Assert.AreEqual(20, r);
             Assert.AreEqual(r, col.Count);            
         }
 

@@ -270,17 +270,20 @@ namespace Zonkey.UnitTests
 
         }
 
-        [TestMethod, ExpectedException(typeof(ArgumentException))]
+        [TestMethod]
         public void Linq_SqlIn_Test_3()
         {
-            var intArray = new Int32[2500];
-            for (int i = 0; i < intArray.Length; i++)
-                intArray[i] = Environment.TickCount;
+            Assert.ThrowsExactly<ArgumentException>(() =>
+            {
+                var intArray = new Int32[2500];
+                for (int i = 0; i < intArray.Length; i++)
+                    intArray[i] = Environment.TickCount;
 
-            Expression<Func<Person_Person, bool>> exp = (c => c.BusinessEntityID.SqlIn(intArray));
+                Expression<Func<Person_Person, bool>> exp = (c => c.BusinessEntityID.SqlIn(intArray));
 
-            var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect());
-            parser.Parse(exp);
+                var parser = new ObjectModel.WhereExpressionParser(new GenericSqlDialect());
+                parser.Parse(exp);
+            });
         }
 #if (false)
         [TestMethod]
@@ -334,16 +337,19 @@ namespace Zonkey.UnitTests
             Assert.AreEqual(3, result.Parameters.Length);
         }
 
-        [TestMethod, ExpectedException(typeof(ArgumentOutOfRangeException))]
+        [TestMethod]
         public void Linq_SqlIn_Test_7()
         {
-            Expression<Func<Contact1, bool>> exp = (c => c.ContactID.SqlIn((SysObject obj) => (obj.type == "table")) && c.IsPrimary);
+            Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            {
+                Expression<Func<Contact1, bool>> exp = (c => c.ContactID.SqlIn((SysObject obj) => (obj.type == "table")) && c.IsPrimary);
 
-            var parser = new ObjectModel.WhereExpressionParser();
-            var result = parser.Parse(exp);
+                var parser = new ObjectModel.WhereExpressionParser();
+                var result = parser.Parse(exp);
 
-            Assert.AreEqual("((ContactID IN (SELECT ContactID FROM sysobjects WHERE (type = $0))) AND (IsPrimary = 1))", result.SqlText);
-            Assert.AreEqual(1, result.Parameters.Length);
+                Assert.AreEqual("((ContactID IN (SELECT ContactID FROM sysobjects WHERE (type = $0))) AND (IsPrimary = 1))", result.SqlText);
+                Assert.AreEqual(1, result.Parameters.Length);
+            });
         }
 
         [TestMethod]

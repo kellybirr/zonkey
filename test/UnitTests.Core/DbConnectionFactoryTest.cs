@@ -55,7 +55,7 @@ namespace Zonkey.UnitTests
             var connection = DbConnectionFactory.CreateConnection(name);
             Assert.IsInstanceOfType(connection, expectedType);
 
-            Assert.AreEqual(connection.State, System.Data.ConnectionState.Closed);
+            Assert.AreEqual(System.Data.ConnectionState.Closed, connection.State);
 
             var methodDuration = DateTime.Now.Subtract(methodStartTime);
             Console.WriteLine($"Zonkey.DbConnectionFactory.GetConnection Time Elapsed: {methodDuration}");
