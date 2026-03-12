@@ -20,10 +20,14 @@ namespace Zonkey.Dialects
                 { "CoreLab.MySql.MySqlConnection", _ => new MySqlDialect() },
                 { "Devart.Data.MySql.MySqlConnection", _ => new MySqlDialect() },
                 { "MySql.Data.MySqlClient.MySqlConnection", _ => new MySqlDialect() },
+                { "MySqlConnector.MySqlConnection", _ => new MySqlDialect() },
                 { "System.Data.OracleClient.OracleConnection", _ => new OracleSqlDialect() },
+                { "Oracle.ManagedDataAccess.Client.OracleConnection", _ => new OracleSqlDialect() },
                 { "IBM.Data.DB2.DB2Connection", _ => new DB2SqlDialect() },
                 { "Npgsql.NpgsqlConnection", _ => new PostgreSqlDialect() },
-                { "Mono.Data.Sqlite.SqliteConnection", _ => new SqliteDialect() }
+                { "Mono.Data.Sqlite.SqliteConnection", _ => new SqliteDialect() },
+                { "System.Data.SQLite.SQLiteConnection", _ => new SqliteDialect() },
+                { "Microsoft.Data.Sqlite.SqliteConnection", _ => new SqliteDialect() }
             };
         }
 
