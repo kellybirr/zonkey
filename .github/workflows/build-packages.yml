@@ -20,7 +20,9 @@ jobs:
 
       - name: Get version from release tag
         id: version
-        run: echo "VERSION=${{ github.event.release.tag_name }}" -replace '^v','' | Out-File -Append $env:GITHUB_OUTPUT
+        run: |
+          $version = "${{ github.event.release.tag_name }}".TrimStart('v')
+          "VERSION=$version" | Out-File -Append $env:GITHUB_OUTPUT
 
       - name: Restore
         run: dotnet restore Zonkey.sln

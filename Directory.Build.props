@@ -1,0 +1,8 @@
+<Project>
+
+  <!-- Allows net48 targets to build on non-Windows machines (e.g. Linux CI runners) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>
