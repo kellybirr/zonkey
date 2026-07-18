@@ -24,7 +24,7 @@ namespace Zonkey.ObjectModel
     }
 
     class WhereExpressionParser
-    {        
+    {
         private ArrayList _parmList;
         private List<string> _boolFields;
 

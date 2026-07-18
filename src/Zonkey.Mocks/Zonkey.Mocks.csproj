@@ -4,9 +4,6 @@
 	  <TargetFrameworks>net6.0;net8.0;net10.0;net48</TargetFrameworks>
 	  <LangVersion>latest</LangVersion>
 	  <RootNamespace>Zonkey.Mocks</RootNamespace>
-	  <SignAssembly>True</SignAssembly>
-	  <AssemblyOriginatorKeyFile>Zonkey.Mocks.snk</AssemblyOriginatorKeyFile>
-	  <DelaySign>False</DelaySign>
 	  <Version>6.6.0</Version>
 	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	  <Title>Zonkey Mocking</Title>
