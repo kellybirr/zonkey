@@ -1,0 +1,29 @@
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Zonkey#Test123"
+    ports:
+      # Host port 1434 avoids clashing with a locally installed SQL Server on 1433
+      - "1434:1433"
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Zonkey#Test123" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: zonkey
+      POSTGRES_PASSWORD: zonkey
+      POSTGRES_DB: zonkey_test
+    ports:
+      # Host port 5433 avoids clashing with a locally running PostgreSQL on 5432
+      - "5433:5432"
+    healthcheck:
+      test: pg_isready -U zonkey
+      interval: 10s
+      timeout: 5s
+      retries: 5
