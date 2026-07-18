@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Zonkey is a .NET ORM library that maps database tables to C# classes. It supports multiple database dialects and targets netstandard2.0, netstandard2.1, net6.0, net8.0, and net48.
+Zonkey is a .NET ORM library that maps database tables to C# classes. It supports multiple database dialects and targets net6.0, net8.0, net10.0, and net48.
 
 NuGet packages: zonkey.data, zonkey.text, zonkey.droid, zonkey.mocks
 
@@ -12,22 +12,25 @@ NuGet packages: zonkey.data, zonkey.text, zonkey.droid, zonkey.mocks
 
 ```bash
 # Build entire solution
-dotnet build "Zonkey 5.0.sln"
+dotnet build Zonkey.sln
 
 # Build a specific project
 dotnet build src/Zonkey.Data/Zonkey.Data.csproj
 
-# Run all tests
-dotnet test test/UnitTests.Core/UnitTests.csproj
+# Run all tests (unit + SQLite integration; MSSQL/PostgreSQL tests skip if containers are down)
+dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj
 
 # Run a single test
-dotnet test test/UnitTests.Core/UnitTests.csproj --filter "FullyQualifiedName~TestMethodName"
+dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj --filter "FullyQualifiedName~TestMethodName"
 
 # Run tests for a specific framework
-dotnet test test/UnitTests.Core/UnitTests.csproj -f net8.0
+dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj -f net10.0
+
+# Start MSSQL (host port 1434) and PostgreSQL (host port 5433) for integration tests
+docker compose up -d --wait
 ```
 
-Tests use MSTest and reference AdventureWorks sample database objects.
+Tests use xUnit v3 with a zoo-themed schema (Animal, Species, Exhibit, Zookeeper, FeedingSchedule). SQLite integration tests always run (temp-file DB); MSSQL and PostgreSQL integration tests run against the docker-compose containers and skip gracefully when unavailable. Connection strings can be overridden with the `ZONKEY_TEST_MSSQL` and `ZONKEY_TEST_PGSQL` environment variables. On net48 only unit tests run.
 
 ## Solution Structure
 
@@ -35,7 +38,7 @@ Tests use MSTest and reference AdventureWorks sample database objects.
 - **src/Zonkey.Data.MsSql** — SQL Server-specific extensions (depends on Microsoft.Data.SqlClient)
 - **src/Zonkey.Text** — CSV/text file reader/writer
 - **src/Zonkey.Mocks** — Mock ADO.NET objects for unit testing
-- **test/UnitTests.Core** — MSTest test suite
+- **test/Zonkey.Tests** — xUnit v3 test suite (unit + SQLite/MSSQL/PostgreSQL integration)
 
 ## Architecture
 
