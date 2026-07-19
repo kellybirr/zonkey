@@ -22,6 +22,7 @@ Key classes:
 ## Defining Text Classes
 
 ```csharp
+using System.Globalization;
 using Zonkey.Text;
 
 [TextRecord(TextRecordType.Delimited, Delimiter = ',', TextQualifier = '"')]
@@ -55,8 +56,8 @@ public class ProductImport
 
 | Property | Description |
 |---|---|
-| `Position` | Zero-based field position (or auto-assigned if SequentialProperties is true) |
-| `Length` | Field length (required for FixedLength records) |
+| `Position` | Zero-based field index for delimited records, character offset for FixedLength records (or auto-assigned if SequentialProperties is true) |
+| `Length` | Field length (for FixedLength records; may be inferred from the next field's Position when SequentialProperties is true) |
 | `NumberStyle` | `NumberStyles` for numeric parsing |
 | `DateTimeStyle` | `DateTimeStyles` for date parsing |
 | `OutputFormat` | Format string for writing |
@@ -103,6 +104,14 @@ reader.Fill(products, p => p.Price > 0);
 | `LineNumber` | Current line being processed |
 | `ShortRecordBehaviour` | `Accept`, `Skip`, or `Exception` for short records |
 | `LineFilter` | `Func<int, string, bool>` delegate to filter/skip lines (e.g., skip comments) |
+
+### Parsing Behavior
+
+- Field values are trimmed of surrounding whitespace before conversion.
+- Empty values are skipped, leaving the property at its default value.
+- A `Length` on a delimited field acts as a maximum length -- longer values are truncated.
+- Booleans parse by matching the first character of the value against `TextField.DefaultBooleanTrue` (`"T,t,Y,y,1"`), unless the field sets a custom `BooleanTrue` list. Boolean *output* uses a pipe-separated `OutputFormat` (e.g. `"True|False"`).
+- Types outside the supported list fall back to `Convert.ChangeType`.
 
 ### Enumeration
 
@@ -151,10 +160,10 @@ public class LegacyInventoryRecord
     [TextField(Position = 0, Length = 10)]
     public string ProductCode { get; set; } = "";
 
-    [TextField(Position = 1, Length = 5)]
+    [TextField(Position = 10, Length = 5)]
     public int Quantity { get; set; }
 
-    [TextField(Position = 2, Length = 30)]
+    [TextField(Position = 15, Length = 30)]
     public string WarehouseName { get; set; } = "";
 }
 
@@ -163,7 +172,7 @@ var records = new List<LegacyInventoryRecord>();
 reader.Fill(records);
 ```
 
-For fixed-width records, each `TextFieldAttribute` must specify a `Length`. The `RecordLength` is automatically calculated from the field positions and lengths.
+For fixed-width records, `Position` is the character offset of the field within the line, not a field index (for delimited records it is a field index). Each `TextFieldAttribute` normally specifies a `Length`; with `SequentialProperties` enabled, a missing `Length` is inferred from the next field's `Position`. The `RecordLength` is automatically calculated from the field positions and lengths.
 
 ## Low-Level CSV Parsing
 

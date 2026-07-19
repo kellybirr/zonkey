@@ -4,6 +4,22 @@ The `Zonkey.Mocks` package provides mock implementations of core ADO.NET classes
 
 ---
 
+## Running Zonkey's Own Test Suite
+
+The repository's test suite lives in `test/Zonkey.Tests` (xUnit v3, targeting net10.0 and net48):
+
+```shell
+# Run all tests on both frameworks
+dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj
+
+# Start SQL Server and PostgreSQL containers for the full integration run
+docker compose up -d --wait
+```
+
+Unit tests and the SQLite integration tests always run. The SQL Server and PostgreSQL integration tests run when the docker compose containers are up (host ports 1434 and 5433, chosen to avoid clashing with locally installed servers) and skip gracefully with a reason otherwise. Set the `ZONKEY_TEST_MSSQL` and `ZONKEY_TEST_PGSQL` environment variables to override the connection strings. On net48 only the unit tests run -- the integration fixtures are excluded via `#if !NETFRAMEWORK`. CI runs the same suite through `.github/workflows/build-and-test.yml`.
+
+---
+
 ## Overview
 
 Install:
@@ -16,7 +32,7 @@ Zonkey.Mocks provides:
 
 - `MockDbConnection` -- mock `DbConnection` with configurable command creation
 - `MockDbCommand` -- mock `DbCommand` with delegate properties for each execution method
-- `MockDbDataReader` -- mock reader backed by `DataTable`, collections, or dictionaries
+- `MockDbDataReader` -- mock reader backed by a `DataTable` or a collection of objects or dictionaries
 - `MockDbParameter` / `MockDbParameterCollection` -- mock parameter objects
 - `MockDbTransaction` -- mock transaction with state tracking
 
@@ -83,7 +99,7 @@ connection.SetupCommandFunc = cmd =>
 
 Delegate properties on `MockDbCommand`:
 
-- `DoExecuteReader` -- `Func<MockDbCommand, object>`: return a `DataTable`, `IEnumerable`, or `IDictionary` to serve as the data source for a `MockDbDataReader`
+- `DoExecuteReader` -- `Func<MockDbCommand, object>`: return a `DataTable` or `IEnumerable` to serve as the data source for a `MockDbDataReader` (the elements of an enumerable may be POCOs, anonymous objects, dictionaries, or `DataRow`s)
 - `DoExecuteNonQuery` -- `Func<MockDbCommand, int>`: return the number of rows affected
 - `DoExecuteScalar` -- `Func<MockDbCommand, object>`: return the scalar value
 - `DoCancel` -- `Action<MockDbCommand>`: called when `Cancel()` is invoked
@@ -167,7 +183,7 @@ Note: the `MockTransactionState` enum values `Uncomitted` and `Comitted` use thi
 Complete example testing a read operation with `DataClassAdapter<T>`:
 
 ```csharp
-[TestMethod]
+[Fact]
 public async Task GetProduct_ReturnsProduct_WhenExists()
 {
     // Arrange
@@ -192,9 +208,9 @@ public async Task GetProduct_ReturnsProduct_WhenExists()
     var product = await adapter.GetOne(p => p.Id == 42);
 
     // Assert
-    Assert.IsNotNull(product);
-    Assert.AreEqual("Classic Tee", product.Name);
-    Assert.AreEqual(24.99m, product.Price);
+    Assert.NotNull(product);
+    Assert.Equal("Classic Tee", product.Name);
+    Assert.Equal(24.99m, product.Price);
 }
 ```
 
@@ -202,23 +218,32 @@ public async Task GetProduct_ReturnsProduct_WhenExists()
 
 ## Testing Save Operations
 
-You can verify that save operations generate the expected SQL and parameters by inspecting the `MockDbCommand`:
+You can verify that save operations generate the expected SQL and parameters by inspecting the `MockDbCommand`. Note that `MockDbConnection` resolves to the generic SQL dialect, which does not batch statements -- saving a new object issues two commands: the INSERT runs through `ExecuteNonQuery`, then the adapter selects auto-increment and computed values back through `ExecuteReader`. Configure both delegates:
 
 ```csharp
-[TestMethod]
+[Fact]
 public async Task Save_NewProduct_Inserts()
 {
     // Arrange
-    string? executedSql = null;
+    string? insertSql = null;
     var connection = new MockDbConnection();
     connection.SetupCommandFunc = cmd =>
     {
+        // The INSERT statement executes as a non-query
+        cmd.DoExecuteNonQuery = c =>
+        {
+            insertSql = c.CommandText;
+            return 1; // 1 row affected
+        };
+
+        // The select-back of auto-increment/computed values uses a reader
         cmd.DoExecuteReader = c =>
         {
-            executedSql = c.CommandText;
             var dt = new DataTable();
             dt.Columns.Add("id", typeof(int));
-            dt.Rows.Add(99); // Simulated identity value
+            dt.Columns.Add("name", typeof(string));
+            dt.Columns.Add("price", typeof(decimal));
+            dt.Rows.Add(99, "Classic Tee", 24.99m); // Simulated inserted row
             return dt;
         };
     };
@@ -231,8 +256,8 @@ public async Task Save_NewProduct_Inserts()
     await adapter.Save(product);
 
     // Assert
-    Assert.IsNotNull(executedSql);
-    Assert.IsTrue(executedSql.Contains("INSERT"));
+    Assert.NotNull(insertSql);
+    Assert.Contains("INSERT", insertSql);
 }
 ```
 

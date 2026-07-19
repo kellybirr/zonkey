@@ -17,6 +17,10 @@ Task<int> ExecuteNonQuery(...)
 
 This is not async wrappers around synchronous code. The underlying ADO.NET calls use native async methods (`ExecuteReaderAsync`, `ExecuteNonQueryAsync`, `ExecuteScalarAsync`).
 
+## Method Naming
+
+Zonkey's async methods do not carry the .NET-conventional `-Async` suffix — the async API is `Fill`, `Save`, `GetOne`, not `FillAsync`. Earlier versions paired synchronous methods with `TaskAsync`-suffixed async variants (e.g. `FillTaskAsync`); when the synchronous variants were dropped, the async methods took the plain names, and there is no sync/async pair left to disambiguate. Do not rename or search for `FillAsync` — the suffix-less names are the async API.
+
 ## Standard Usage
 
 ```csharp
@@ -30,9 +34,9 @@ await adapter.Fill(products, p => p.Price < 25.00m);
 
 ## ConfigureAwait
 
-Internally, Zonkey uses `.ConfigureAwait(false)` on all async operations. This means:
+Internally, Zonkey uses `.ConfigureAwait(false)` on most async operations. This means:
 
-- Library methods will not capture the synchronization context
+- Library methods generally do not capture the synchronization context
 - This is correct behavior for a library
 - Your calling code should follow standard async best practices for your framework (ASP.NET Core does not need `ConfigureAwait`, but WinForms/WPF callers should be aware of potential cross-thread issues)
 
@@ -60,13 +64,13 @@ If you need parallel queries, use separate connections:
 ```csharp
 var productTask = Task.Run(async () =>
 {
-    await using var db = await StoreDb.OpenAsync(connectionString);
+    using var db = await StoreDb.OpenAsync(connectionString);
     return await db.Adapter<Product>().GetList(p => p.Category == "shirts");
 });
 
 var customerTask = Task.Run(async () =>
 {
-    await using var db = await StoreDb.OpenAsync(connectionString);
+    using var db = await StoreDb.OpenAsync(connectionString);
     return await db.Adapter<Customer>().GetList(c => c.IsActive);
 });
 
@@ -83,7 +87,7 @@ A common async pattern is to load primary data, extract IDs, then load related d
 ```csharp
 using Zonkey.Extensions;
 
-await using var db = await StoreDb.OpenAsync(connectionString);
+using var db = await StoreDb.OpenAsync(connectionString);
 
 // Load orders
 var orders = new List<Order>();
@@ -142,7 +146,7 @@ Connections should be short-lived in web applications:
 [HttpGet("{id}")]
 public async Task<IActionResult> GetProduct(int id)
 {
-    await using var db = await StoreDb.OpenAsync(_connectionString);
+    using var db = await StoreDb.OpenAsync(_connectionString);
     var product = await db.GetOne<Product>(p => p.Id == id);
     return product is not null ? Ok(product) : NotFound();
 }
@@ -151,7 +155,7 @@ public async Task<IActionResult> GetProduct(int id)
 For background services or batch jobs, a longer-lived connection is appropriate:
 
 ```csharp
-await using var db = await StoreDb.OpenAsync(connectionString);
+using var db = await StoreDb.OpenAsync(connectionString);
 
 foreach (var batch in items.Chunk(100))
 {

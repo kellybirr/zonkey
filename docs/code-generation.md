@@ -1,6 +1,6 @@
 # Code Generation Tools
 
-The `tools/` folder contains code generators that create data class files from database schemas. These are standalone tools, not NuGet packages.
+The `tools/` folder contains code generators that create data class files from database schemas. These are standalone tools, not NuGet packages. They are legacy .NET Framework projects that are not part of `Zonkey.sln` and are not built by `dotnet build`.
 
 ## Overview
 
@@ -37,7 +37,7 @@ Located in `tools/NpgCodeGen/`. A console application that:
 - Generates C# data classes
 - Converts snake_case table/column names to PascalCase
 - Converts plural table names to singular class names
-- Detects sequences for auto-increment fields
+- Marks auto-increment fields from the schema's `IsAutoIncrement` metadata (explicit sequence-name wiring exists in the source but is commented out)
 - Handles timestamp with/without timezone (`DateTimeKind.Utc` vs `Unspecified`)
 - Supports table prefix/suffix removal from property names
 - Configurable table and field ignore lists
@@ -87,6 +87,17 @@ After generation, you can customize the classes (add OnBeforeSave hooks, compute
 ## Alternative: Manual Class Creation
 
 For small projects or when you want full control, write data classes by hand. The attribute syntax is straightforward and well-supported by IDE tooling.
+
+## Runtime Code Generation (ClassFactory)
+
+Separate from the schema-scaffolding tools above, Zonkey also generates a small amount of code at runtime. `Zonkey.ObjectModel.ClassFactory` emits a `DynamicMethod` (just `newobj`/`ret` IL) for each mapped type and caches the resulting factory delegate per type. Fill operations and `DataClassReader` construct one object per row, so a compiled factory keeps `Activator.CreateInstance`-style reflection cost from dominating materialization.
+
+Callers can override how objects are created:
+
+- `ClassFactory.RegisterType(...)` -- supply a custom factory delegate for a type
+- `ClassFactory.RegisterInterface<TInterface, TConcrete>(...)` -- map an interface to a concrete class so it can be materialized
+
+The emitted factory requires a public parameterless constructor. Types without one must have a factory registered with `ClassFactory`, or set `ObjectFactory` on the `DataClassAdapter<T>` instance.
 
 ---
 

@@ -55,7 +55,7 @@ When `Transaction` is set on an adapter, every command the adapter executes is e
 When using `DatabaseWrapper`, you can call `BeginTransaction()` to create a transaction on the wrapper's connection, then pass it to `Adapter<T>(trx)` to get adapters with the transaction already assigned.
 
 ```csharp
-await using var db = await StoreDb.OpenAsync(connectionString);
+using var db = await StoreDb.OpenAsync(connectionString);
 var trx = db.BeginTransaction();
 
 try
@@ -92,12 +92,14 @@ catch
 
 `Adapter<T>(trx)` returns the cached adapter for that type with its `Transaction` property set. This is the recommended pattern for async transaction handling with `DatabaseWrapper`.
 
+Be aware that the adapter is shared per wrapper instance, not created per call. After commit or rollback, the stale `Transaction` remains set on the cached adapter until the next `Adapter<T>()` call (the no-transaction overload) clears it -- and because the wrapper's convenience methods (`GetOne`, `Save`, `OpenReader`) use that overload, calling one mid-transaction un-enrolls the adapter from the transaction. For the same reason, a single wrapper must not be shared across concurrent transactions.
+
 ### DatabaseWrapper.WithTransaction()
 
 For simple transaction blocks, `WithTransaction` handles the commit-or-rollback lifecycle automatically.
 
 ```csharp
-await using var db = await StoreDb.OpenAsync(connectionString);
+using var db = await StoreDb.OpenAsync(connectionString);
 
 await db.WithTransaction(async trx =>
 {

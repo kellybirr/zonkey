@@ -91,7 +91,7 @@ await adapter.Fill(products, reader);
 
 `$0`, `$1`, `$2`... are positional parameter placeholders. The adapter replaces them with dialect-appropriate parameter syntax (`@p0` for SQL Server, `:p0` for PostgreSQL, etc.) and creates proper `DbParameter` objects.
 
-See [querying.md](querying.md) for detailed filter documentation.
+See [querying.md](querying.md) for detailed filter documentation -- including the [expression parser limitations](querying.md#expression-parser-limitations) (no method calls inside lambdas; hoist values into local variables first).
 
 ---
 
@@ -125,6 +125,8 @@ bool exists = await adapter.Exists("id = $0", 42);
 bool exists = await adapter.Exists(SqlFilter.EQ("name", "Classic Tee"));
 ```
 
+`Exists` generates its SQL through `SqlDialect.FormatExistsQuery` and works on every dialect (v6.5 and earlier emitted T-SQL that only ran on SQL Server; on those versions use `GetCount(...) > 0` for other databases).
+
 ---
 
 ## Querying -- OpenReader
@@ -140,7 +142,7 @@ while ((product = await reader.ReadAsync()) != null)
 }
 ```
 
-`DataClassReader<T>` also supports `IEnumerable<T>` and `IAsyncEnumerable<T>`, so you can use it with `foreach` and `await foreach`:
+`DataClassReader<T>` also supports `IEnumerable<T>` and -- on .NET 6+ targets only, not .NET Framework 4.8 -- `IAsyncEnumerable<T>`, so you can use it with `foreach` and `await foreach`:
 
 ```csharp
 using var reader = await adapter.OpenReader(SqlFilter.GT("price", 0));
@@ -204,7 +206,7 @@ await adapter.Save(product);
 // Only the price column was updated, DataRowState is now Unchanged
 ```
 
-`Save` returns `bool` and throws on failure (`UpdateConflictException` on conflict, `SaveFailedException` on other failures). `TrySave` returns a `SaveResult` for non-throwing error handling:
+`Save` returns `bool` and throws on failure (`UpdateConflictException` on conflict, `SaveFailedException` on other failures). A `false` return does **not** mean failure -- it means the save was *skipped* because the object was `Unchanged`; failures always throw. `TrySave` returns a `SaveResult` for non-throwing error handling:
 
 ```csharp
 SaveResult result = await adapter.TrySave(product);
@@ -228,9 +230,9 @@ Controls the WHERE clause of UPDATE statements:
 
 | Value | Behavior |
 |-------|----------|
-| `Default` | Uses the adapter's default behavior |
+| `Default` | Resolves to the class's `[DataItem(UpdateCriteria = ...)]` value if set, otherwise `ChangedFields` |
 | `KeyOnly` | WHERE uses key fields only |
-| `KeyAndVersion` | WHERE uses key + RowVersion fields (optimistic concurrency) |
+| `KeyAndVersion` | WHERE uses key + RowVersion fields (optimistic concurrency). Silently downgrades to `ChangedFields` when the dialect does not support row versions (only SQL Server does) |
 | `ChangedFields` | WHERE includes original values of changed fields |
 | `AllFields` | WHERE includes all original field values |
 
@@ -249,7 +251,7 @@ Controls which fields are read back from the database after a save operation:
 
 | Value | Behavior |
 |-------|----------|
-| `Default` | Uses the adapter's default behavior |
+| `Default` | Resolves to the class's `[DataItem(SelectBack = ...)]` value if set, otherwise `UnchangedFields` |
 | `None` | No SELECT after save |
 | `IdentityOrVersion` | SELECT back identity and version fields only |
 | `UnchangedFields` | SELECT back fields that were not in the SET clause |
@@ -272,6 +274,8 @@ The `TryInsert` and `TryUpdate` variants return `SaveResult` instead of throwing
 SaveResult result = await adapter.TryInsert(product, SelectBack.AllFields);
 SaveResult result = await adapter.TryUpdate(product, UpdateCriteria.KeyOnly, UpdateAffect.ChangedFields, SelectBack.None);
 ```
+
+**Pitfall:** unlike `Save`/`TrySave`, the direct `Insert`/`Update` paths do not invoke `OnBeforeSave`/`OnAfterSave` and do **not** call `CommitValues` -- after a direct insert the object's `DataRowState` is still `Added` and `OriginalValues` are not cleared, so a subsequent `Save` would insert it again. Call `CommitValues()` yourself if you continue working with the object.
 
 ---
 
@@ -302,11 +306,13 @@ CollectionSaveResult<Product> result = await adapter.TrySaveCollection(products,
 
 Collection save processes deleted items first (via `ITrackDeletedItems<T>`), then saves added and modified items.
 
+**Known issue (v6.6):** only the overloads shown above behave as documented. `TrySaveCollection(collection, criteria, affect, selectBack)` currently ignores its criteria/affect/selectBack arguments and uses defaults, and `TrySaveCollection(collection, criteria, continueOnError)` ignores `continueOnError`. Use per-item `TrySave` when you need non-default criteria on a collection.
+
 ---
 
 ## Saving -- Bulk Operations
 
-High-throughput insert and update without change tracking overhead. These methods skip `ISavable` events (`OnBeforeSave`/`OnAfterSave`), skip select-back, and reuse a single prepared command for all objects.
+High-throughput insert and update without change tracking overhead. These methods skip the `DataClass` lifecycle hooks (`OnBeforeSave`/`OnAfterSave`) and the adapter's `BeforeSave` event, skip select-back, and reuse a single prepared command for all objects (`BeforeExecuteCommand` still fires).
 
 ```csharp
 // Bulk insert a collection
@@ -328,6 +334,10 @@ The `BulkUpdateKeys` property controls whether key field values are included in 
 adapter.BulkUpdateKeys = true;
 await adapter.BulkUpdate(products);
 ```
+
+Set `BulkUpdateKeys` before the first `BulkUpdate` call -- the prepared command is cached per adapter, and changing the property resets it.
+
+Behavior notes: failures throw `BulkInsertException`/`BulkUpdateException`, which report how many records had already been written successfully; and `Guid.Empty` values are converted to `DBNull` on bulk insert.
 
 Use bulk operations for high-volume data loading scenarios where change tracking and select-back are not needed.
 
@@ -352,7 +362,7 @@ int deleted = await adapter.Delete("price = 0");
 bool deleted = await adapter.DeleteItem(product);
 ```
 
-The expression and filter-based `Delete` overloads return `Task<int>` with the number of rows deleted. `DeleteItem` returns `Task<bool>` indicating whether exactly one row was deleted. All delete methods throw `DeleteFailedException` on database errors.
+The expression and filter-based `Delete` overloads return `Task<int>` with the number of rows deleted. `DeleteItem` returns `Task<bool>` indicating whether exactly one row was deleted; it matches on the key fields *plus* any partition-key fields, and does not modify the deleted object's `DataRowState`. All delete methods throw `DeleteFailedException` on database errors.
 
 ---
 
@@ -380,7 +390,7 @@ int updated = await adapter.UpdateRows(values, p => p.Category == "shirts");
 
 ## Conflict Detection
 
-When using `UpdateCriteria.KeyAndVersion` or `ChangedFields`, the adapter detects concurrent modifications. After a conflict, use `GetConflicts` to inspect what changed:
+When using `UpdateCriteria.KeyAndVersion` or `ChangedFields`, the adapter detects concurrent modifications. The mechanism: if the UPDATE affects zero rows (the WHERE clause no longer matches because someone else changed the row), the adapter re-selects the row by key -- if the row still exists, the result is a `Conflict`; if it is gone, the result is a `Fail`. This is why a criteria stricter than `KeyOnly` is required for conflict detection to mean anything. After a conflict, use `GetConflicts` to inspect what changed:
 
 ```csharp
 var result = await adapter.TrySave(product);

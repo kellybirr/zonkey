@@ -107,7 +107,7 @@ public class StoreDb : DatabaseWrapper
 ```
 
 ```csharp
-await using var db = await StoreDb.OpenAsync(connectionString);
+using var db = await StoreDb.OpenAsync(connectionString);
 
 var customer = await db.GetOne<Customer>(c => c.Email == "alice@example.com");
 var order = new Order(addingNew: true) { CustomerId = customer.Id, Status = "pending" };
@@ -152,7 +152,7 @@ Each source project also has its own README:
 
 ## Project Status
 
-Zonkey has been in production use since the early days of .NET and has evolved through every major .NET release. It currently targets .NET Standard 2.0/2.1, .NET 6, .NET 8, and .NET Framework 4.8.
+Zonkey has been in production use since the early days of .NET and has evolved through every major .NET release. It currently targets .NET 6, .NET 8, .NET 10, and .NET Framework 4.8. As of v6.6, assemblies are no longer strong-name signed; consumers that require strong-named assemblies should stay on 6.5.x.
 
 This has historically been a single-maintainer project, but contributions are welcome. If you find a bug, have a feature idea, or want to improve the documentation, please [open an issue](https://github.com/kellybirr/zonkey/issues) or submit a pull request.
 

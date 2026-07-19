@@ -51,10 +51,12 @@ protected DatabaseWrapper(string connectionName)
 
 This constructor calls `DbConnectionFactory.CreateConnection(connectionName)` internally. You must register connection types with `DbConnectionFactory.Register` before using this constructor.
 
+Note that `DbConnectionFactory.CreateConnection` creates the connection but does not open it, and adapters throw when given an unopened connection. You are responsible for opening `Connection` before performing any operations (or use `DbConnectionFactory.OpenConnection(name)` with the `DbConnection` constructor instead).
+
 ## Usage
 
 ```csharp
-await using var db = await StoreDb.OpenAsync(connectionString);
+using var db = await StoreDb.OpenAsync(connectionString);
 
 // Convenience methods — no adapter needed
 var product = await db.GetOne<Product>(p => p.Id == 42);
@@ -93,6 +95,14 @@ DataClassAdapter<Product> adapter = db.Adapter<Product>(transaction);
 ```
 
 Adapters are cached by type in a `ConcurrentDictionary` and reused across calls within the lifetime of the wrapper. When you pass a transaction to `Adapter<T>(trx)`, the transaction is set on the adapter before it is returned.
+
+### Caveats
+
+Because adapters are shared per wrapper instance, calls through the wrapper affect the same adapter object:
+
+- `Adapter<T>()` (the no-transaction overload) sets `Transaction = null` on the cached adapter. The convenience methods (`GetOne`, `Save`, `OpenReader`) use this overload, so calling one mid-transaction un-enrolls that type's adapter from the transaction.
+- Per-call configuration such as `OrderBy` set on a cached adapter persists for later calls that reuse the same adapter.
+- A single wrapper instance is not safe to use concurrently with different transactions.
 
 ## Transactions
 
@@ -182,10 +192,10 @@ DatabaseWrapper implements `IDisposable`. When disposed:
 - The adapter cache is cleared
 - The underlying `DbConnection` is disposed
 
-Always use `using` or `await using`:
+Always use `using`:
 
 ```csharp
-await using var db = await StoreDb.OpenAsync(connectionString);
+using var db = await StoreDb.OpenAsync(connectionString);
 // ... use db ...
 // connection is automatically closed and disposed
 ```

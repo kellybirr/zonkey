@@ -35,11 +35,34 @@ await adapter.Fill(products, p => p.Description != null);
 
 **Important:** These are not `IQueryable` -- they only generate WHERE clauses. There is no query composition or deferred execution. The expression is evaluated once, a SQL command is generated, and the command is executed immediately.
 
+### Expression Parser Limitations
+
+The parser translates the expression tree to SQL -- it does not execute C# code. Three rules follow from this:
+
+1. **No method calls inside the lambda.** The parser can read fields, properties, and captured local variables, but it cannot evaluate method calls -- `Guid.Parse(...)`, `DateTime.Now.AddDays(-7)`, `name.Trim()`, and anything similar throw `NotSupportedException`. Compute the value into a local variable first, then use the variable:
+
+   ```csharp
+   // Throws NotSupportedException:
+   var animal = await adapter.GetOne(a => a.OwnerId == Guid.Parse(idText));
+
+   // Works -- hoist the value into a local:
+   var ownerId = Guid.Parse(idText);
+   var animal = await adapter.GetOne(a => a.OwnerId == ownerId);
+   ```
+
+   The only method calls the parser understands are the `SqlIn` family (see [IN Clauses](#in-clauses)) and string predicate methods (`StartsWith`, `Contains`, `EndsWith`, ...), which translate to SQL.
+
+2. **String methods depend on the dialect.** `StartsWith`/`Contains` translate through the dialect's function mapping; the real dialects (SQL Server, SQLite, PostgreSQL, MySQL, Access) all support them, but the generic fallback dialect does not and will throw.
+
+3. **`SqlIn` needs a variable, a non-empty list, and at most 2,100 items.** Inline array literals (`p.X.SqlIn(new[]{...})`) and method-call results throw -- assign to a variable first. Empty lists throw `ArgumentException`. For large lists, see [SplitList](#large-lists-with-splitlist).
+
 ---
 
 ## SqlFilter
 
 Fluent, parameterized filter objects. Useful when building filters dynamically or when you need to construct queries from runtime conditions.
+
+**Field names, not property names.** `SqlFilter` (and string filters below) take database *column* names, which pass straight into the generated SQL. Lambda expressions are the only style that works in C# property names and maps them through the `DataField` attributes. With `[DataField("ProductID")] public int Id`, write `SqlFilter.EQ("ProductID", 42)` but `p => p.Id == 42`. Column-name quoting and case sensitivity vary by dialect -- see [Database Providers & Dialects](database-providers.md).
 
 ### Factory Methods
 
@@ -96,8 +119,13 @@ if (maxPrice.HasValue)
 if (!string.IsNullOrEmpty(category))
     filters.Add(SqlFilter.EQ("category", category));
 
-await adapter.Fill(products, filters.ToArray());
+if (filters.Count > 0)
+    await adapter.Fill(products, filters.ToArray());
+else
+    await adapter.FillAll(products);
 ```
+
+Note the guard: passing an empty filter array throws `ArgumentNullException` -- there is no "no filters means all rows" fallback. Use `FillAll` when no conditions apply.
 
 ---
 
@@ -116,7 +144,9 @@ await adapter.Fill(products, "price BETWEEN $0 AND $1", 10.0m, 50.0m);
 await adapter.Fill(products, "price > 0");
 ```
 
-The dollar-sign placeholders are converted to dialect-appropriate parameter syntax (`@p0` for SQL Server, `:p0` for PostgreSQL, etc.). The default prefix is `$` and can be changed via `adapter.ParameterPrefix`.
+The dollar-sign placeholders are converted to dialect-appropriate parameter syntax (`@p0` for SQL Server, `:p0` for PostgreSQL, etc.). The placeholder number is the argument's zero-based position in the parameter list.
+
+The prefix is `$` by default. `adapter.ParameterPrefix` exists but is best left alone: it only affects string-filter substitution, while the lambda parser always emits `$`-prefixed placeholders -- changing the prefix breaks lambda-based filters on the same adapter.
 
 String filters are parameterized and injection-safe when you use the placeholder syntax. Avoid concatenating user input directly into the filter string.
 
@@ -135,7 +165,7 @@ await adapter.Fill(products, p => p.Category.SqlIn(categoryList));
 
 ### Type-Specific Variants
 
-For better performance with numeric and GUID types, use the type-specific methods:
+For better performance with numeric and GUID types, use the type-specific methods. Unlike `SqlIn`, which binds one command parameter per value (and is therefore subject to parameter-count limits like SQL Server's 2,100), `SqlInInt` and `SqlInGuid` emit the values as inline SQL literals -- safe because the types cannot carry injection payloads:
 
 ```csharp
 using Zonkey.Extensions;
@@ -227,8 +257,8 @@ await adapter.FillAll(products);
 
 All three approaches are parameterized and injection-safe. Choose based on readability and your use case.
 
-- Use **lambda expressions** when you want compile-time type safety and the conditions are straightforward.
-- Use **SqlFilter** when you need to build filters conditionally at runtime (e.g., optional search parameters from a user interface or API).
+- Use **lambda expressions** when you want compile-time type safety and the conditions are straightforward. Remember the [parser limitations](#expression-parser-limitations): values must be pre-computed into locals, and you work in property names.
+- Use **SqlFilter** when you need to build filters conditionally at runtime (e.g., optional search parameters from a user interface or API). You work in database column names.
 - Use **string filters** when you need database-specific SQL syntax or complex expressions that lambda parsing does not support.
 
 ---

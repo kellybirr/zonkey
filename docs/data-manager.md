@@ -130,11 +130,11 @@ await dm.ExecuteNonQuery(
     "Product", "updated", DateTime.UtcNow);
 ```
 
-You can also pass `DbParameter` objects directly for full control. They are added to the command as-is:
+You can also pass `DbParameter` objects directly for full control. They are added to the command as-is. Note that placeholder numbers correspond to the argument's position in the parameter array — counting `DbParameter` arguments too — so in the example below the raw value `42` is at index 1 and binds to `$1`, not `$0`:
 
 ```csharp
 var param = new NpgsqlParameter("@name", NpgsqlDbType.Text) { Value = "Classic Tee" };
-await dm.ExecuteNonQuery("UPDATE products SET name = @name WHERE id = $0", param, 42);
+await dm.ExecuteNonQuery("UPDATE products SET name = @name WHERE id = $1", param, 42);
 ```
 
 Static helpers for adding parameters to commands:
@@ -169,6 +169,8 @@ using var reader = await cmd.ExecuteReaderAsync();
 ```
 
 `GetCommandFromSP` creates a `DbCommand` with `CommandType.StoredProcedure`, adds parameters, sets the command timeout, and enrolls the command in any registered transaction.
+
+Plain (non-`DbParameter`) values are added as unnamed parameters for stored procedure calls; this works with providers that bind procedure parameters positionally (such as Npgsql), but Microsoft.Data.SqlClient requires named procedure parameters — pass explicit `DbParameter` objects for SQL Server stored procedures.
 
 ## When to Use DataManager
 

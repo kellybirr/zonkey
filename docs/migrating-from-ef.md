@@ -14,8 +14,10 @@ This guide maps Entity Framework (EF/EF Core) concepts to their Zonkey equivalen
 | Lazy loading | Not supported (by design) | All data loading is explicit. You never get surprise queries from accessing a navigation property. |
 | `IQueryable` / LINQ-to-SQL | Lambda expressions + `SqlFilter` | Lambda expressions convert to WHERE clauses only. There is no query composition, projection, or server-side grouping through LINQ syntax. |
 | Migrations | Manual or code generation tools | Schema management is separate from the ORM. Use database tools or the [code generation tools](code-generation.md). |
-| `ChangeTracker` | `DataRowState` per object | Each object tracks its own state: `Added`, `Modified`, `Unchanged`, `Detached`. There is no global tracker. You inspect state directly on the object. |
+| `ChangeTracker` | `DataRowState` per object | Each object tracks its own state using `System.Data.DataRowState`, including `Added`, `Modified`, `Unchanged`, `Detached`, and `Deleted` (used by collection saves). There is no global tracker. You inspect state directly on the object. |
 | `SaveChanges()` (batch) | `TrySaveCollection` / individual `Save` | You choose whether to save one item or iterate a collection. Each save operation is explicit and independent. |
+| `CountAsync()` | `adapter.GetCount(...)` | Counts matching rows without loading objects. Returns `Task<long>`, not `int`. |
+| `AnyAsync()` | `adapter.Exists(...)` | Existence check. As of v6.6 it generates portable SQL through the dialect system and works on all supported dialects. |
 
 ## Mental Model Shifts
 
@@ -56,6 +58,26 @@ Zonkey's lambda expression support converts expressions to SQL WHERE clauses, bu
 EF can generate and apply database migrations from model changes, keeping your code and schema in sync.
 
 Zonkey does not manage your schema. Your data classes must match your database tables, but how you maintain that correspondence is up to you. Use database-native tools, third-party migration libraries, or the [code generation tools](code-generation.md) to generate classes from existing tables.
+
+## Pitfall: Method Calls Inside Lambdas
+
+This is the single most common EF habit that breaks. Zonkey's lambda support is a WHERE-clause translator, not LINQ-to-objects -- method calls inside the lambda are not evaluated, and the expression parser throws `NotSupportedException`:
+
+```csharp
+// Both throw NotSupportedException -- method calls are not translated
+var recent = await adapter.GetOne(a => a.Created > DateTime.Now.AddDays(-7));
+var item = await adapter.GetOne(a => a.Id == Guid.Parse("6f9619ff-8b86-d011-b42d-00cf4fc964ff"));
+```
+
+EF providers evaluate these subexpressions client-side before translating the query; Zonkey does not. Compute the value into a local variable first and use the variable in the lambda:
+
+```csharp
+var cutoff = DateTime.Now.AddDays(-7);
+var recent = await adapter.GetOne(a => a.Created > cutoff);
+
+var id = Guid.Parse("6f9619ff-8b86-d011-b42d-00cf4fc964ff");
+var item = await adapter.GetOne(a => a.Id == id);
+```
 
 ## Side-by-Side Examples
 

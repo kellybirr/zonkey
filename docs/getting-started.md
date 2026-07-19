@@ -45,7 +45,7 @@ public class Product : DataClass
     [DataField("price", DbType.Decimal, false)]
     public decimal Price { get => _price; set => SetFieldValue(ref _price, value); }
 
-    [DataField("description", DbType.String, Length = 500)]
+    [DataField("description", DbType.String, true, Length = 500)]
     public string? Description { get => _description; set => SetFieldValue(ref _description, value); }
 
     [DataField("created_utc", DbType.DateTime, false, DateTimeKind = DateTimeKind.Utc)]
@@ -57,7 +57,7 @@ The pattern is consistent across every property: a private backing field paired 
 
 The two constructors serve distinct purposes:
 
-- **Parameterless constructor** (`base(false)`) -- used by the adapter when it creates instances during query operations like `Fill` and `GetOne`. The object starts in the `Detached` state, then transitions to `Unchanged` after the adapter populates it and calls `CommitValues`.
+- **Parameterless constructor** (`base(false)`) -- used by the adapter when it creates instances during query operations like `Fill` and `GetOne`. The object starts in the `Detached` state, then transitions to `Unchanged` after the adapter populates it and calls `CommitValues`. This constructor must be `public`: the materializer instantiates through it (via generated IL), and throws if it is missing -- unless you supply a custom `adapter.ObjectFactory`.
 - **Bool constructor** (`base(addingNew: true)`) -- used when you create a new record in application code. Passing `true` sets `DataRowState` to `Added`, which tells the adapter to perform an INSERT when you call `Save`.
 
 ## Your First Query
@@ -87,6 +87,8 @@ long count = await adapter.GetCount(p => p.Price > 10.00m);
 ```
 
 The adapter auto-detects the SQL dialect from the connection type. A `NpgsqlConnection` produces PostgreSQL syntax, a `SqlConnection` produces SQL Server syntax, and so on. No manual configuration is needed.
+
+One PostgreSQL-specific note: Zonkey emits unquoted identifiers by default, and PostgreSQL folds unquoted identifiers to lowercase. Use lowercase table and column names in your PostgreSQL schema (as this example does), or enable quoted identifiers on the adapter. See [Database Providers & Dialects](database-providers.md) for the details.
 
 ## Your First Save
 

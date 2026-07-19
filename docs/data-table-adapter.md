@@ -29,6 +29,8 @@ var dt = new DataTable("products");
 var adapter = new DataTableAdapter(connection);
 ```
 
+How the table name appears in the generated SQL depends on `DataTableCommandBuilder.UseQuotedIdentifier`, a tri-state `bool?` that defaults to `null`: SQL Server and SQLite bracket-quote by default, while PostgreSQL and MySQL leave the name unquoted. On PostgreSQL an unquoted identifier case-folds to lowercase, so `new DataTable("Products")` queries `products` -- use lowercase table names there, or set `UseQuotedIdentifier` via a custom `CreateCommandBuilder` delegate. The generated SQL is never schema-qualified, so the table must be reachable through the connection's default schema or search path.
+
 You can also use the default constructor and assign the connection later:
 
 ```csharp
@@ -41,7 +43,7 @@ Properties inherited from `AdapterBase2`:
 - `Connection` -- the `DbConnection`
 - `SqlDialect` -- auto-detected from the connection type
 - `Transaction` -- for transactional operations
-- `ParameterPrefix` -- prefix character for indexed parameters (default `$`)
+- `ParameterPrefix` -- prefix character for indexed parameters (default `$`). Note: setting this has no effect on `DataTableAdapter` -- its Fill methods call a static `DataManager.AddParamsToCommand` overload that always uses `$`.
 
 Properties on `DataTableAdapter`:
 
@@ -111,7 +113,7 @@ The `BeforeSaveChanges` event fires before the update is submitted. Setting `Can
 ```csharp
 adapter.BeforeSaveChanges += (sender, args) =>
 {
-    // Inspect args.DataAdapter or args.DataTable
+    // Inspect args.DbAdapter or args.Table
     // Set args.Cancel = true to abort
 };
 ```
@@ -163,6 +165,34 @@ foreach (DataRow row in dt.Rows)
 ```
 
 `DataManager.FillDataTable` is asynchronous and accepts a SQL string, a `CommandType`, and optional parameters. Unlike `DataTableAdapter`, it does not provide `SaveChanges` -- it is read-only.
+
+---
+
+## Recordset
+
+`Zonkey.Ado.Recordset` is a classic-ADO-style companion API for code migrated from ADO Recordset patterns. It wraps a `DataTable` behind cursor-style navigation: `Open` executes a query (SQL text with optional parameters, or a stored procedure via `CommandType`) and returns the record count, `Requery` re-runs the last query, and `MoveFirst` / `MoveLast` / `MoveNext` / `MovePrevious` / `Move(offset)` / `FindNext(filterExpression)` position the cursor. `BOF`, `EOF`, `RecordCount`, `Position`, and `Fields` mirror their ADO counterparts, and string or ordinal indexers read and write column values on the current row.
+
+Construct it with a `DbConnection` or a registered connection name; `Open` opens the connection automatically if it is closed. For updates, call `InitUpdate(tableName, primaryKey...)` to set the table name and primary key, modify rows via the indexers, `NewRow` / `AddRow`, and `Delete`, then call `UpdateBatch` to persist all pending changes through a `DataTableAdapter` and `DataTableCommandBuilder`.
+
+```csharp
+using Zonkey.Ado;
+
+using var rs = new Recordset(connection);
+await rs.Open("SELECT id, name, price FROM products WHERE category = $0", "shirts");
+
+while (!rs.EOF)
+{
+    Console.WriteLine($"{rs["name"]}: {rs["price"]}");
+    rs.MoveNext();
+}
+
+rs.InitUpdate("products", "id");
+rs.MoveFirst();
+rs["price"] = 19.99m;
+await rs.UpdateBatch();
+```
+
+Note that `Recordset.UseQuotedIdentifier` defaults to `true` -- unlike the adapters' tri-state default -- so `UpdateBatch` generates quoted identifiers on every dialect unless you set it to `false`.
 
 ---
 

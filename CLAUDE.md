@@ -76,5 +76,5 @@ Converts LINQ expressions into SQL WHERE clauses for type-safe filtering.
 - **Multi-targeting**: All projects target multiple frameworks with conditional compilation. Watch for `#if` directives.
 - **Reflection caching**: DataMap caches are static and built once per type.
 - **Dynamic IL**: ClassFactory uses `DynamicMethod`/IL emit for fast object instantiation.
-- **Async throughout**: Async methods use the `TaskAsync` suffix convention (e.g., `FillTaskAsync`).
-- **Strong naming**: Projects use strong-name signing.
+- **Async throughout**: All data-access methods are async and deliberately suffix-less (`Fill`, `Save`, `GetOne` — not `FillAsync`). There are no sync variants to disambiguate from; do not rename or add `-Async` suffixes.
+- **Strong naming**: Removed in v6.6. Tests access internals via `InternalsVisibleTo("Zonkey.Tests")`.
