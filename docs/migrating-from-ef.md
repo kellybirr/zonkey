@@ -18,6 +18,7 @@ This guide maps Entity Framework (EF/EF Core) concepts to their Zonkey equivalen
 | `SaveChanges()` (batch) | `TrySaveCollection` / individual `Save` | You choose whether to save one item or iterate a collection. Each save operation is explicit and independent. |
 | `CountAsync()` | `adapter.GetCount(...)` | Counts matching rows without loading objects. Returns `Task<long>`, not `int`. |
 | `AnyAsync()` | `adapter.Exists(...)` | Existence check. As of v6.6 it generates portable SQL through the dialect system and works on all supported dialects. |
+| `ExecuteUpdateAsync()` / attach a stub + `IsModified` | `Update2` stub pattern | Update columns of an existing row without loading it first: construct with `addingNew: false`, set the key, call `CommitValues()`, assign the changed columns, then `Update2(obj, UpdateCriteria.KeyOnly, false)`. See [Update2 and stub updates](data-class-adapter.md#saving----update2-and-stub-updates-update-without-loading). |
 
 ## Mental Model Shifts
 

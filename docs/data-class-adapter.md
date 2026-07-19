@@ -279,6 +279,46 @@ SaveResult result = await adapter.TryUpdate(product, UpdateCriteria.KeyOnly, Upd
 
 ---
 
+## Saving -- Update2 and Stub Updates (update without loading)
+
+`Update2` is the change-tracking-driven update generator: it builds the SET clause **solely from the fields recorded in `OriginalValues`** -- the fields you actually assigned while tracking was armed -- in a single pass. (`TrySave` itself routes `Modified` objects through the same generator when the options allow: criteria at most `ChangedFields`, affect `ChangedFields`, and select-back `None` or `AllFields`.)
+
+```csharp
+Task<bool>       Update2(T obj, UpdateCriteria criteria, bool doSelectBack)
+Task<SaveResult> TryUpdate2(T obj, UpdateCriteria criteria, bool doSelectBack)
+```
+
+There is no `UpdateAffect` parameter -- the affect is implicitly *the tracked fields*. `UpdateCriteria.AllFields` is rejected, and `KeyAndVersion` downgrades to `ChangedFields`. Auto-increment and row-version fields are always excluded from the SET clause.
+
+### The Stub Update Pattern
+
+Because the SET clause comes only from tracked assignments, `Update2` enables updating a row **without selecting it first** -- change one column of a large row in a single round trip:
+
+```csharp
+// 1. Construct Detached and set the key: setters do NOT track in Detached,
+//    so the key stays out of OriginalValues (and therefore out of SET)
+var stub = new Product(addingNew: false) { Id = existingProductId };
+
+// 2. Arm the tracker: Detached -> Unchanged, with nothing tracked yet
+stub.CommitValues();
+
+// 3. Assign exactly the columns to change -- each is tracked, state -> Modified
+stub.Price = newPrice;
+
+// 4. One round trip: UPDATE products SET price = @p0 WHERE id = @p1
+await adapter.Update2(stub, UpdateCriteria.KeyOnly, false);
+```
+
+Every step's ordering is load-bearing:
+
+- **The key must be assigned while `Detached`** (before `CommitValues`). Setters in `Detached` write the field silently, keeping the key out of `OriginalValues` -- the WHERE clause then takes the key from its *current* value. A key assigned *after* `CommitValues` is treated as a changed field and lands in the SET clause (which is, deliberately, how you change a non-identity key value).
+- **`UpdateCriteria.KeyOnly` is mandatory for stubs.** The "original" value tracked in step 3 is the field's stale default (e.g., `0m`), not the database value. With `ChangedFields`, that stale original would enter the WHERE clause and match nothing -- a false conflict. This is also why a stub cannot go through plain `Save`: `UpdateCriteria.Default` resolves to `ChangedFields`.
+- **Pass `doSelectBack: true` to hydrate the stub** after the update -- the second command re-selects the full row by key and populates every mapped property, turning the stub into a complete object.
+
+The usual one-row check applies: zero rows affected (wrong id) is a failure, not a silent no-op. And as with the other direct paths, `Update2` does not fire the lifecycle hooks and does not call `CommitValues` -- commit the stub yourself if you keep using it.
+
+---
+
 ## Saving -- Collections
 
 Save an entire collection of objects. Each item is saved according to its `DataRowState`.

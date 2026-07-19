@@ -95,6 +95,8 @@ Whether that is one round trip or two is a dialect decision: engines with `UseSq
 
 `TryUpdate` resolves the tri-state options first: `UpdateCriteria.Default` → the class's `[DataItem]` value, else `ChangedFields`; `KeyAndVersion` silently downgrades where the dialect lacks row-version support. The builder emits `UPDATE ... SET <affected fields> WHERE <criteria fields>` from the object's `OriginalValues` -- this is where per-object change tracking pays off: the WHERE clause can assert *what you last saw*, not just the key.
 
+(When the options allow -- affect `ChangedFields`, criteria at most `ChangedFields` -- `TrySave` routes through `TryUpdate2` instead, a single-pass generator whose SET clause comes purely from `OriginalValues`. The same generator powers the [stub update pattern](data-class-adapter.md#saving----update2-and-stub-updates-update-without-loading): updating a row without ever selecting it.)
+
 Then the rows-affected count carries the semantics:
 
 - **1 row affected** → success; select-back (if any) refreshes the object.

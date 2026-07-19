@@ -41,6 +41,68 @@ namespace Zonkey.Tests.Integration
         }
 
         [Fact]
+        public async Task StubUpdate_Update2_UpdatesOnlyAssignedColumn_WithoutSelect()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+
+            using var conn = Db.CreateConnection();
+            var adapter = new DataClassAdapter<Animal>(conn);
+
+            var seeded = new Animal
+            {
+                Name = "Stub Target",
+                SpeciesId = 1,
+                ZookeeperId = Guid.Parse("A1B2C3D4-E5F6-7890-ABCD-EF1234567890"),
+                Weight = 1.00m
+            };
+            await adapter.Save(seeded);
+
+            // the stub pattern: key while Detached, CommitValues to arm tracking,
+            // then assign only the column being changed
+            var stub = new Animal(false) { AnimalId = seeded.AnimalId };
+            stub.CommitValues();
+            stub.Weight = 9.75m;
+
+            Assert.True(await adapter.Update2(stub, UpdateCriteria.KeyOnly, false));
+
+            var reloaded = await adapter.GetOne(a => a.AnimalId == seeded.AnimalId);
+            Assert.Equal(9.75m, reloaded.Weight);
+            Assert.Equal("Stub Target", reloaded.Name); // untouched columns preserved
+
+            await adapter.DeleteItem(reloaded);
+        }
+
+        [Fact]
+        public async Task StubUpdate_WithSelectBack_HydratesStub()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+
+            using var conn = Db.CreateConnection();
+            var adapter = new DataClassAdapter<Animal>(conn);
+
+            var seeded = new Animal
+            {
+                Name = "Hydrate Target",
+                SpeciesId = 2,
+                ZookeeperId = Guid.Parse("E5F6A7B8-C9D0-1234-5678-9ABCDEF01234"),
+                Weight = 2.00m
+            };
+            await adapter.Save(seeded);
+
+            var stub = new Animal(false) { AnimalId = seeded.AnimalId };
+            stub.CommitValues();
+            stub.Weight = 3.50m;
+
+            Assert.True(await adapter.Update2(stub, UpdateCriteria.KeyOnly, true));
+
+            // select-back populated the rest of the stub from the database
+            Assert.Equal("Hydrate Target", stub.Name);
+            Assert.Equal(2, stub.SpeciesId);
+
+            await adapter.DeleteItem(stub);
+        }
+
+        [Fact]
         public async Task InsertZookeeper_WithExplicitGuid()
         {
             if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
