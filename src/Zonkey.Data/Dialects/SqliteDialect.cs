@@ -103,7 +103,7 @@ namespace Zonkey.Dialects
         /// <returns></returns>
         public override string FormatLimitQuery(string columnString, string tableName, string whereText, string orderBy, int start, int length)
         {
-            return $"SELECT {columnString} FROM {tableName} WHERE {whereText} ORDER BY {orderBy} LIMIT {start} OFFSET {length};";
+            return $"SELECT {columnString} FROM {tableName} WHERE {whereText} ORDER BY {orderBy} LIMIT {length} OFFSET {start};";
         }
 
         public override string ParseWhereFunction(string functionName, string left, string right)

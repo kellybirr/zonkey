@@ -120,6 +120,15 @@ namespace Zonkey.Tests.Unit
         }
 
         [Fact]
+        public void Sqlite_FormatLimitQuery_LimitIsLength_OffsetIsStart()
+        {
+            var dialect = new SqliteDialect();
+            var sql = dialect.FormatLimitQuery("*", "Animal", "1=1", "AnimalId", 20, 10);
+            Assert.Contains("LIMIT 10", sql);
+            Assert.Contains("OFFSET 20", sql);
+        }
+
+        [Fact]
         public void SqlServer_FormatTableName_WithSchema()
         {
             var dialect = new SqlServerDialect();
