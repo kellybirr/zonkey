@@ -103,7 +103,7 @@ namespace Zonkey.Tests.Unit
             var cmd = builder.GetExistsCommand(new[] { SqlFilter.EQ("SpeciesId", 1) });
             Assert.Contains("CASE WHEN EXISTS", cmd.CommandText);
             Assert.DoesNotContain("IF EXISTS", cmd.CommandText);
-            Assert.Equal(1, cmd.Parameters.Count);
+            Assert.Single(cmd.Parameters);
         }
     }
 }

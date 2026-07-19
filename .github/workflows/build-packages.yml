@@ -28,7 +28,7 @@ jobs:
         run: dotnet restore Zonkey.sln
 
       - name: Build Release
-        run: dotnet build Zonkey.sln -c Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
+        run: dotnet build Zonkey.sln -c Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }} -p:ContinuousIntegrationBuild=true
 
       - name: Run Tests
         run: dotnet test Zonkey.sln -c Release --no-build

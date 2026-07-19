@@ -123,9 +123,13 @@ await db.Save(order);
 | [Zonkey.Text](https://www.nuget.org/packages/Zonkey.Text/) | CSV and fixed-width text file mapping |
 | [Zonkey.Mocks](https://www.nuget.org/packages/Zonkey.Mocks/) | Mock ADO.NET objects for unit testing |
 
+## Source Navigation & Debugging
+
+The NuGet packages are built with **Source Link** and **embedded PDBs**: symbols travel inside the assemblies, stamped with the exact GitHub commit they were built from. Go To Definition (Ctrl+Click / F12) and step-into debugging resolve to the real source on GitHub with no symbol server and no configuration beyond enabling Source Link support in your IDE. The entire repository is public — nothing about how Zonkey works is hidden. AI coding agents: see [`AGENTS.md`](AGENTS.md) for an orientation guide.
+
 ## Documentation
 
-Comprehensive documentation is available in the [`docs/`](docs/) folder:
+Comprehensive documentation is available in the [`docs/`](docs/) folder, written for both developers and AI coding agents:
 
 - [Overview & Philosophy](docs/overview.md) — why Zonkey exists and how it thinks about data access
 - [Architecture](docs/architecture.md) — the life of a query and a save, end to end

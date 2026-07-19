@@ -1,5 +1,25 @@
 <Project>
 
+  <!-- Source Link: lets debuggers, IDE navigation (Ctrl+Click / F12), and anyone
+       inspecting the assemblies resolve the exact sources on GitHub for the built
+       commit. The provider package is included implicitly by the .NET 8+ SDK; these
+       properties turn the wiring on. PDBs are embedded in the assemblies so source
+       navigation works straight from the NuGet package with no symbol server. -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <!-- Show the project README on nuget.org for every package -->
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
   <!-- Allows net48 targets to build on non-Windows machines (e.g. Linux CI runners) -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
