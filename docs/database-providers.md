@@ -87,7 +87,7 @@ adapter.SetProperty(AdapterProperty.UseQuotedIdentifiers, true);   // per adapte
 DataClassAdapter.DefaultQuotedIdentifier = true;                   // process-wide default
 ```
 
-Per-field and per-item overrides also exist on the `DataMap` (`UseQuotedIdentifier` on `IDataMapField`/`IDataMapItem`), but note they **cannot be set via attribute syntax** -- the property is `bool?`, which C# does not allow as an attribute argument. They can only be set by mutating a generated `DataMap` at runtime. See `docs/todo-dataclass-virtual-computed-columns.md` for the planned fix and the computed-column use case behind per-field overrides.
+Per-field and per-item overrides also exist on the `DataMap` (`UseQuotedIdentifier` on `IDataMapField`/`IDataMapItem`), but note they **cannot be set via attribute syntax** -- the property is `bool?`, which C# does not allow as an attribute argument. They can only be set by mutating a generated `DataMap` at runtime. See `docs/todo/todo-dataclass-virtual-computed-columns.md` for the planned fix and the computed-column use case behind per-field overrides.
 
 One asymmetry to be aware of: `Recordset` (the classic-ADO companion API) defaults `UseQuotedIdentifier` to `true`, unlike the adapters.
 

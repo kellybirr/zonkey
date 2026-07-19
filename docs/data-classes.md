@@ -69,7 +69,7 @@ public string Name { get => _name; set => SetFieldValue(ref _name, value); }
 | `DateTimeKind` | `DateTimeKind` | `Unspecified` | Applied when reading `DateTime` values from the database. Set to `Utc` for UTC timestamps, `Local` for local times. |
 | `SequenceName` | `string` | `null` | Database sequence name for auto-increment columns (PostgreSQL, Oracle). |
 | `TrimToFit` | `bool` | `false` | When `true`, automatically trims strings that exceed `Length` instead of raising an error. |
-| `UseQuotedIdentifier` | `bool?` | `null` | Force (or suppress) quoted identifiers for this specific column. **Cannot be set in attribute syntax** (`bool?` is not a legal attribute argument); set it on a generated `DataMap` at runtime. See `docs/todo-dataclass-virtual-computed-columns.md`. |
+| `UseQuotedIdentifier` | `bool?` | `null` | Force (or suppress) quoted identifiers for this specific column. **Cannot be set in attribute syntax** (`bool?` is not a legal attribute argument); set it on a generated `DataMap` at runtime. See `docs/todo/todo-dataclass-virtual-computed-columns.md`. |
 | `SchemaVersion` | `int` | `0` | Schema version for the field. Used with `DataClassAdapter` schema version filtering to support evolving database schemas across deployments. An adapter schema version of `0` means "no filtering" (all fields included); otherwise fields with `SchemaVersion` less than or equal to the adapter's version are included. |
 
 ## DataClass Base Class
