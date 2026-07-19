@@ -7,10 +7,12 @@ For a high-level introduction, see the [Overview & Philosophy](overview.md).
 ## Table of Contents
 
 - [Overview & Philosophy](overview.md) -- Core values, architecture, and design principles
+- [Architecture](architecture.md) -- The life of a query and a save: how the layers connect and why
 - [Getting Started](getting-started.md) -- Installation, setup, and first query
 - [Data Classes & Attributes](data-classes.md) -- Object-to-table mapping with `DataItem` and `DataField`
 - [DataClassAdapter (CRUD Operations)](data-class-adapter.md) -- Reading, saving, and deleting mapped objects
 - [Querying (Filters, LINQ, Pagination)](querying.md) -- Lambda expressions, `SqlFilter`, and filtering patterns
+- [Modeling Relationships](modeling-relationships.md) -- Related data without navigation properties: explicit loading, stitching, and graph saves
 - [DatabaseWrapper (Connection & Lifecycle)](database-wrapper.md) -- Connection management and adapter caching
 - [DataManager (Raw SQL)](data-manager.md) -- Ad-hoc queries, stored procedures, and scalar operations
 - [Async Patterns](async-patterns.md) -- Async-first design and task-based operations

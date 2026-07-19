@@ -128,10 +128,12 @@ await db.Save(order);
 Comprehensive documentation is available in the [`docs/`](docs/) folder:
 
 - [Overview & Philosophy](docs/overview.md) — why Zonkey exists and how it thinks about data access
+- [Architecture](docs/architecture.md) — the life of a query and a save, end to end
 - [Getting Started](docs/getting-started.md) — installation, first data class, first query
 - [Data Classes & Attributes](docs/data-classes.md) — mapping objects to tables with attributes
 - [DataClassAdapter](docs/data-class-adapter.md) — the central class for CRUD operations
 - [Querying](docs/querying.md) — SqlFilter, LINQ expressions, pagination
+- [Modeling Relationships](docs/modeling-relationships.md) — related data without navigation properties
 - [DatabaseWrapper](docs/database-wrapper.md) — connection lifecycle, adapter caching, transactions
 - [DataManager](docs/data-manager.md) — raw SQL execution and ad-hoc queries
 - [Async Patterns](docs/async-patterns.md) — async-first design and usage guidance

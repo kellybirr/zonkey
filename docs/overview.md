@@ -35,7 +35,7 @@ See [Async Patterns](async-patterns.md) for detailed guidance.
 
 ## Architecture Layers
 
-Zonkey's architecture is composed of a small number of focused components. Each has a single responsibility.
+Zonkey's architecture is composed of a small number of focused components. Each has a single responsibility. (For an end-to-end walkthrough of how they cooperate -- the full life of a query and a save -- see [Architecture](architecture.md).)
 
 ### DataClass + Attributes
 
