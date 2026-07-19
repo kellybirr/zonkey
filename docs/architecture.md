@@ -63,7 +63,8 @@ The output is a `SqlWhereClause`: SQL text containing `$0`-style placeholders pl
 
 - Builds a column-name → ordinal dictionary from the reader and pairs it against the map's readable fields (case-insensitive).
 - Gets a construction delegate from `ClassFactory`, which emits a tiny `DynamicMethod` (`newobj`/`ret`) per type and caches it -- because `Fill` constructs one object per row, and `Activator.CreateInstance` reflection cost would dominate large fills. This is why mapped classes need a public parameterless constructor (or a registered factory / `adapter.ObjectFactory`).
-- Reads rows, converts values, sets properties -- then calls `CommitValues()` on each `ISavable`, which is what lands every materialized object in the `Unchanged` state regardless of which constructor the class routed through.
+- Materializes rows -- by default through the **fast builder**: a second `DynamicMethod`, emitted once per (type, result-set shape), containing branch-free straight-line IL per mapped column (null-check, convert, set). Because the reader's column types are known at emit time, every conversion decision (direct unbox, `Guid`-from-string, enum widening, nullable wrapping, `DateTimeKind` stamping, `Convert.ChangeType` fallback) is resolved while emitting, not per row. The generated code has no exception handling; instead it writes the current column ordinal into a tracker before each set, and the single try/catch around the row build converts any failure into a `PropertyReadException` naming the property and offending value -- the same exception the reflection path throws. Set `UseFastBuilder = false` (or the static `DataClassReader<T>.DefaultUseFastBuilder`) to fall back to per-field reflection via `FieldHandler`.
+- Finally, `CommitValues()` is called on each `ISavable`, which is what lands every materialized object in the `Unchanged` state regardless of which constructor the class routed through.
 
 ## The Life of a Save
 

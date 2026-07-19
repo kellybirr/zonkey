@@ -166,6 +166,44 @@ namespace Zonkey.Tests.Integration
         }
 
         [Fact]
+        public async Task FastAndSlowMaterialization_AgreeOnSeedData()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+
+            using var conn = Db.CreateConnection();
+            var adapter = new DataClassAdapter<Animal>(conn);
+
+            List<Animal> fast;
+            using (var fastReader = await adapter.OpenReader(a => a.AnimalId > 0))
+            {
+                fastReader.UseFastBuilder = true;
+                fast = await fastReader.ToListAsync();
+            }
+
+            List<Animal> slow;
+            using (var slowReader = await adapter.OpenReader(a => a.AnimalId > 0))
+            {
+                slowReader.UseFastBuilder = false;
+                slow = await slowReader.ToListAsync();
+            }
+
+            Assert.Equal(4, fast.Count);
+            Assert.Equal(slow.Count, fast.Count);
+
+            for (int i = 0; i < fast.Count; i++)
+            {
+                Assert.Equal(slow[i].AnimalId, fast[i].AnimalId);
+                Assert.Equal(slow[i].Name, fast[i].Name);
+                Assert.Equal(slow[i].SpeciesId, fast[i].SpeciesId);
+                Assert.Equal(slow[i].ExhibitId, fast[i].ExhibitId);
+                Assert.Equal(slow[i].ZookeeperId, fast[i].ZookeeperId);
+                Assert.Equal(slow[i].DateOfBirth, fast[i].DateOfBirth);
+                Assert.Equal(slow[i].Weight, fast[i].Weight);
+                Assert.Equal(slow[i].Notes, fast[i].Notes);
+            }
+        }
+
+        [Fact]
         public async Task FillRange_ReturnsRequestedWindow()
         {
             if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);

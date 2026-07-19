@@ -54,12 +54,12 @@ namespace Zonkey.ObjectModel
                         }
                         else
                         {
-                            dstInfo.SetValue(obj, Convert.ChangeType(value, nullableType), null);
+                            dstInfo.SetValue(obj, ApplyDateTimeKind(Convert.ChangeType(value, nullableType), mapField), null);
                         }
                     }
                     else
-                    { 
-                        dstInfo.SetValue(obj, Convert.ChangeType(value, dstType), null);
+                    {
+                        dstInfo.SetValue(obj, ApplyDateTimeKind(Convert.ChangeType(value, dstType), mapField), null);
                     }
                 }
                 else if ((value is DateTime dt) && (mapField.DateTimeKind != DateTimeKind.Unspecified))
@@ -76,6 +76,13 @@ namespace Zonkey.ObjectModel
             {
                 throw new PropertyReadException(dstInfo, value, ex);
             }
+        }
+
+        private static object ApplyDateTimeKind(object converted, IDataMapField mapField)
+        {
+            return (converted is DateTime dt) && (mapField.DateTimeKind != DateTimeKind.Unspecified)
+                ? DateTime.SpecifyKind(dt, mapField.DateTimeKind)
+                : converted;
         }
     }
 }

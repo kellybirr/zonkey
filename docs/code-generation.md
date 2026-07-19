@@ -99,6 +99,8 @@ Callers can override how objects are created:
 
 The emitted factory requires a public parameterless constructor. Types without one must have a factory registered with `ClassFactory`, or set `ObjectFactory` on the `DataClassAdapter<T>` instance.
 
+`DataClassReader<T>` goes a step further with its **fast builder** (on by default): a `DynamicMethod` emitted once per (type, result-set shape) that populates an entire row with straight-line IL -- null-check, convert, and set per mapped column, with all conversion decisions resolved at emit time from the reader's known column types. Conversion failures throw `PropertyReadException` identifying the property. See [Architecture](architecture.md#6-rows-become-objects) for the full walkthrough; `UseFastBuilder = false` selects the per-field reflection path.
+
 ---
 
 [Back to documentation index](README.md) | [Data Classes & Attributes](data-classes.md) | [Getting Started](getting-started.md)

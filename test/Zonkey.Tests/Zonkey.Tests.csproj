@@ -29,6 +29,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Zonkey.Data\Zonkey.Data.csproj" />
     <ProjectReference Include="..\..\src\Zonkey.Data.MsSql\Zonkey.Data.MsSql.csproj" />
+    <ProjectReference Include="..\..\src\Zonkey.Mocks\Zonkey.Mocks.csproj" />
   </ItemGroup>
 
   <ItemGroup>
