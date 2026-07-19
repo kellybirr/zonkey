@@ -154,6 +154,21 @@ namespace Zonkey.Dialects
         }
 
         /// <summary>
+        /// Formats a scalar existence query that returns 1 if any row matches, else 0.
+        /// The ANSI CASE WHEN EXISTS form works on SQL Server, SQLite, PostgreSQL, and MySQL;
+        /// dialects that require a FROM clause on scalar selects (Oracle, DB2) override this.
+        /// </summary>
+        /// <param name="tableName">The formatted table name (may include hints).</param>
+        /// <param name="whereText">The WHERE clause text, without the WHERE keyword; may be empty.</param>
+        /// <returns>The full command text for the existence check.</returns>
+        public virtual string FormatExistsQuery(string tableName, string whereText)
+        {
+            return (string.IsNullOrEmpty(whereText))
+                ? $"SELECT CASE WHEN EXISTS(SELECT 1 FROM {tableName}) THEN 1 ELSE 0 END AS ZONKEY_EXISTS"
+                : $"SELECT CASE WHEN EXISTS(SELECT 1 FROM {tableName} WHERE {whereText}) THEN 1 ELSE 0 END AS ZONKEY_EXISTS";
+        }
+
+        /// <summary>
         /// Optimizes the select single command.
         /// </summary>
         /// <param name="command">The command.</param>

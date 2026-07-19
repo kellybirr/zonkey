@@ -17,5 +17,13 @@ namespace Zonkey.Dialects
                 ? "lastval()"
                 : string.Format("currval('{0}')", sequenceName);
         }
+
+        /// <summary>
+        /// Oracle requires a FROM clause on scalar selects.
+        /// </summary>
+        public override string FormatExistsQuery(string tableName, string whereText)
+        {
+            return base.FormatExistsQuery(tableName, whereText) + " FROM DUAL";
+        }
     }
 }

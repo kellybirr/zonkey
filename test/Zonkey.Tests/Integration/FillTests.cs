@@ -142,6 +142,44 @@ namespace Zonkey.Tests.Integration
             var count = await adapter.GetCount(a => a.Name == "NonExistent");
             Assert.Equal(0L, count);
         }
+
+        [Fact]
+        public async Task Exists_Matching_ReturnsTrue()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+
+            using var conn = Db.CreateConnection();
+            var adapter = new DataClassAdapter<Animal>(conn);
+
+            Assert.True(await adapter.Exists(a => a.SpeciesId == 1));
+        }
+
+        [Fact]
+        public async Task Exists_NonMatching_ReturnsFalse()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+
+            using var conn = Db.CreateConnection();
+            var adapter = new DataClassAdapter<Animal>(conn);
+
+            Assert.False(await adapter.Exists(a => a.Name == "NonExistent"));
+        }
+
+        [Fact]
+        public async Task FillRange_ReturnsRequestedWindow()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+
+            using var conn = Db.CreateConnection();
+            var adapter = new DataClassAdapter<Animal>(conn) { OrderBy = "AnimalId" };
+            var animals = new List<Animal>();
+
+            // skip 1, take 2 of the 4 seeded animals => AnimalIds 2 and 3
+            await adapter.FillRange(animals, 1, 2, a => a.AnimalId > 0);
+            Assert.Equal(2, animals.Count);
+            Assert.Equal(2, animals[0].AnimalId);
+            Assert.Equal(3, animals[1].AnimalId);
+        }
     }
 }
 #endif

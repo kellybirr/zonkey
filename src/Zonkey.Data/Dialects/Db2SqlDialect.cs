@@ -17,6 +17,14 @@ namespace Zonkey.Dialects
         }
 
         /// <summary>
+        /// DB2 requires a FROM clause on scalar selects.
+        /// </summary>
+        public override string FormatExistsQuery(string tableName, string whereText)
+        {
+            return base.FormatExistsQuery(tableName, whereText) + " FROM SYSIBM.SYSDUMMY1";
+        }
+
+        /// <summary>
         /// Formats the name of the paramter.
         /// </summary>
         /// <param name="name">The name.</param>
