@@ -72,6 +72,15 @@ public string Name { get => _name; set => SetFieldValue(ref _name, value); }
 | `UseQuotedIdentifier` | `bool?` | `null` | Force (or suppress) quoted identifiers for this specific column. **Cannot be set in attribute syntax** (`bool?` is not a legal attribute argument); set it on a generated `DataMap` at runtime. See `docs/todo/todo-dataclass-virtual-computed-columns.md`. |
 | `SchemaVersion` | `int` | `0` | Schema version for the field. Used with `DataClassAdapter` schema version filtering to support evolving database schemas across deployments. An adapter schema version of `0` means "no filtering" (all fields included); otherwise fields with `SchemaVersion` less than or equal to the adapter's version are included. |
 
+### Enum Columns
+
+Enum and nullable-enum properties materialize from either column shape, identically on the fast (IL) and reflection paths:
+
+- **Integral columns** map by value, with widening/narrowing checked -- an out-of-range value throws rather than silently wrapping.
+- **String columns** parse case-insensitively via `Enum.Parse`, accepting names (`'Aquatic'`) or numeric strings (`'2'`). This is also the path PostgreSQL native enum columns take, since Npgsql surfaces them as strings.
+
+Invalid values throw `PropertyReadException` naming the property. On the write side, enum parameters are sent as their underlying integral value.
+
 ## DataClass Base Class
 
 `DataClass` is the abstract base class that provides change tracking. It lives in the `Zonkey.ObjectModel` namespace and implements `ISavable`.

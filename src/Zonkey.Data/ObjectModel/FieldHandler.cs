@@ -46,11 +46,17 @@ namespace Zonkey.ObjectModel
                             dstInfo.SetValue(obj, TimeOnly.Parse(value.ToString()), null);
                     }
 #endif
+                    else if (value is string enumText && GetEnumType(dstInfo.PropertyType) is Type textEnumType)
+                    {
+                        // string-sourced enums accept names or numeric strings, case-insensitively
+                        dstInfo.SetValue(obj, Enum.Parse(textEnumType, enumText, true), null);
+                    }
                     else if (value != null && Nullable.GetUnderlyingType(dstType) is Type nullableType)
                     {
                         if (nullableType.IsEnum)
                         {
-                            dstInfo.SetValue(obj, Enum.ToObject(nullableType, value), null);
+                            // ChangeType first so out-of-range values throw instead of silently wrapping
+                            dstInfo.SetValue(obj, Enum.ToObject(nullableType, Convert.ChangeType(value, Enum.GetUnderlyingType(nullableType))), null);
                         }
                         else
                         {
@@ -83,6 +89,12 @@ namespace Zonkey.ObjectModel
             return (converted is DateTime dt) && (mapField.DateTimeKind != DateTimeKind.Unspecified)
                 ? DateTime.SpecifyKind(dt, mapField.DateTimeKind)
                 : converted;
+        }
+
+        private static Type GetEnumType(Type propertyType)
+        {
+            Type t = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+            return t.IsEnum ? t : null;
         }
     }
 }

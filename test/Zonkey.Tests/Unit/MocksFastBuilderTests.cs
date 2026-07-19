@@ -73,6 +73,10 @@ namespace Zonkey.Tests.Unit
 
             [DataField("Path", DbType.String, true)]
             public string Path { get => _path; set => SetFieldValue(ref _path, value); }     // FakeSqlHierarchyId column -> string
+
+            private Species? _kindName;
+            [DataField("KindName", DbType.String, true)]
+            public Species? KindName { get => _kindName; set => SetFieldValue(ref _kindName, value); } // string column 'zebra' -> enum? by name
         }
 
         private static readonly Guid TestTag = Guid.Parse("99999999-8888-7777-6666-555555555555");
@@ -91,13 +95,14 @@ namespace Zonkey.Tests.Unit
             table.Columns.Add("SeenUtc", typeof(DateTime));
             table.Columns.Add("Photo", typeof(byte[]));
             table.Columns.Add("Path", typeof(FakeSqlHierarchyId));
+            table.Columns.Add("KindName", typeof(string));
 
             if (withNulls)
                 table.Rows.Add(2, DBNull.Value, TestTag, DBNull.Value, 1.5m, DBNull.Value, false, 0,
-                               new DateTime(2024, 1, 1), DBNull.Value, DBNull.Value);
+                               new DateTime(2024, 1, 1), DBNull.Value, DBNull.Value, DBNull.Value);
             else
                 table.Rows.Add(1, "Zonkey", TestTag, TestTag, 129.95m, 4, true, 2,
-                               new DateTime(2023, 5, 20, 14, 0, 0), new byte[] { 1, 2, 3 }, new FakeSqlHierarchyId());
+                               new DateTime(2023, 5, 20, 14, 0, 0), new byte[] { 1, 2, 3 }, new FakeSqlHierarchyId(), "zebra");
 
             return table;
         }
@@ -133,6 +138,7 @@ namespace Zonkey.Tests.Unit
             Assert.Equal(DateTimeKind.Utc, h.SeenUtc.Kind);
             Assert.Equal(new byte[] { 1, 2, 3 }, h.Photo);
             Assert.Equal("/1/3/", h.Path);
+            Assert.Equal(Species.Zebra, h.KindName); // 'zebra' parsed case-insensitively
             Assert.Equal(DataRowState.Unchanged, h.DataRowState);
         }
 
@@ -149,6 +155,7 @@ namespace Zonkey.Tests.Unit
             Assert.Null(h.Count);
             Assert.Null(h.Photo);
             Assert.Null(h.Path);
+            Assert.Null(h.KindName);
             Assert.False(h.Active);
             Assert.Equal(Species.None, h.Kind);
         }

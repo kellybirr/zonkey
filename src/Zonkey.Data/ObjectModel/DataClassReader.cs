@@ -499,6 +499,7 @@ namespace Zonkey.ObjectModel
 
             ILGenerator il = method.GetILGenerator();
             LocalBuilder result = il.DeclareLocal(_objectType);
+            LocalBuilder strTemp = il.DeclareLocal(typeof(string)); // scratch for string-sourced enum parsing
 
             // tracker[0] = -1: failures before any field-set (e.g. construction) stay unattributed
             il.Emit(OpCodes.Ldarg_1);
@@ -594,9 +595,23 @@ namespace Zonkey.ObjectModel
 #endif
                 else if (enumType != null)
                 {
-                    // enums are their underlying type at IL level; widen via ChangeType when needed
-                    if (dbType != basicType)
+                    if (dbType == typeof(string))
+                    {
+                        // string-sourced enums accept names or numeric strings, case-insensitively:
+                        // Enum.Parse(enumType, (string)value, ignoreCase: true)
+                        il.Emit(OpCodes.Castclass, typeof(string));
+                        il.Emit(OpCodes.Stloc, strTemp);
+                        il.Emit(OpCodes.Ldtoken, enumType);
+                        il.Emit(OpCodes.Call, FastBuilderRefs.Type_GetTypeFromHandle);
+                        il.Emit(OpCodes.Ldloc, strTemp);
+                        il.Emit(OpCodes.Ldc_I4_1);
+                        il.Emit(OpCodes.Call, FastBuilderRefs.Enum_Parse);
+                    }
+                    else if (dbType != basicType)
+                    {
+                        // widen/narrow integral sources via ChangeType so out-of-range throws
                         EmitChangeType(il, basicType);
+                    }
 
                     il.Emit(OpCodes.Unbox_Any, enumType);
                 }
@@ -648,6 +663,7 @@ namespace Zonkey.ObjectModel
         internal static readonly MethodInfo Convert_ChangeType = typeof(Convert).GetMethod(nameof(Convert.ChangeType), new[] { typeof(object), typeof(Type) });
         internal static readonly MethodInfo Object_ToString = typeof(object).GetMethod(nameof(ToString));
         internal static readonly MethodInfo DateTime_SpecifyKind = typeof(DateTime).GetMethod(nameof(DateTime.SpecifyKind), new[] { typeof(DateTime), typeof(DateTimeKind) });
+        internal static readonly MethodInfo Enum_Parse = typeof(Enum).GetMethod(nameof(Enum.Parse), new[] { typeof(Type), typeof(string), typeof(bool) });
         internal static readonly ConstructorInfo Guid_CtorString = typeof(Guid).GetConstructor(new[] { typeof(string) });
 
 #if NET6_0_OR_GREATER

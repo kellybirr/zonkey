@@ -265,6 +265,104 @@ namespace Zonkey.Tests.Unit
             Assert.Equal("factory boom", ex.Message);
         }
 
+        // ---- string-sourced enums: names and numeric strings, case-insensitive,
+        //      identical on both paths; invalid values throw PropertyReadException ----
+
+        [DataItem("EnumSource")]
+        public class EnumBeast : DataClass
+        {
+            public EnumBeast() : base(false) { }
+            public EnumBeast(bool addingNew) : base(addingNew) { }
+
+            [DataField("Id", DbType.Int32, IsKeyField = true)]
+            public int Id { get => field; set => SetFieldValue(ref field, value); }
+
+            [DataField("PlainName", DbType.String)]
+            public Rank Plain { get => field; set => SetFieldValue(ref field, value); }
+
+            [DataField("NullName", DbType.String, true)]
+            public Rank? Nully { get => field; set => SetFieldValue(ref field, value); }
+
+            [DataField("NumText", DbType.String)]
+            public Rank NumParsed { get => field; set => SetFieldValue(ref field, value); }
+
+            [DataField("BigNum", DbType.Int64, true)]
+            public Rank? FromBig { get => field; set => SetFieldValue(ref field, value); }
+        }
+
+        private List<EnumBeast> QueryEnums(string sql, bool fast)
+        {
+            using var cmd = _conn.CreateCommand();
+            cmd.CommandText = sql;
+            using var reader = new DataClassReader<EnumBeast>(cmd.ExecuteReader()) { UseFastBuilder = fast };
+            return reader.ToList();
+        }
+
+        private void CreateEnumTable()
+        {
+            using var cmd = _conn.CreateCommand();
+            cmd.CommandText = @"
+                CREATE TABLE EnumSource (Id INTEGER PRIMARY KEY, PlainName TEXT, NullName TEXT, NumText TEXT, BigNum INTEGER);
+                INSERT INTO EnumSource VALUES (1, 'High', 'low', '2', 999999999999);";
+            cmd.ExecuteNonQuery();
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void EnumFromString_ParsesName(bool fast)
+        {
+            CreateEnumTable();
+            var e = QueryEnums("SELECT Id, PlainName FROM EnumSource", fast)[0];
+            Assert.Equal(Rank.High, e.Plain);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void EnumFromString_NameIsCaseInsensitive_AndNullableWorks(bool fast)
+        {
+            CreateEnumTable();
+            var e = QueryEnums("SELECT Id, NullName FROM EnumSource", fast)[0];
+            Assert.Equal(Rank.Low, e.Nully);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void EnumFromString_ParsesNumericString(bool fast)
+        {
+            CreateEnumTable();
+            var e = QueryEnums("SELECT Id, NumText FROM EnumSource", fast)[0];
+            Assert.Equal(Rank.High, e.NumParsed);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void EnumFromString_InvalidName_ThrowsPropertyReadException(bool fast)
+        {
+            CreateEnumTable();
+            using (var upd = _conn.CreateCommand())
+            {
+                upd.CommandText = "UPDATE EnumSource SET PlainName = 'Bogus'";
+                upd.ExecuteNonQuery();
+            }
+
+            var ex = Assert.Throws<PropertyReadException>(() => QueryEnums("SELECT Id, PlainName FROM EnumSource", fast));
+            Assert.Equal(nameof(EnumBeast.Plain), ex.Property.Name);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void EnumFromIntegral_Overflow_Throws_NotSilentlyWraps(bool fast)
+        {
+            CreateEnumTable();
+            var ex = Assert.Throws<PropertyReadException>(() => QueryEnums("SELECT Id, BigNum FROM EnumSource", fast));
+            Assert.Equal(nameof(EnumBeast.FromBig), ex.Property.Name);
+        }
+
         // ---- DateOnly/TimeOnly from NATIVE DateTime/TimeSpan columns (mock DataTable;
         //      SQLite cannot produce these column types) ----
 
