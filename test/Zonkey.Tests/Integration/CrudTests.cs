@@ -41,6 +41,32 @@ namespace Zonkey.Tests.Integration
         }
 
         [Fact]
+        public async Task InsertAnimal_WithDateOfBirth_RoundTrips()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+
+            using var conn = Db.CreateConnection();
+            var adapter = new DataClassAdapter<Animal>(conn);
+
+            // plain timestamp column: DbType.DateTime2, Kind-Unspecified value
+            var born = new DateTime(2022, 3, 4, 10, 30, 0);
+            var animal = new Animal
+            {
+                Name = "Dated",
+                SpeciesId = 1,
+                ZookeeperId = Guid.Parse("A1B2C3D4-E5F6-7890-ABCD-EF1234567890"),
+                DateOfBirth = born
+            };
+
+            Assert.True(await adapter.Save(animal));
+
+            var fetched = await adapter.GetOne(a => a.AnimalId == animal.AnimalId);
+            Assert.Equal(born, fetched.DateOfBirth);
+
+            await adapter.DeleteItem(fetched);
+        }
+
+        [Fact]
         public async Task StubUpdate_Update2_UpdatesOnlyAssignedColumn_WithoutSelect()
         {
             if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);

@@ -30,6 +30,7 @@ Reference: [data classes](docs/data-classes.md) · [adapter/CRUD](docs/data-clas
 5. **`Save` returning `false` means skipped (Unchanged), not failed.** Failures throw.
 6. **`SqlFilter` and string filters take database column names; lambdas take C# property names.**
 7. Attribute `UseQuotedIdentifier` cannot be set in attribute syntax (`bool?`, CS0655) — runtime `DataMap` mutation or adapter `SetProperty` only.
+8. **PostgreSQL timestamps:** a plain `timestamp` column must be declared `DbType.DateTime2`; a `timestamptz` column must be `DbType.DateTime` with `DateTimeKind = DateTimeKind.Utc` (Npgsql maps `DbType.DateTime` to `timestamptz`). NEVER enable Npgsql's legacy timestamp behavior — fix the declaration instead. See [docs/postgresql.md](docs/postgresql.md).
 
 ## Repository Layout
 

@@ -88,7 +88,7 @@ long count = await adapter.GetCount(p => p.Price > 10.00m);
 
 The adapter auto-detects the SQL dialect from the connection type. A `NpgsqlConnection` produces PostgreSQL syntax, a `SqlConnection` produces SQL Server syntax, and so on. No manual configuration is needed.
 
-One PostgreSQL-specific note: Zonkey emits unquoted identifiers by default, and PostgreSQL folds unquoted identifiers to lowercase. Use lowercase table and column names in your PostgreSQL schema (as this example does), or enable quoted identifiers on the adapter. See [Database Providers & Dialects](database-providers.md) for the details.
+One PostgreSQL-specific note: Zonkey emits unquoted identifiers by default, and PostgreSQL folds unquoted identifiers to lowercase. Use lowercase table and column names in your PostgreSQL schema (as this example does), or enable quoted identifiers on the adapter. PostgreSQL users should also read the timestamp mapping rules before declaring `DateTime` fields. Both are covered in the [PostgreSQL Guide](postgresql.md).
 
 ## Your First Save
 

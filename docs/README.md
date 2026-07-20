@@ -19,6 +19,7 @@ For a high-level introduction, see the [Overview & Philosophy](overview.md).
 - [Transactions](transactions.md) -- Simple and distributed transaction support
 - [DataTableAdapter (DataTable & DataSet)](data-table-adapter.md) -- Working with `DataTable` and `DataSet`
 - [Database Providers & Dialects](database-providers.md) -- SQL Server, PostgreSQL, MySQL, Oracle, SQLite, and more
+- [PostgreSQL Guide](postgresql.md) -- timestamp/timestamptz mapping, case folding, NativeType and provider-specific types
 - [Testing with Zonkey.Mocks](testing.md) -- Mocking adapters and connections for unit tests
 - [Text File Mapping (Zonkey.Text)](text-files.md) -- CSV and fixed-width text file mapping
 - [Code Generation Tools](code-generation.md) -- Generating data classes from database schemas

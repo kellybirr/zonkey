@@ -54,7 +54,9 @@ namespace Zonkey.Tests.Models
             set => SetFieldValue(ref _zookeeperId, value);
         }
 
-        [DataField("DateOfBirth", DbType.DateTime, true)]
+        // plain (non-tz) timestamp columns must be DbType.DateTime2: Npgsql maps
+        // DbType.DateTime to 'timestamp with time zone' and DateTime2 to 'timestamp'
+        [DataField("DateOfBirth", DbType.DateTime2, true)]
         public DateTime? DateOfBirth
         {
             get => _dateOfBirth;

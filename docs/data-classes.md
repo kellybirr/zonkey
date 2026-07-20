@@ -67,6 +67,7 @@ public string Name { get => _name; set => SetFieldValue(ref _name, value); }
 | `Length` | `int` | `-1` | Field length. Important for string columns to ensure correct parameter sizing. |
 | `AccessType` | `AccessType` | `ReadWrite` | Controls whether the field is `ReadOnly`, `WriteOnly`, or `ReadWrite`. |
 | `DateTimeKind` | `DateTimeKind` | `Unspecified` | Applied when reading `DateTime` values from the database. Set to `Utc` for UTC timestamps, `Local` for local times. |
+| `NativeType` | `object` | `null` | Provider-specific parameter type (e.g., a boxed `NpgsqlDbType` or `SqlDbType` value), applied by a type setter registered via `DbParameterExtensions.UseTypeSetter`. Legal in attribute syntax because it is `object`-typed. See [PostgreSQL Guide](postgresql.md#provider-specific-types-the-nativetype-escape-hatch). |
 | `SequenceName` | `string` | `null` | Database sequence name for auto-increment columns (PostgreSQL, Oracle). |
 | `TrimToFit` | `bool` | `false` | When `true`, automatically trims strings that exceed `Length` instead of raising an error. |
 | `UseQuotedIdentifier` | `bool?` | `null` | Force (or suppress) quoted identifiers for this specific column. **Cannot be set in attribute syntax** (`bool?` is not a legal attribute argument); set it on a generated `DataMap` at runtime. See `docs/todo/todo-dataclass-virtual-computed-columns.md`. |
@@ -94,6 +95,19 @@ protected DataClass(bool addingNew)
 If `addingNew` is `true`, sets `DataRowState` to `Added`. If `false`, sets it to `Detached`.
 
 Your subclass also needs a **public parameterless constructor** (conventionally `public MyClass() : base(false)`): the adapter materializes query results through generated IL that requires it, and throws `InvalidOperationException` if it is missing. The alternative is supplying a custom `adapter.ObjectFactory` delegate.
+
+A field-proven pattern to keep application code from calling the wrong constructor: mark the parameterless one obsolete-as-error. The compiler blocks accidental `new MyClass()` in your code, while the materializer is unaffected -- `Obsolete` is a compile-time check that generated IL and reflection never see:
+
+```csharp
+public Product(bool addingNew) : base(addingNew)
+{
+    if (addingNew)
+        _id = Guid.CreateVersion7();
+}
+
+[Obsolete("Required by the DataClassAdapter materializer; use Product(bool addingNew) in code.", true)]
+public Product() : this(false) { }
+```
 
 ### Key Members
 

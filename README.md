@@ -144,6 +144,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) folder, written
 - [Transactions](docs/transactions.md) — simple and distributed transaction support
 - [DataTableAdapter](docs/data-table-adapter.md) — working with DataTable and DataSet
 - [Database Providers & Dialects](docs/database-providers.md) — supported databases and dialect system
+- [PostgreSQL Guide](docs/postgresql.md) — timestamps, case folding, and provider-specific types
 - [Testing with Mocks](docs/testing.md) — unit testing with Zonkey.Mocks
 - [Text File Mapping](docs/text-files.md) — CSV and fixed-width files with Zonkey.Text
 - [Code Generation Tools](docs/code-generation.md) — generating data classes from database schemas
