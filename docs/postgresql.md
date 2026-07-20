@@ -156,11 +156,7 @@ public class StoreDb : DatabaseWrapper, IAsyncDisposable
     }
 
     private StoreDb(DbConnection connection) : base(connection)
-    {
-        DataManager = new DataManager(Connection);
-    }
-
-    public DataManager DataManager { get; }
+    { }
 
     public ValueTask DisposeAsync()
     {

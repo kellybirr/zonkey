@@ -70,11 +70,7 @@ public class StoreDb : DatabaseWrapper, IAsyncDisposable
     }
 
     private StoreDb() : base(Name)
-    {
-        DataManager = new DataManager(Connection);
-    }
-
-    public DataManager DataManager { get; }
+    { }
 
     public ValueTask DisposeAsync()
     {
