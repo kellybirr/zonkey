@@ -83,12 +83,52 @@ public string[] Tags { get => field; set => SetFieldValue(ref field, value); }
 
 The same mechanism serves any provider: `Zonkey.Data.MsSql`'s `MsSqlExtension.Initialize()` registers a setter mapping `DbType.Time` to `SqlDbType.Time` for `SqlParameter`, working around an ADO.NET quirk. Register a setter per (parameter type, `DbType`) pair your application needs.
 
-## Native Enums, Arrays, and json(b): Current Support
+## Arrays and json(b)
 
-- **Native enum columns (reading):** Npgsql surfaces PostgreSQL enum values as strings, and Zonkey materializes string-sourced enums into enum properties by name or numeric string, case-insensitively (see [Enum Columns](data-classes.md#enum-columns)). Reading native enums into C# enum properties works out of the box.
-- **Native enum columns (writing):** Zonkey's PostgreSQL dialect converts enum parameter values to their underlying integer (`PostgreSqlDialect.FixParameter`), which suits integer columns but not native enum columns. For native enum columns, map the enum at the Npgsql level (`NpgsqlDataSourceBuilder.MapEnum<T>()`) or store text.
-- **Arrays (reading):** Npgsql returns array columns as .NET arrays; when the element types line up (e.g., `text[]` into `string[]`), Zonkey's materializer assigns them directly.
-- **Arrays and json(b) (writing):** use the `NativeType` setter pattern above.
+Fully supported, and covered by Zonkey's integration suite (`PgsqlArrayTests`):
+
+- **Reading:** typed array properties (`string[]`, `int[]`, even `IEnumerable<string>`) fill directly from `text[]`/`integer[]` columns on both materialization paths. Npgsql reports array columns' static type as `System.Array`; Zonkey downcasts the concrete runtime value onto your property.
+- **Writing:** declare the field `DbType.Object` with the appropriate `NativeType`, and register the type setter shown above:
+
+```csharp
+[DataField("tags", DbType.Object, true, NativeType = NpgsqlDbType.Array | NpgsqlDbType.Text)]
+public string[] Tags { get => field; set => SetFieldValue(ref field, value); }
+
+[DataField("nums", DbType.Object, true, NativeType = NpgsqlDbType.Array | NpgsqlDbType.Integer)]
+public int[] Nums { get => field; set => SetFieldValue(ref field, value); }
+
+[DataField("doc", DbType.Object, true, NativeType = NpgsqlDbType.Jsonb)]
+public string Doc { get => field; set => SetFieldValue(ref field, value); }
+```
+
+Inserts, updates, and null round-trips all work through the normal `Save` pipeline.
+
+## Native PostgreSQL Enums
+
+Native enum columns (`CREATE TYPE ... AS ENUM`) work with Zonkey the same way they work with EF Core: **the enum must be mapped at the Npgsql level** -- this is an Npgsql requirement, not an ORM one. On modern Npgsql (7+), an *unmapped* connection cannot even read a native enum column (`InvalidCastException: Reading as 'System.Object' is not supported for fields having DataTypeName '-'`).
+
+Map the enum on your data source at startup and declare the field `DbType.Object` -- no `NativeType`, no type setter, nothing else:
+
+```csharp
+var builder = new NpgsqlDataSourceBuilder(connectionString);
+builder.MapEnum<Habitat>("habitat_kind");   // default name translation is snake_case:
+                                            // C# 'ForestEdge' <-> PG label 'forest_edge'.
+                                            // If your labels match the C# names exactly,
+                                            // pass new NpgsqlNullNameTranslator().
+await using var dataSource = builder.Build();
+
+using var conn = await dataSource.OpenConnectionAsync();
+var adapter = new DataClassAdapter<Zone>(conn);
+```
+
+```csharp
+[DataField("kind", DbType.Object, true)]
+public Habitat? Kind { get => field; set => SetFieldValue(ref field, value); }
+```
+
+With the mapping in place, Npgsql surfaces the column as the C# enum type itself, and everything is ordinary Zonkey: fills (both materialization paths), saves, null round-trips, and lambda filters (`z => z.Kind == Habitat.Forest`) all work -- covered by the integration suite (`PgsqlNativeEnumTests`).
+
+Alternatives when you do not control the connection setup: store the enum in an integer column (`DbType.Int32` -- Zonkey converts enum values to their underlying integer on write) or a text column (`DbType.String` columns materialize into enum properties by name, case-insensitively; see [Enum Columns](data-classes.md#enum-columns)).
 
 ## Quick Facts
 

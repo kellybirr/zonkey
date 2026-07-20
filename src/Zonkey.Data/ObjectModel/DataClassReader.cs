@@ -595,7 +595,12 @@ namespace Zonkey.ObjectModel
 #endif
                 else if (enumType != null)
                 {
-                    if (dbType == typeof(string))
+                    if (dbType == enumType)
+                    {
+                        // provider returns the enum itself (e.g. Npgsql MapEnum):
+                        // no conversion needed; the shared Unbox_Any below is all it takes
+                    }
+                    else if (dbType == typeof(string))
                     {
                         // string-sourced enums accept names or numeric strings, case-insensitively:
                         // Enum.Parse(enumType, (string)value, ignoreCase: true)
@@ -619,6 +624,15 @@ namespace Zonkey.ObjectModel
                 {
                     // exact match for value types; reference conversion for string/byte[]/object
                     il.Emit(OpCodes.Unbox_Any, coreType);
+                }
+                else if (!coreType.IsValueType && (coreType != typeof(string)))
+                {
+                    // reference-typed targets (arrays, interfaces): the reader's static type
+                    // may be a base of the runtime value's type -- e.g. PostgreSQL array
+                    // columns report System.Array while values are string[]/int[]. A checked
+                    // downcast handles every runtime-assignable case; a wrong element type
+                    // fails with InvalidCastException, surfaced as PropertyReadException.
+                    il.Emit(OpCodes.Castclass, coreType);
                 }
                 else
                 {

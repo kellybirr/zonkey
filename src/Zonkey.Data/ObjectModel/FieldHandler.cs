@@ -19,7 +19,13 @@ namespace Zonkey.ObjectModel
             {
                 if (!isAssignable)
                 {
-                    if ((dstType == typeof(Guid) || dstType == typeof(Guid?)) && value is string valStr)
+                    if (value != null && dstType.IsInstanceOfType(value))
+                    {
+                        // statically unassignable but the runtime value fits: e.g. PostgreSQL
+                        // array columns report System.Array while values are concrete arrays
+                        dstInfo.SetValue(obj, ApplyDateTimeKind(value, mapField), null);
+                    }
+                    else if ((dstType == typeof(Guid) || dstType == typeof(Guid?)) && value is string valStr)
                     { 
                         dstInfo.SetValue(obj, new Guid(valStr), null);
                     }
