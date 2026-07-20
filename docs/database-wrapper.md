@@ -53,6 +53,53 @@ This constructor calls `DbConnectionFactory.CreateConnection(connectionName)` in
 
 Note that `DbConnectionFactory.CreateConnection` creates the connection but does not open it, and adapters throw when given an unopened connection. You are responsible for opening `Connection` before performing any operations (or use `DbConnectionFactory.OpenConnection(name)` with the `DbConnection` constructor instead).
 
+### The Production Pattern: Named Connection + Static Open + IAsyncDisposable
+
+A field-proven shape that combines the pieces above: the named-connection constructor (so connection configuration lives in one registration at startup), a static `Open()` factory that opens the connection before anyone can touch it, and `IAsyncDisposable` implemented on the subclass so callers get `await using` back:
+
+```csharp
+public class StoreDb : DatabaseWrapper, IAsyncDisposable
+{
+    public const string Name = "Store";   // registered at startup with DbConnectionFactory.Register
+
+    public static async Task<StoreDb> Open()
+    {
+        var db = new StoreDb();
+        await db.Connection.OpenAsync();
+        return db;
+    }
+
+    private StoreDb() : base(Name)
+    {
+        DataManager = new DataManager(Connection);
+    }
+
+    public DataManager DataManager { get; }
+
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return Connection.DisposeAsync();
+    }
+}
+```
+
+```csharp
+await using var db = await StoreDb.Open();
+```
+
+The private constructor makes `Open()` the only way in, so an unopened wrapper can never escape. Typed convenience methods (thin one-liners over `Adapter<T>()`) round out the class:
+
+```csharp
+public Task<List<Tdc>> GetList<Tdc>(Expression<Func<Tdc, bool>> filter) where Tdc : class, new()
+    => Adapter<Tdc>().GetList(filter);
+
+public Task<SaveResult> TrySave<Tdc>(Tdc obj, SelectBack selectBack) where Tdc : class, new()
+    => Adapter<Tdc>().TrySave(obj, selectBack);
+```
+
+For a variant of this pattern whose connections come from an `NpgsqlDataSource` (required for native PostgreSQL enums), see the [PostgreSQL Guide](postgresql.md#native-enums-in-a-databasewrapper).
+
 ## Usage
 
 ```csharp

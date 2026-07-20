@@ -130,6 +130,48 @@ With the mapping in place, Npgsql surfaces the column as the C# enum type itself
 
 Alternatives when you do not control the connection setup: store the enum in an integer column (`DbType.Int32` -- Zonkey converts enum values to their underlying integer on write) or a text column (`DbType.String` columns materialize into enum properties by name, case-insensitively; see [Enum Columns](data-classes.md#enum-columns)).
 
+### Native Enums in a DatabaseWrapper
+
+Enum mappings are **data-source-scoped** in modern Npgsql: they ride on connections the `NpgsqlDataSource` creates, not on any `new NpgsqlConnection(...)`. So a [DatabaseWrapper](database-wrapper.md#the-production-pattern-named-connection--static-open--iasyncdisposable) that needs native enums holds one data source (built once, enums mapped) and feeds its connections to the `base(DbConnection)` constructor:
+
+```csharp
+public class StoreDb : DatabaseWrapper, IAsyncDisposable
+{
+    private static NpgsqlDataSource _dataSource;
+
+    public static async Task<StoreDb> Open()
+    {
+        _dataSource ??= BuildDataSource();
+        var db = new StoreDb(_dataSource.CreateConnection());
+        await db.Connection.OpenAsync();
+        return db;
+    }
+
+    private static NpgsqlDataSource BuildDataSource()
+    {
+        var builder = new NpgsqlDataSourceBuilder(GetConnectionString());
+        builder.MapEnum<OrderStatus>("order_status");
+        builder.MapEnum<Habitat>("habitat_kind");
+        return builder.Build();
+    }
+
+    private StoreDb(DbConnection connection) : base(connection)
+    {
+        DataManager = new DataManager(Connection);
+    }
+
+    public DataManager DataManager { get; }
+
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return Connection.DisposeAsync();
+    }
+}
+```
+
+Everything else about the wrapper pattern is unchanged -- callers still write `await using var db = await StoreDb.Open();` and every adapter the wrapper hands out speaks native enums. (The data source replaces the named-connection constructor here because `DbConnectionFactory` creates connections by type and connection string, which cannot carry data-source-scoped mappings.)
+
 ## Quick Facts
 
 - Parameters are named `:p0`, `:p1`, ... in generated text commands.
