@@ -107,7 +107,7 @@ public class StoreDb : DatabaseWrapper
 ```
 
 ```csharp
-using var db = await StoreDb.OpenAsync(connectionString);
+await using var db = await StoreDb.OpenAsync(connectionString);
 
 var customer = await db.GetOne<Customer>(c => c.Email == "alice@example.com");
 var order = new Order(addingNew: true) { CustomerId = customer.Id, Status = "pending" };

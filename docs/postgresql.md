@@ -135,7 +135,7 @@ Alternatives when you do not control the connection setup: store the enum in an 
 Enum mappings are **data-source-scoped** in modern Npgsql: they ride on connections the `NpgsqlDataSource` creates, not on any `new NpgsqlConnection(...)`. So a [DatabaseWrapper](database-wrapper.md#the-production-pattern-named-connection--static-open--iasyncdisposable) that needs native enums holds one data source (built once, enums mapped) and feeds its connections to the `base(DbConnection)` constructor:
 
 ```csharp
-public class StoreDb : DatabaseWrapper, IAsyncDisposable
+public class StoreDb : DatabaseWrapper
 {
     private static NpgsqlDataSource _dataSource;
 
@@ -157,12 +157,6 @@ public class StoreDb : DatabaseWrapper, IAsyncDisposable
 
     private StoreDb(DbConnection connection) : base(connection)
     { }
-
-    public ValueTask DisposeAsync()
-    {
-        GC.SuppressFinalize(this);
-        return Connection.DisposeAsync();
-    }
 }
 ```
 

@@ -64,13 +64,13 @@ If you need parallel queries, use separate connections:
 ```csharp
 var productTask = Task.Run(async () =>
 {
-    using var db = await StoreDb.OpenAsync(connectionString);
+    await using var db = await StoreDb.OpenAsync(connectionString);
     return await db.Adapter<Product>().GetList(p => p.Category == "shirts");
 });
 
 var customerTask = Task.Run(async () =>
 {
-    using var db = await StoreDb.OpenAsync(connectionString);
+    await using var db = await StoreDb.OpenAsync(connectionString);
     return await db.Adapter<Customer>().GetList(c => c.IsActive);
 });
 
@@ -87,7 +87,7 @@ A common async pattern is to load primary data, extract IDs, then load related d
 ```csharp
 using Zonkey.Extensions;
 
-using var db = await StoreDb.OpenAsync(connectionString);
+await using var db = await StoreDb.OpenAsync(connectionString);
 
 // Load orders
 var orders = new List<Order>();
@@ -146,7 +146,7 @@ Connections should be short-lived in web applications:
 [HttpGet("{id}")]
 public async Task<IActionResult> GetProduct(int id)
 {
-    using var db = await StoreDb.OpenAsync(_connectionString);
+    await using var db = await StoreDb.OpenAsync(_connectionString);
     var product = await db.GetOne<Product>(p => p.Id == id);
     return product is not null ? Ok(product) : NotFound();
 }
@@ -155,7 +155,7 @@ public async Task<IActionResult> GetProduct(int id)
 For background services or batch jobs, a longer-lived connection is appropriate:
 
 ```csharp
-using var db = await StoreDb.OpenAsync(connectionString);
+await using var db = await StoreDb.OpenAsync(connectionString);
 
 foreach (var batch in items.Chunk(100))
 {

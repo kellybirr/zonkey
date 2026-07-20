@@ -55,7 +55,7 @@ When `Transaction` is set on an adapter, every command the adapter executes is e
 When using `DatabaseWrapper`, you can call `BeginTransaction()` to create a transaction on the wrapper's connection, then pass it to `Adapter<T>(trx)` to get adapters with the transaction already assigned.
 
 ```csharp
-using var db = await StoreDb.OpenAsync(connectionString);
+await using var db = await StoreDb.OpenAsync(connectionString);
 var trx = db.BeginTransaction();
 
 try
@@ -99,7 +99,7 @@ Be aware that the adapter is shared per wrapper instance, not created per call. 
 For simple transaction blocks, `WithTransaction` handles the commit-or-rollback lifecycle automatically.
 
 ```csharp
-using var db = await StoreDb.OpenAsync(connectionString);
+await using var db = await StoreDb.OpenAsync(connectionString);
 
 await db.WithTransaction(async trx =>
 {

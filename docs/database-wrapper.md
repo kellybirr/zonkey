@@ -4,7 +4,7 @@ DatabaseWrapper is an abstract base class you subclass to manage database connec
 
 ## Overview
 
-DatabaseWrapper wraps a `DbConnection`, caches `DataClassAdapter` instances per type, and provides convenience methods for common operations. It implements `IDisposable`.
+DatabaseWrapper wraps a `DbConnection`, caches `DataClassAdapter` instances per type, and provides convenience methods for common operations. It implements `IDisposable`, and on .NET 6+ targets also `IAsyncDisposable` -- so `await using` works out of the box.
 
 Why use it:
 
@@ -53,12 +53,12 @@ This constructor calls `DbConnectionFactory.CreateConnection(connectionName)` in
 
 Note that `DbConnectionFactory.CreateConnection` creates the connection but does not open it, and adapters throw when given an unopened connection. You are responsible for opening `Connection` before performing any operations (or use `DbConnectionFactory.OpenConnection(name)` with the `DbConnection` constructor instead).
 
-### The Production Pattern: Named Connection + Static Open + IAsyncDisposable
+### The Production Pattern: Named Connection + Static Open
 
-A field-proven shape that combines the pieces above: the named-connection constructor (so connection configuration lives in one registration at startup), a static `Open()` factory that opens the connection before anyone can touch it, and `IAsyncDisposable` implemented on the subclass so callers get `await using` back:
+A field-proven shape that combines the pieces above: the named-connection constructor (so connection configuration lives in one registration at startup) and a static `Open()` factory that opens the connection before anyone can touch it. Disposal comes from the base class -- including `IAsyncDisposable` on .NET 6+:
 
 ```csharp
-public class StoreDb : DatabaseWrapper, IAsyncDisposable
+public class StoreDb : DatabaseWrapper
 {
     public const string Name = "Store";   // registered at startup with DbConnectionFactory.Register
 
@@ -71,12 +71,6 @@ public class StoreDb : DatabaseWrapper, IAsyncDisposable
 
     private StoreDb() : base(Name)
     { }
-
-    public ValueTask DisposeAsync()
-    {
-        GC.SuppressFinalize(this);
-        return Connection.DisposeAsync();
-    }
 }
 ```
 
@@ -94,7 +88,7 @@ public Task<SaveResult> TrySave<Tdc>(Tdc obj, SelectBack selectBack) where Tdc :
     => Adapter<Tdc>().TrySave(obj, selectBack);
 ```
 
-For a variant of this pattern whose connections come from an `NpgsqlDataSource` (required for native PostgreSQL enums), see the [PostgreSQL Guide](postgresql.md#native-enums-in-a-databasewrapper).
+For a variant of this pattern whose connections come from an `NpgsqlDataSource` (required for native PostgreSQL enums), see the [PostgreSQL Guide](postgresql.md#native-enums-in-a-databasewrapper). (On .NET Framework, where `IAsyncDisposable` is unavailable in the base, use `using` -- or implement it on your subclass.)
 
 ## Usage
 
@@ -230,18 +224,20 @@ public class StoreDb : DatabaseWrapper
 
 ## Disposal
 
-DatabaseWrapper implements `IDisposable`. When disposed:
+DatabaseWrapper implements `IDisposable`, and on .NET 6+ targets also `IAsyncDisposable`. When disposed (either way):
 
 - The adapter cache is cleared
 - The underlying `DbConnection` is disposed
 
-Always use `using`:
+Always use `await using` (or `using` on .NET Framework, where `IAsyncDisposable` is unavailable):
 
 ```csharp
-using var db = await StoreDb.OpenAsync(connectionString);
+await using var db = await StoreDb.OpenAsync(connectionString);
 // ... use db ...
 // connection is automatically closed and disposed
 ```
+
+`DisposeAsync` is `virtual` -- override it in your subclass if you own additional async resources.
 
 ## See Also
 

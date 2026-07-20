@@ -64,6 +64,15 @@ namespace Zonkey.Mocks
         }
 
         /// <summary>
+        /// Closes the connection on dispose, matching real provider behavior.
+        /// </summary>
+        protected override void Dispose(bool disposing)
+        {
+            Close();
+            base.Dispose(disposing);
+        }
+
+        /// <summary>
         /// Gets or sets the string used to open the connection.
         /// </summary>
         /// <value></value>

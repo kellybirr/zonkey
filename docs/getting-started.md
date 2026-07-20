@@ -146,7 +146,7 @@ public class StoreDb : DatabaseWrapper
 Usage becomes straightforward:
 
 ```csharp
-using var db = await StoreDb.OpenAsync(connectionString);
+await using var db = await StoreDb.OpenAsync(connectionString);
 
 var product = await db.GetOne<Product>(p => p.Id == 42);
 product.Price = 17.99m;
