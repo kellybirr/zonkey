@@ -96,7 +96,7 @@ Details settled during analysis:
 - `DataMapField` (runtime/implicit-field class) keeps its ordinary public `bool?` implicit implementation —
   the constraint only applies to the attribute.
 - Compat: source/binary break only for external code reading `attr.UseQuotedIdentifier` off a *concrete*
-  attribute reference (none in this repo); v6.6 already carries breaking changes (strong-name removal).
+  attribute reference (none in this repo); v7.0 already carries breaking changes (strong-name removal).
 
 ### Fix 2 — populate via "result name" (preferred over property-name fallback)
 

@@ -21,10 +21,8 @@ dotnet add package Zonkey.Data
 
 ## Target Frameworks
 
-- .NET Standard 2.0
-- .NET Standard 2.1
-- .NET 6
 - .NET 8
+- .NET 10
 - .NET Framework 4.8
 
 ## Key Concepts

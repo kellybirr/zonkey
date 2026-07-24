@@ -8,12 +8,12 @@
 
 ## Overview
 
-Use cases for `DataTableAdapter`:
+`DataTableAdapter` shines when the schema is not known at compile time but is discoverable at runtime. Typical scenarios:
 
-- Dynamic queries where the schema is not known at compile time
+- Customer-defined data shapes -- user-configurable columns, per-tenant custom fields, dynamic forms
+- Cases where the dreaded `SELECT *` is genuinely necessary: the adapter generates INSERT / UPDATE / DELETE from whatever columns come back, so unknown-at-compile-time schemas get full CRUD without any mapped classes
 - Working with existing typed DataSets from legacy codebases
 - Reporting or analytics queries that span multiple tables
-- Quick prototyping without defining data classes
 - Interop with systems that consume `DataTable` or `DataSet`
 
 ---
@@ -57,14 +57,20 @@ Properties on `DataTableAdapter`:
 
 All Fill methods are synchronous. They populate the `DataTable` using the table's `TableName` property to build SQL.
 
+**The DataTable's columns define the SELECT list**, so `FillAll` and the `Fill` overloads require the columns to exist before the call -- a fresh, column-less `DataTable` produces a SELECT with an empty column list. SQL Server rejects the statement (`Incorrect syntax near the keyword 'FROM'`); PostgreSQL technically accepts an empty projection and returns no columns at all. Either way, no usable data. Define the columns you want, and only those are queried -- the column set acts as a projection:
+
 ```csharp
 var dt = new DataTable("products");
+dt.Columns.Add("id", typeof(int));
+dt.Columns.Add("name", typeof(string));
+dt.Columns.Add("price", typeof(decimal));
+
 var adapter = new DataTableAdapter(connection);
 
 // All rows
 adapter.FillAll(dt);
 
-// With string filter
+// With string filter (may reference columns outside the projection)
 adapter.Fill(dt, "price > 10");
 
 // With string filter and parameters
@@ -73,11 +79,14 @@ adapter.Fill(dt, "category = $0", "shirts");
 // With SqlFilter array
 adapter.Fill(dt, SqlFilter.GT("price", 10.0m), SqlFilter.LT("price", 50.0m));
 
-// From stored procedure
+// From stored procedure -- runs the proc as-is, so this one DOES work on a
+// column-less DataTable: columns are created from the result set
 adapter.FillWithSP(dt, "get_products_by_category", "shirts");
 ```
 
 The `$0`, `$1`, etc. placeholders in string filters are replaced with dialect-appropriate parameter names (`@p0` for SQL Server, `:p0` for PostgreSQL, `?` for positional-only databases).
+
+When you don't know the columns up front, fill the table with [`DataManager.FillDataTable`](#runtime-discovered-schemas-the-select--workflow) instead and let the query define them.
 
 ---
 
@@ -107,6 +116,8 @@ int affected = adapter.SaveChanges(dataSet, "products");
 // Or by table index
 int affected = adapter.SaveChanges(dataSet, 0);
 ```
+
+Generated UPDATE and DELETE statements match rows on the primary key only -- there is no optimistic-concurrency check against original values, so concurrent edits are last-write-wins.
 
 The `BeforeSaveChanges` event fires before the update is submitted. Setting `Cancel = true` on the `TableSaveEventArgs` throws an `OperationCanceledException`.
 
@@ -146,14 +157,49 @@ This provides a bridge for codebases with existing typed DataSet infrastructure.
 
 ---
 
-## Dynamic Querying with DataManager
+## Runtime-Discovered Schemas: the SELECT * Workflow
 
-For truly dynamic queries where you write raw SQL, combine `DataManager` with `DataTable`. This is useful when the query does not map to a single table:
+This is the combination the whole class exists for: when the schema is only knowable at runtime, let a query define the `DataTable`, then hand the result back to `DataTableAdapter` for full CRUD. `DataManager.FillDataTable` loads whatever the query returns -- and the provider's schema metadata comes with it, so auto-increment and read-only columns are flagged automatically:
 
 ```csharp
 var dm = new DataManager(connection);
 var dt = new DataTable();
 
+// Schema discovered from the result set -- the dreaded SELECT * is the point here
+await dm.FillDataTable(dt, "SELECT * FROM products", CommandType.Text);
+
+// Tell the adapter what the query couldn't: target table and primary key
+dt.TableName = "products";
+dt.PrimaryKey = new[] { dt.Columns["id"] };
+
+// Full CRUD against columns you never declared
+dt.Rows[0]["price"] = 19.99m;
+
+var row = dt.NewRow();
+row["name"] = "Classic Tee";
+row["price"] = 24.99m;
+dt.Rows.Add(row);
+
+var adapter = new DataTableAdapter(connection);
+int affected = adapter.SaveChanges(dt);   // UPDATE + INSERT; row["id"] now holds the new identity
+```
+
+Two things must be set by hand -- `TableName` and `PrimaryKey` -- because a result set cannot reveal which table to write back to or what uniquely identifies a row. Everything else (column names, types, identity columns) is discovered.
+
+**Provider note:** how much schema metadata arrives with the fill varies by provider. SqlClient flags identity columns (`AutoIncrement` + `ReadOnly`) and leaves data columns writable, so the code above works as-is on SQL Server. Npgsql loads *every* column read-only and does not flag serial/identity columns, so on PostgreSQL normalize the flags after the fill:
+
+```csharp
+dt.Columns["id"].AutoIncrement = true;            // Npgsql doesn't flag serial columns
+foreach (DataColumn c in dt.Columns)
+    if (c.ColumnName != "id") c.ReadOnly = false; // Npgsql loads all columns read-only
+```
+
+(Setting both on every provider is harmless -- on SqlClient they are already correct -- so provider-agnostic code can always include this normalization.)
+
+`DataManager.FillDataTable` is also useful purely for reading when the query does not map to a single table (joins, aggregates, reporting queries):
+
+```csharp
+var dt = new DataTable();
 await dm.FillDataTable(dt,
     "SELECT p.name, COUNT(ol.id) as order_count, SUM(ol.quantity) as total_sold " +
     "FROM products p JOIN order_lines ol ON p.id = ol.product_id " +
@@ -164,35 +210,13 @@ foreach (DataRow row in dt.Rows)
     Console.WriteLine($"{row["name"]}: {row["total_sold"]} sold");
 ```
 
-`DataManager.FillDataTable` is asynchronous and accepts a SQL string, a `CommandType`, and optional parameters. Unlike `DataTableAdapter`, it does not provide `SaveChanges` -- it is read-only.
+It is asynchronous and accepts a SQL string, a `CommandType`, and optional parameters. Results like these have no single base table, so they are read-only in practice -- there is nothing meaningful to `SaveChanges` to.
 
 ---
 
 ## Recordset
 
-`Zonkey.Ado.Recordset` is a classic-ADO-style companion API for code migrated from ADO Recordset patterns. It wraps a `DataTable` behind cursor-style navigation: `Open` executes a query (SQL text with optional parameters, or a stored procedure via `CommandType`) and returns the record count, `Requery` re-runs the last query, and `MoveFirst` / `MoveLast` / `MoveNext` / `MovePrevious` / `Move(offset)` / `FindNext(filterExpression)` position the cursor. `BOF`, `EOF`, `RecordCount`, `Position`, and `Fields` mirror their ADO counterparts, and string or ordinal indexers read and write column values on the current row.
-
-Construct it with a `DbConnection` or a registered connection name; `Open` opens the connection automatically if it is closed. For updates, call `InitUpdate(tableName, primaryKey...)` to set the table name and primary key, modify rows via the indexers, `NewRow` / `AddRow`, and `Delete`, then call `UpdateBatch` to persist all pending changes through a `DataTableAdapter` and `DataTableCommandBuilder`.
-
-```csharp
-using Zonkey.Ado;
-
-using var rs = new Recordset(connection);
-await rs.Open("SELECT id, name, price FROM products WHERE category = $0", "shirts");
-
-while (!rs.EOF)
-{
-    Console.WriteLine($"{rs["name"]}: {rs["price"]}");
-    rs.MoveNext();
-}
-
-rs.InitUpdate("products", "id");
-rs.MoveFirst();
-rs["price"] = 19.99m;
-await rs.UpdateBatch();
-```
-
-Note that `Recordset.UseQuotedIdentifier` defaults to `true` -- unlike the adapters' tri-state default -- so `UpdateBatch` generates quoted identifiers on every dialect unless you set it to `false`.
+`Zonkey.Ado.Recordset` layers a classic ADO-style cursor API (`Open`, `MoveNext`, `EOF`, `UpdateBatch`, ...) over this same machinery -- `UpdateBatch` persists changes through a `DataTableAdapter`. It is the natural entry point when migrating VB6 / classic ASP-era code. See the dedicated [Recordset guide](recordset.md) for the full API and the differences from its ADO ancestor.
 
 ---
 

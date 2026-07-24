@@ -125,7 +125,7 @@ bool exists = await adapter.Exists("id = $0", 42);
 bool exists = await adapter.Exists(SqlFilter.EQ("name", "Classic Tee"));
 ```
 
-`Exists` generates its SQL through `SqlDialect.FormatExistsQuery` and works on every dialect (v6.5 and earlier emitted T-SQL that only ran on SQL Server; on those versions use `GetCount(...) > 0` for other databases).
+`Exists` generates its SQL through `SqlDialect.FormatExistsQuery` and works on every dialect (v6.x and earlier emitted T-SQL that only ran on SQL Server; on those versions use `GetCount(...) > 0` for other databases).
 
 ---
 
@@ -142,7 +142,7 @@ while ((product = await reader.ReadAsync()) != null)
 }
 ```
 
-`DataClassReader<T>` also supports `IEnumerable<T>` and -- on .NET 6+ targets only, not .NET Framework 4.8 -- `IAsyncEnumerable<T>`, so you can use it with `foreach` and `await foreach`:
+`DataClassReader<T>` also supports `IEnumerable<T>` and -- on .NET 8+ targets only, not .NET Framework 4.8 -- `IAsyncEnumerable<T>`, so you can use it with `foreach` and `await foreach`:
 
 ```csharp
 using var reader = await adapter.OpenReader(SqlFilter.GT("price", 0));
@@ -346,7 +346,7 @@ CollectionSaveResult<Product> result = await adapter.TrySaveCollection(products,
 
 Collection save processes deleted items first (via `ITrackDeletedItems<T>`), then saves added and modified items.
 
-**Known issue (v6.6):** only the overloads shown above behave as documented. `TrySaveCollection(collection, criteria, affect, selectBack)` currently ignores its criteria/affect/selectBack arguments and uses defaults, and `TrySaveCollection(collection, criteria, continueOnError)` ignores `continueOnError`. Use per-item `TrySave` when you need non-default criteria on a collection.
+**Known issue (v7.0):** only the overloads shown above behave as documented. `TrySaveCollection(collection, criteria, affect, selectBack)` currently ignores its criteria/affect/selectBack arguments and uses defaults, and `TrySaveCollection(collection, criteria, continueOnError)` ignores `continueOnError`. Use per-item `TrySave` when you need non-default criteria on a collection.
 
 ---
 

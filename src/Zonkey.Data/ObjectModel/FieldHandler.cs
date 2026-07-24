@@ -34,7 +34,7 @@ namespace Zonkey.ObjectModel
                         // if the column is a HierarchyID type, then just treat it as a string (SQL server can implicitly convert between the two)
                         dstInfo.SetValue(obj, value.ToString(), null);
                     }
-#if (NET6_0_OR_GREATER)
+#if !NETFRAMEWORK
                     else if (dstType == typeof(DateOnly) || dstType == typeof(DateOnly?))
                     {
                         if (value is DateTime dtDO)

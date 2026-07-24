@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Zonkey is a .NET ORM library that maps database tables to C# classes. It supports multiple database dialects and targets net6.0, net8.0, net10.0, and net48.
+Zonkey is a .NET ORM library that maps database tables to C# classes. It supports multiple database dialects and targets net8.0, net10.0, and net48 (Zonkey.Text targets netstandard2.0 and net48).
 
-NuGet packages: zonkey.data, zonkey.text, zonkey.droid, zonkey.mocks
+NuGet packages: zonkey.data, zonkey.data.mssql, zonkey.text, zonkey.mocks
 
 ## Build & Test Commands
 
@@ -77,4 +77,4 @@ Converts LINQ expressions into SQL WHERE clauses for type-safe filtering.
 - **Reflection caching**: DataMap caches are static and built once per type.
 - **Dynamic IL**: ClassFactory uses `DynamicMethod`/IL emit for fast object instantiation, and DataClassReader's fast builder (default on) emits a per-result-set-shape populator; conversion failures surface as `PropertyReadException`.
 - **Async throughout**: All data-access methods are async and deliberately suffix-less (`Fill`, `Save`, `GetOne` — not `FillAsync`). There are no sync variants to disambiguate from; do not rename or add `-Async` suffixes.
-- **Strong naming**: Removed in v6.6. Tests access internals via `InternalsVisibleTo("Zonkey.Tests")`.
+- **Strong naming**: Removed in v7.0. Tests access internals via `InternalsVisibleTo("Zonkey.Tests")`.

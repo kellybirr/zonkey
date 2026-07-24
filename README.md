@@ -1,11 +1,14 @@
 # Zonkey
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=kellybirr_zonkey&metric=alert_status)](https://sonarcloud.io/dashboard?id=kellybirr_zonkey)
+[![Build and Test](https://github.com/kellybirr/zonkey/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/kellybirr/zonkey/actions/workflows/build-and-test.yml)
 
 [![NuGet: Zonkey.Data](https://img.shields.io/nuget/v/zonkey.data?label=NuGet%3A%20Zonkey.Data)](https://www.nuget.org/packages/Zonkey.Data/)
+[![NuGet: Zonkey.Data.MsSql](https://img.shields.io/nuget/v/zonkey.data.mssql?label=NuGet%3A%20Zonkey.Data.MsSql)](https://www.nuget.org/packages/Zonkey.Data.MsSql/)
 [![NuGet: Zonkey.Text](https://img.shields.io/nuget/v/zonkey.text?label=NuGet%3A%20Zonkey.Text)](https://www.nuget.org/packages/Zonkey.Text/)
-[![NuGet: Zonkey.Droid](https://img.shields.io/nuget/v/zonkey.droid?label=NuGet%3A%20Zonkey.Droid)](https://www.nuget.org/packages/Zonkey.Droid/)
 [![NuGet: Zonkey.Mocks](https://img.shields.io/nuget/v/zonkey.mocks?label=NuGet%3A%20Zonkey.Mocks)](https://www.nuget.org/packages/Zonkey.Mocks/)
+
+> [!IMPORTANT]
+> **Zonkey 7.0 is a major release with breaking changes.** The 7.0 packages target .NET 8, .NET 10, and .NET Framework 4.8, and assemblies are no longer strong-name signed. If your application runs on .NET 7 or earlier (including .NET 5/6 and .NET Core), on a .NET Framework version before 4.8, or requires strong-named assemblies, stay on the latest v6.x release.
 
 **Deterministic data access for .NET.** Zonkey is a lightweight ORM that makes every database operation explicit and predictable. No implicit context, no surprise queries, no hidden persistence — just clean, direct mapping between your objects and your database.
 
@@ -143,6 +146,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) folder, written
 - [Async Patterns](docs/async-patterns.md) — async-first design and usage guidance
 - [Transactions](docs/transactions.md) — simple and distributed transaction support
 - [DataTableAdapter](docs/data-table-adapter.md) — working with DataTable and DataSet
+- [Recordset](docs/recordset.md) — classic ADO-style cursor API
 - [Database Providers & Dialects](docs/database-providers.md) — supported databases and dialect system
 - [PostgreSQL Guide](docs/postgresql.md) — timestamps, case folding, and provider-specific types
 - [Testing with Mocks](docs/testing.md) — unit testing with Zonkey.Mocks
@@ -159,7 +163,7 @@ Each source project also has its own README:
 
 ## Project Status
 
-Zonkey has been in production use since the early days of .NET and has evolved through every major .NET release. It currently targets .NET 6, .NET 8, .NET 10, and .NET Framework 4.8. As of v6.6, assemblies are no longer strong-name signed; consumers that require strong-named assemblies should stay on 6.5.x.
+Zonkey has been in production use since the early days of .NET and has evolved through every major .NET release. It currently targets .NET 8, .NET 10, and .NET Framework 4.8. As of v7.0, assemblies are no longer strong-name signed; consumers that require strong-named assemblies, or that run on frameworks older than .NET 8 / .NET Framework 4.8, should stay on the latest v6.x release.
 
 This has historically been a single-maintainer project, but contributions are welcome. If you find a bug, have a feature idea, or want to improve the documentation, please [open an issue](https://github.com/kellybirr/zonkey/issues) or submit a pull request.
 

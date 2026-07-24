@@ -9,7 +9,7 @@ namespace Zonkey.ObjectModel
     /// <summary>
     /// The preferred method of managing database connections
     /// </summary>
-#if NET6_0_OR_GREATER
+#if !NETFRAMEWORK
     public abstract class DatabaseWrapper : IDisposable, IAsyncDisposable
 #else
     public abstract class DatabaseWrapper : IDisposable
@@ -202,7 +202,7 @@ namespace Zonkey.ObjectModel
                 GC.SuppressFinalize(this);
         }
 
-#if NET6_0_OR_GREATER
+#if !NETFRAMEWORK
         /// <summary>
         /// Asynchronously disposes the connection and clears the adapter cache.
         /// </summary>

@@ -253,7 +253,7 @@ namespace Zonkey.Ado
             if (_dt == null)
                 throw new InvalidOperationException("Must `Open` Before moving.");
 
-            Position = _dt.Rows.Count;
+            Position = _dt.Rows.Count - 1;
             return (!(BOF || EOF));
         }
 

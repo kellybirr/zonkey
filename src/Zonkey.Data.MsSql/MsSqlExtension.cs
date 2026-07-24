@@ -1,6 +1,6 @@
 ﻿using System.Data;
 
-#if NET6_0_OR_GREATER
+#if !NETFRAMEWORK
 using Microsoft.Data.SqlClient;
 #else
 using System.Data.SqlClient;

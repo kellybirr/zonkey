@@ -132,7 +132,7 @@ Two behaviors worth knowing:
 Called by the adapter at the start of every `Save` call -- including saves that are then skipped because the object is `Unchanged`. Override this to perform validation, set audit fields, or apply default values.
 
 **`protected internal virtual void OnAfterSave(bool isNewRow)`**
-Called by the adapter after a successful save. Override this for post-save processing such as cache invalidation or event publishing. Note: as of v6.6 the adapter passes `isNewRow: true` for both inserts and updates -- do not rely on it to distinguish the operation; check `DataRowState` in `OnBeforeSave` instead if you need to know.
+Called by the adapter after a successful save. Override this for post-save processing such as cache invalidation or event publishing. Note: as of v7.0 the adapter passes `isNewRow: true` for both inserts and updates -- do not rely on it to distinguish the operation; check `DataRowState` in `OnBeforeSave` instead if you need to know.
 
 ### DataRowState Flow
 

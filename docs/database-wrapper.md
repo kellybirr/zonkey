@@ -4,7 +4,7 @@ DatabaseWrapper is an abstract base class you subclass to manage database connec
 
 ## Overview
 
-DatabaseWrapper wraps a `DbConnection`, caches `DataClassAdapter` instances per type, and provides convenience methods for common operations. It implements `IDisposable`, and on .NET 6+ targets also `IAsyncDisposable` -- so `await using` works out of the box.
+DatabaseWrapper wraps a `DbConnection`, caches `DataClassAdapter` instances per type, and provides convenience methods for common operations. It implements `IDisposable`, and on .NET 8+ targets also `IAsyncDisposable` -- so `await using` works out of the box.
 
 Why use it:
 
@@ -55,7 +55,7 @@ Note that `DbConnectionFactory.CreateConnection` creates the connection but does
 
 ### The Production Pattern: Named Connection + Static Open
 
-A field-proven shape that combines the pieces above: the named-connection constructor (so connection configuration lives in one registration at startup) and a static `Open()` factory that opens the connection before anyone can touch it. Disposal comes from the base class -- including `IAsyncDisposable` on .NET 6+:
+A field-proven shape that combines the pieces above: the named-connection constructor (so connection configuration lives in one registration at startup) and a static `Open()` factory that opens the connection before anyone can touch it. Disposal comes from the base class -- including `IAsyncDisposable` on .NET 8+:
 
 ```csharp
 public class StoreDb : DatabaseWrapper
@@ -224,7 +224,7 @@ public class StoreDb : DatabaseWrapper
 
 ## Disposal
 
-DatabaseWrapper implements `IDisposable`, and on .NET 6+ targets also `IAsyncDisposable`. When disposed (either way):
+DatabaseWrapper implements `IDisposable`, and on .NET 8+ targets also `IAsyncDisposable`. When disposed (either way):
 
 - The adapter cache is cleared
 - The underlying `DbConnection` is disposed

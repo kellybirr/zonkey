@@ -18,6 +18,7 @@ For a high-level introduction, see the [Overview & Philosophy](overview.md).
 - [Async Patterns](async-patterns.md) -- Async-first design and task-based operations
 - [Transactions](transactions.md) -- Simple and distributed transaction support
 - [DataTableAdapter (DataTable & DataSet)](data-table-adapter.md) -- Working with `DataTable` and `DataSet`
+- [Recordset (Classic ADO Style)](recordset.md) -- Cursor-style API for code migrated from classic ADO
 - [Database Providers & Dialects](database-providers.md) -- SQL Server, PostgreSQL, MySQL, Oracle, SQLite, and more
 - [PostgreSQL Guide](postgresql.md) -- timestamp/timestamptz mapping, case folding, NativeType and provider-specific types
 - [Testing with Zonkey.Mocks](testing.md) -- Mocking adapters and connections for unit tests

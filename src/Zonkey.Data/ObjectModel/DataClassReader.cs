@@ -15,7 +15,7 @@ namespace Zonkey.ObjectModel
     /// A class that reads DCs from a DataReader
     /// </summary>
     /// <typeparam name="T"></typeparam>
-#if NET6_0_OR_GREATER
+#if !NETFRAMEWORK
     public class DataClassReader<T> : IEnumerable<T>, IAsyncEnumerable<T>, IDisposable, IAsyncDisposable where T : class
 #else
     public class DataClassReader<T> : IEnumerable<T>, IDisposable where T : class
@@ -149,7 +149,7 @@ namespace Zonkey.ObjectModel
             return GetEnumerator();
         }
 
-#if NET6_0_OR_GREATER
+#if !NETFRAMEWORK
         async IAsyncEnumerator<T> IAsyncEnumerable<T>.GetAsyncEnumerator([EnumeratorCancellation] System.Threading.CancellationToken cancellationToken = default)
         {
             T item;
@@ -174,7 +174,7 @@ namespace Zonkey.ObjectModel
 
         ~DataClassReader() => Dispose(false);
 
-#if NET6_0_OR_GREATER
+#if !NETFRAMEWORK
         public async ValueTask DisposeAsync()
         {
             if (DisposeBaseReader && !_disposed)
@@ -560,7 +560,7 @@ namespace Zonkey.ObjectModel
                 {
                     il.Emit(OpCodes.Callvirt, FastBuilderRefs.Object_ToString);
                 }
-#if NET6_0_OR_GREATER
+#if !NETFRAMEWORK
                 else if (coreType == typeof(DateOnly))
                 {
                     if (dbType == typeof(DateTime))
@@ -680,7 +680,7 @@ namespace Zonkey.ObjectModel
         internal static readonly MethodInfo Enum_Parse = typeof(Enum).GetMethod(nameof(Enum.Parse), new[] { typeof(Type), typeof(string), typeof(bool) });
         internal static readonly ConstructorInfo Guid_CtorString = typeof(Guid).GetConstructor(new[] { typeof(string) });
 
-#if NET6_0_OR_GREATER
+#if !NETFRAMEWORK
         internal static readonly MethodInfo DateOnly_FromDateTime = typeof(DateOnly).GetMethod(nameof(DateOnly.FromDateTime), new[] { typeof(DateTime) });
         internal static readonly MethodInfo DateOnly_Parse = typeof(DateOnly).GetMethod(nameof(DateOnly.Parse), new[] { typeof(string) });
         internal static readonly MethodInfo TimeOnly_FromTimeSpan = typeof(TimeOnly).GetMethod(nameof(TimeOnly.FromTimeSpan), new[] { typeof(TimeSpan) });

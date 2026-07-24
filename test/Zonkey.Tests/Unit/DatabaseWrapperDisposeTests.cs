@@ -8,7 +8,7 @@ using Zonkey.ObjectModel;
 namespace Zonkey.Tests.Unit
 {
     /// <summary>
-    /// On .NET 6+ targets DatabaseWrapper implements IAsyncDisposable itself
+    /// On .NET 8+ targets DatabaseWrapper implements IAsyncDisposable itself
     /// (like DataClassReader), so subclasses get 'await using' without boilerplate.
     /// </summary>
     public class DatabaseWrapperDisposeTests

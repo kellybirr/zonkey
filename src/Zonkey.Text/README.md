@@ -49,8 +49,7 @@ reader.Fill(products);
 
 ## Target Frameworks
 
-- .NET Standard 2.0
-- .NET Standard 2.1
+- .NET Standard 2.0 (works on .NET 6/8/10 and later)
 - .NET Framework 4.8
 
 ## Documentation

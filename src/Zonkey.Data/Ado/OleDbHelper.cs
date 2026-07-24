@@ -1,4 +1,4 @@
-﻿#if (NET48)
+﻿#if NETFRAMEWORK
 using System.Data.Common;
 using Zonkey.Dialects;
 

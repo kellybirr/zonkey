@@ -105,7 +105,7 @@ namespace Zonkey
             return connType.Create();
         }
 
-#if (NET48)
+#if NETFRAMEWORK
         /// <summary>
         /// Loads the connectionStrings from the web.config/app.config 
         /// </summary>

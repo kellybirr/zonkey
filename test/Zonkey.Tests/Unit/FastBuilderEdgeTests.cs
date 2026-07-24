@@ -68,13 +68,11 @@ namespace Zonkey.Tests.Unit
             [DataField("Born", DbType.DateTime, DateTimeKind = DateTimeKind.Utc)]
             public DateTime Born { get => field; set => SetFieldValue(ref field, value); }       // TEXT -> DateTime with Kind stamped
 
-#if NET6_0_OR_GREATER
             [DataField("HatchDate", DbType.Date, true)]
             public DateOnly? HatchDate { get => field; set => SetFieldValue(ref field, value); } // TEXT -> DateOnly? via Parse
 
             [DataField("FeedTime", DbType.Time, true)]
             public TimeOnly? FeedTime { get => field; set => SetFieldValue(ref field, value); }  // TEXT -> TimeOnly? via Parse
-#endif
         }
 
         private readonly SqliteConnection _conn;
@@ -132,10 +130,8 @@ namespace Zonkey.Tests.Unit
             Assert.Equal(Rank.High, c.Rating);
             Assert.Equal(new DateTime(2021, 4, 1, 8, 15, 0), c.Born);
             Assert.Equal(DateTimeKind.Utc, c.Born.Kind);
-#if NET6_0_OR_GREATER
             Assert.Equal(new DateOnly(2021, 3, 15), c.HatchDate);
             Assert.Equal(new TimeOnly(7, 45), c.FeedTime);
-#endif
         }
 
         [Fact]

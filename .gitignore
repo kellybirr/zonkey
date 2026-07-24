@@ -290,3 +290,6 @@ __pycache__/
 # sonar scanning
 .sonarqube
 /.claude
+
+# local planning docs (not part of the published docs)
+docs/superpowers/
