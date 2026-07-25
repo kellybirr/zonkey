@@ -270,6 +270,7 @@ namespace Zonkey.Dialects
         /// <param name="right">The right argument.</param>
         /// <returns>System.String.</returns>
         /// <exception cref="System.NotImplementedException"></exception>
+        [Obsolete("No longer called by Zonkey. The expression translator uses RenderFunction/RenderLike/RenderRegexMatch instead.")]
         public virtual string ParseWhereFunction(string functionName, string left, string right)
         {
             throw new NotImplementedException();
@@ -281,5 +282,69 @@ namespace Zonkey.Dialects
         /// <param name="fieldName">Name of the field.</param>
         /// <returns>System.String.</returns>
         public virtual string FormatUnaryBoolean(string fieldName) => $"({fieldName} = 1)";
+
+        /// <summary>Renders a logical SQL function (UPPER, SUBSTRING, DATE_YEAR, ...) with pre-rendered arguments.</summary>
+        public virtual string RenderFunction(string name, params string[] args)
+        {
+            switch (name)
+            {
+                case "UPPER": case "LOWER": case "TRIM":
+                case "ABS": case "FLOOR": case "CEILING":
+                    return $"{name}({args[0]})";
+                case "ROUND1": return $"ROUND({args[0]})";
+                case "ROUND2": return $"ROUND({args[0]}, {args[1]})";
+                case "LENGTH": return $"LENGTH({args[0]})";
+                case "SUBSTRING": return $"SUBSTRING({args[0]} FROM {args[1]} FOR {args[2]})";
+                case "SUBSTRING2": return $"SUBSTRING({args[0]} FROM {args[1]})";
+                case "INDEXOF": return $"(POSITION({args[1]} IN {args[0]}) - 1)";
+                case "REPLACE": return $"REPLACE({args[0]}, {args[1]}, {args[2]})";
+                case "CONCAT": return $"({args[0]} || {args[1]})";
+                case "COALESCE": return $"COALESCE({args[0]}, {args[1]})";
+                case "CASE_WHEN": return $"CASE WHEN {args[0]} THEN {args[1]} ELSE {args[2]} END";
+                case "ISNULLOREMPTY": return $"({args[0]} IS NULL OR {args[0]} = '')";
+                case "DATE_YEAR": return $"EXTRACT(YEAR FROM {args[0]})";
+                case "DATE_MONTH": return $"EXTRACT(MONTH FROM {args[0]})";
+                case "DATE_DAY": return $"EXTRACT(DAY FROM {args[0]})";
+                case "DATE_HOUR": return $"EXTRACT(HOUR FROM {args[0]})";
+                case "DATE_MINUTE": return $"EXTRACT(MINUTE FROM {args[0]})";
+                case "DATE_SECOND": return $"EXTRACT(SECOND FROM {args[0]})";
+                case "DATE_DATE": return $"CAST({args[0]} AS DATE)";
+                default:
+                    throw new SqlExpressionException($"SQL function '{name}' is not supported by dialect {GetType().Name}");
+            }
+        }
+
+        /// <summary>Renders a LIKE predicate; ignoreCase renders UPPER(x) LIKE UPPER(y) unless overridden (PostgreSql: ILIKE).</summary>
+        public virtual string RenderLike(string left, string right, bool ignoreCase, char? escapeChar)
+        {
+            string escape = escapeChar.HasValue ? $" ESCAPE '{escapeChar}'" : string.Empty;
+            return ignoreCase
+                ? $"(UPPER({left}) LIKE UPPER({right}){escape})"
+                : $"({left} LIKE {right}{escape})";
+        }
+
+        /// <summary>Renders a regex-match predicate. Only PostgreSql supports this.</summary>
+        public virtual string RenderRegexMatch(string left, string right, bool ignoreCase)
+        {
+            throw new SqlExpressionException("Regex matching in WHERE expressions is only supported on PostgreSql.");
+        }
+
+        /// <summary>Gets the maximum number of parameters allowed per text command; conservative legacy default.</summary>
+        public virtual int MaxParameters
+        {
+            get { return 2100; }
+        }
+
+        /// <summary>True if the dialect can bind a whole IN-list as a single collection parameter for this element type.</summary>
+        public virtual bool SupportsInCollectionParameter(Type elementType)
+        {
+            return false;
+        }
+
+        /// <summary>Renders the IN-collection predicate (e.g. PostgreSql: (operand = ANY($n))).</summary>
+        public virtual string RenderInCollectionParameter(string operand, string placeholder)
+        {
+            throw new SqlExpressionException($"Dialect {GetType().Name} does not support collection parameters");
+        }
     }
 }

@@ -25,6 +25,16 @@ namespace Zonkey.Tests.Infrastructure
             _databaseName = $"zonkey_test_{Guid.NewGuid():N}";
         }
 
+        private static bool RequireDatabase
+        {
+            get
+            {
+                var value = Environment.GetEnvironmentVariable("ZONKEY_REQUIRE_DB");
+                return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
         public DbConnection CreateConnection()
         {
             var conn = new SqlConnection($"{_baseConnectionString};Database={_databaseName}");
@@ -66,6 +76,9 @@ namespace Zonkey.Tests.Infrastructure
             }
             catch (Exception ex)
             {
+                if (RequireDatabase)
+                    throw new InvalidOperationException($"MSSQL is required (ZONKEY_REQUIRE_DB is set) but initialization failed: {ex.Message}", ex);
+
                 IsAvailable = false;
                 SkipReason = $"MSSQL not available: {ex.Message}. Set ZONKEY_TEST_MSSQL or run docker-compose up.";
             }

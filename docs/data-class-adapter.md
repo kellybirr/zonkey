@@ -91,7 +91,7 @@ await adapter.Fill(products, reader);
 
 `$0`, `$1`, `$2`... are positional parameter placeholders. The adapter replaces them with dialect-appropriate parameter syntax (`@p0` for SQL Server, `:p0` for PostgreSQL, etc.) and creates proper `DbParameter` objects.
 
-See [querying.md](querying.md) for detailed filter documentation -- including the [expression parser limitations](querying.md#expression-parser-limitations) (no method calls inside lambdas; hoist values into local variables first).
+See [querying.md](querying.md) for detailed filter documentation -- including the [supported expression surface](querying.md#supported-expression-surface). Method calls, indexers, and other subexpressions that do not reference the lambda parameter are folded client-side automatically (no need to hoist values into local variables first); only method calls made *on the mapped property itself* are limited to the [registered translations](querying.md#supported-expression-surface) and throw `SqlExpressionException` if untranslatable.
 
 ---
 

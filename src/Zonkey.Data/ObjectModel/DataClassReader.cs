@@ -563,7 +563,14 @@ namespace Zonkey.ObjectModel
 #if !NETFRAMEWORK
                 else if (coreType == typeof(DateOnly))
                 {
-                    if (dbType == typeof(DateTime))
+                    if (dbType == typeof(DateOnly))
+                    {
+                        // provider reports the target type natively (e.g. Npgsql DateOnly mapping):
+                        // direct-assign, mirroring the reflection slow path, to avoid ToString/Parse
+                        // round-tripping through a lossy short-date pattern.
+                        il.Emit(OpCodes.Unbox_Any, typeof(DateOnly));
+                    }
+                    else if (dbType == typeof(DateTime))
                     {
                         il.Emit(OpCodes.Unbox_Any, typeof(DateTime));
                         il.Emit(OpCodes.Call, FastBuilderRefs.DateOnly_FromDateTime);
@@ -576,7 +583,15 @@ namespace Zonkey.ObjectModel
                 }
                 else if (coreType == typeof(TimeOnly))
                 {
-                    if (dbType == typeof(TimeSpan))
+                    if (dbType == typeof(TimeOnly))
+                    {
+                        // provider reports the target type natively (e.g. Npgsql TimeOnly mapping):
+                        // direct-assign, mirroring the reflection slow path. Falling through to the
+                        // ToString/Parse branch would use TimeOnly's short-time pattern and silently
+                        // drop seconds/sub-seconds -- see data-loss finding C1.
+                        il.Emit(OpCodes.Unbox_Any, typeof(TimeOnly));
+                    }
+                    else if (dbType == typeof(TimeSpan))
                     {
                         il.Emit(OpCodes.Unbox_Any, typeof(TimeSpan));
                         il.Emit(OpCodes.Call, FastBuilderRefs.TimeOnly_FromTimeSpan);

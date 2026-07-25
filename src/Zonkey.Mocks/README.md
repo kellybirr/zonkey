@@ -51,8 +51,8 @@ var product = await adapter.GetOne(p => p.Id == 1);
 
 ## Target Frameworks
 
-- .NET Standard 2.0
-- .NET Standard 2.1
+- .NET 8.0
+- .NET 10.0
 - .NET Framework 4.8
 
 ## Documentation

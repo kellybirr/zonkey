@@ -58,6 +58,57 @@ namespace Zonkey.Dialects
         /// <returns>System.String.</returns>
         public override string FormatUnaryBoolean(string fieldName) => $"({fieldName})";
 
+        public override string RenderFunction(string name, params string[] args)
+        {
+            switch (name)
+            {
+                // Postgres has no round(double precision, int) overload, only round(numeric, int);
+                // casting to numeric is a no-op for arguments that are already numeric/decimal.
+                case "ROUND2": return $"ROUND(CAST({args[0]} AS numeric), {args[1]})";
+                default: return base.RenderFunction(name, args);
+            }
+        }
+
+        public override string RenderLike(string left, string right, bool ignoreCase, char? escapeChar)
+        {
+            string escape = escapeChar.HasValue ? $" ESCAPE '{escapeChar}'" : string.Empty;
+            return ignoreCase
+                ? $"({left} ILIKE {right}{escape})"
+                : $"({left} LIKE {right}{escape})";
+        }
+
+        public override string RenderRegexMatch(string left, string right, bool ignoreCase)
+        {
+            return ignoreCase ? $"({left} ~* {right})" : $"({left} ~ {right})";
+        }
+
+        /// <summary>Gets the maximum number of parameters allowed per text command (PG wire-protocol Bind limit).</summary>
+        public override int MaxParameters
+        {
+            get { return 65535; }
+        }
+
+        public override bool SupportsInCollectionParameter(Type elementType)
+        {
+            // Npgsql binds typed CLR arrays of scalar-mappable types as PG arrays
+            // (int[] -> integer[], long[] -> bigint[], string[] -> text[], Guid[] -> uuid[], ...).
+            // Exclusions: byte (byte[] binds as bytea, not smallint[]); sbyte/ushort/uint/ulong
+            // (no PG mapping - these stay on the literal-inline path); enums (scalar enum params are
+            // converted by FixParameter, but enum arrays bind only for explicitly mapped native enums,
+            // which the dialect cannot detect - enum lists stay individually parameterized).
+            // DateTime arrays are allowed but require a consistent DateTimeKind across elements
+            // (same Npgsql rule as scalars, enforced array-wide).
+            if (elementType.IsEnum) return false;
+            if (elementType == typeof(byte) || elementType == typeof(sbyte)
+                || elementType == typeof(ushort) || elementType == typeof(uint) || elementType == typeof(ulong))
+                return false;
+            return true;
+        }
+
+        public override string RenderInCollectionParameter(string operand, string placeholder)
+        {
+            return $"({operand} = ANY({placeholder}))";
+        }
 
         public override void FixParameter(DbParameter parameter)
         {

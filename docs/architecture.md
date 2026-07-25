@@ -41,13 +41,13 @@ Assigning `Connection` (the constructor does it) runs `SqlDialect.Create(connect
 
 ### 3. The lambda becomes a WHERE clause
 
-`Fill(collection, expression)` constructs a `WhereExpressionParser<T>` with the map and dialect, propagating the adapter's quoting setting and `NoLock`. The parser walks the expression tree:
+`Fill(collection, expression)` constructs a `WhereExpressionParser<T>` with the map and dialect, propagating the adapter's quoting setting and `NoLock`. `WhereExpressionParser<T>` is a thin facade (same internal API, same eight call sites) over a three-stage pipeline in `Zonkey.ObjectModel.QueryTranslation`:
 
-- Property accesses on the lambda parameter resolve through the `DataMap` to *column* names, formatted by `dialect.FormatFieldName` with the field-level-overridable quoting setting.
-- Captured local variables and their members are read and become parameter *values*.
-- Method calls are rejected (`NotSupportedException`) except the `SqlIn` family and dialect-translated string predicates -- the parser is a translator, not an evaluator. This is deliberate: silently evaluating arbitrary calls would blur the line between "runs in C#" and "runs in SQL", and that line is the whole point of a deterministic ORM.
+1. **`PartialEvaluator`** walks the expression tree first and folds every subtree that does *not* reference the lambda parameter down to a `ConstantExpression` -- method calls, indexers, statics, arithmetic on locals, nested property chains, `DateTime.Now.AddDays(-7)`. A fast path handles constant-rooted field/property chains via reflection; a general fallback compiles-and-invokes the subtree for anything else. After this stage, only `column ⊗ constant` shapes remain on the parameter side.
+2. **`ExpressionTranslator`** walks what's left into a small internal SQL AST (`SqlColumn`, `SqlValue`, `SqlBinary`, `SqlFunction`, `SqlInValues`, `SqlInSubquery`, ...). It is a switch-based recursive translator -- `Translate(Expression)` switches on `ExpressionType` and recurses, rather than subclassing `ExpressionVisitor` -- backed by `MethodTranslators`, a static registry class holding `Dictionary<MethodInfo, MethodTranslator>` and `Dictionary<MemberInfo, MemberTranslator>` delegate lookups for string/date/math methods, member accesses (e.g. `.Length`, `.Year`), and the `SqlIn`/`SqlLike` marker methods. Property accesses on the lambda parameter resolve through the `DataMap` to *column* names; a method or member with no registered translation throws `SqlExpressionException` naming the offending subexpression and the reason it cannot be translated -- there is no client-side fallback for the parameter side of the expression.
+3. **`SqlTextGenerator`** walks the AST once to produce SQL text and an ordered parameter list, asking the dialect to render logical function names (`dialect.RenderFunction("UPPER", args)`, `RenderLike`, `RenderRegexMatch`) and formatting (`FormatFieldName`, `FormatParameterName`). Each parameter receives its `$N` index when rendered, in AST-walk order, so placeholders can never end up out of sequence.
 
-The output is a `SqlWhereClause`: SQL text containing `$0`-style placeholders plus the parameter values.
+The output is the same `SqlWhereClause` as before: SQL text containing `$0`-style placeholders plus the parameter values. See [Querying](querying.md#how-expressions-are-translated) for the caller-facing behavior this produces.
 
 ### 4. The command is assembled
 
@@ -112,7 +112,7 @@ On success: `OnAfterSave` fires, then `CommitValues()` clears `OriginalValues` a
 
 Every engine-specific decision funnels through one `SqlDialect` instance:
 
-- **Text shaping**: `FormatFieldName` / `FormatTableName` (quoting -- note the deliberate family asymmetry described in [Database Providers](database-providers.md#identifier-quoting--case-sensitivity)), `FormatParameterName`, `FormatLimitQuery` (pagination), `FormatExistsQuery`, `FormatAutoIncrementSelect`, `FormatUnaryBoolean`, `ParseWhereFunction` (string-method translation)
+- **Text shaping**: `FormatFieldName` / `FormatTableName` (quoting -- note the deliberate family asymmetry described in [Database Providers](database-providers.md#identifier-quoting--case-sensitivity)), `FormatParameterName`, `FormatLimitQuery` (pagination), `FormatExistsQuery`, `FormatAutoIncrementSelect`, `FormatUnaryBoolean`, `RenderFunction`/`RenderLike`/`RenderRegexMatch` (WHERE-expression translation; the obsolete `ParseWhereFunction` is no longer called)
 - **Command tweaking**: `OptimizeSelectSingleCommand` (TOP 1 / LIMIT 1), `FixParameter` (e.g., SQLite Guid→string, PostgreSQL enum coercion), change-tracking context injection
 - **Capability flags**: `SupportsLimit`, `SupportsRowVersion`, `SupportsNoLock`, `SupportsSchema`, `UseSqlBatches`, `UseNamedParameters` -- consulted by adapters and builders to choose strategies rather than emit broken SQL
 

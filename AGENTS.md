@@ -23,7 +23,7 @@ Reference: [data classes](docs/data-classes.md) · [adapter/CRUD](docs/data-clas
 
 ## Rules That Prevent the Most Common Agent Mistakes
 
-1. **No method calls inside query lambdas.** `adapter.GetOne(a => a.Id == Guid.Parse(x))` throws `NotSupportedException` — hoist the value into a local variable first. The lambda parser is a WHERE-clause translator, not a C# evaluator.
+1. **Method calls in query lambdas are fine as long as they don't operate on the mapped property.** `adapter.GetOne(a => a.Id == Guid.Parse(x))` works — a partial evaluator folds any subexpression that doesn't reference the lambda parameter (method calls, indexers, statics) to a value client-side before translation, no hoisting needed. Only method calls made *on* the parameter (e.g. `a.Name.PadLeft(5)`) are limited to a fixed set of registered translations and throw `SqlExpressionException` (derives from `NotSupportedException`) if untranslatable. See [docs/querying.md](docs/querying.md#how-expressions-are-translated).
 2. **Async methods are deliberately suffix-less** (`Fill`, `Save`, `GetOne`). Do not rename them or search for `FillAsync` — the suffix-less names are the async API; there are no sync variants.
 3. **Data-class pattern:** properties call `SetFieldValue(ref field, value)`; classes need `public X() : base(false)` (materializer) and `public X(bool addingNew) : base(addingNew)` (new records use `new X(addingNew: true)`).
 4. **PostgreSQL case folding:** Zonkey emits unquoted identifiers by default; use lowercase schema names on PostgreSQL, or enable quoting — see [identifier quoting](docs/database-providers.md#identifier-quoting--case-sensitivity).

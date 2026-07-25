@@ -167,6 +167,27 @@ Zonkey has been in production use since the early days of .NET and has evolved t
 
 This has historically been a single-maintainer project, but contributions are welcome. If you find a bug, have a feature idea, or want to improve the documentation, please [open an issue](https://github.com/kellybirr/zonkey/issues) or submit a pull request.
 
+## Breaking Changes from v6.x
+
+Zonkey 7.0 is a major release. Beyond the target-framework and strong-naming changes called out above, the following behaviors changed:
+
+- **Target frameworks**: now net8.0/net10.0/net48 (netstandard2.x and net6 dropped). `Zonkey.Text` still targets netstandard2.0/net48.
+- **Strong naming removed.** Assemblies are no longer strong-name signed; the last signed release remains available on v6.x for consumers that require it.
+- **`DatabaseWrapper.WithTransaction` is now async-only**: `Task WithTransaction(Func<DbTransaction, Task> code)` (previously `void WithTransaction(Action<DbTransaction>)`). This is a compile-time break — wrap synchronous work in an async lambda and await the call.
+- **`SqlScriptProcessor.ExecuteScript` no longer closes the connection.** Closing/disposing the connection is now the caller's responsibility.
+- **WHERE-expression translation fixes**, several of which change query results silently if you don't recompile against v7.0:
+  - `Nullable<T>.HasValue` now correctly emits `IS NOT NULL` (v6 emitted the inverted SQL).
+  - Wildcard characters (`%`, `_`, `\`, `[`) in `StartsWith`/`EndsWith`/`Contains` arguments now match literally (v6 treated them as SQL wildcards).
+  - `list.Contains(x)` where the list contains a `null` now also matches NULL rows (`OR IS NULL`), matching C#/EF `Contains` semantics.
+  - Untranslatable expressions throw `SqlExpressionException` (derives from `NotSupportedException`) instead of silently mistranslating or falling back to client-side evaluation.
+- **SQLite paging (`FillRange`) fixed.** v6 had the `LIMIT`/`OFFSET` operands swapped and returned the wrong page of rows.
+- **`Recordset.MoveLast` now positions on the last row.** v6 landed on EOF and returned `false`.
+- **Integral-to-enum conversion now throws for out-of-range values** instead of silently wrapping (v6 behavior).
+- **`DataClassReader`'s IL-emitted fast builder is on by default** (`DataClassReader<T>.DefaultUseFastBuilder = true`). Set it to `false` to fall back to the previous per-field reflection path.
+- **Obsoleted**: `SqlIn(IEnumerable)`, `SqlInInt`, `SqlInGuid` — use `list.Contains(field)` instead, which now covers everything they did (and more) via automatic parameterize-or-inline handling. They still work but are marked `[Obsolete]`. The lambda subquery `SqlIn` overloads (`field.SqlIn((T x) => ...)`) are unaffected and remain the supported way to express `IN (SELECT ...)`.
+
+See [Querying](docs/querying.md#pre-v70-behavior-changes) and [Migrating from Entity Framework](docs/migrating-from-ef.md) for more detail on the expression-translation changes.
+
 ## Upgrading from 4.x
 
 If upgrading from Zonkey 4.x or earlier, use Visual Studio's regex Find/Replace to update `SetFieldValue()` calls:

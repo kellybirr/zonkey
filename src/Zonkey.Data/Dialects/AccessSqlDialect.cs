@@ -84,18 +84,28 @@ namespace Zonkey.Dialects
             command.CommandText = "SELECT TOP 1" + cmdWOselect;
         }
 
-        public override string ParseWhereFunction(string functionName, string left, string right)
+        public override string RenderFunction(string name, params string[] args)
         {
-            switch (functionName)
+            switch (name)
             {
-                case "StartsWith":
-                    return $"({left} LIKE ({right} & '%'))";
-                case "EndsWith":
-                    return $"({left} LIKE ('%' & {right}))";
-                case "Contains":
-                    return $"({left} LIKE ('%' & {right} & '%'))";
-                default:
-                    throw new NotSupportedException();
+                case "UPPER": return $"UCase({args[0]})";
+                case "LOWER": return $"LCase({args[0]})";
+                case "LENGTH": return $"Len({args[0]})";
+                case "SUBSTRING": return $"Mid({args[0]}, {args[1]}, {args[2]})";
+                case "SUBSTRING2": return $"Mid({args[0]}, {args[1]})";
+                case "INDEXOF": return $"(InStr({args[0]}, {args[1]}) - 1)";
+                case "CONCAT": return $"({args[0]} & {args[1]})";
+                case "TRIM": return $"Trim({args[0]})";
+                case "DATE_YEAR": return $"DatePart('yyyy', {args[0]})";
+                case "DATE_MONTH": return $"DatePart('m', {args[0]})";
+                case "DATE_DAY": return $"DatePart('d', {args[0]})";
+                case "DATE_HOUR": return $"DatePart('h', {args[0]})";
+                case "DATE_MINUTE": return $"DatePart('n', {args[0]})";
+                case "DATE_SECOND": return $"DatePart('s', {args[0]})";
+                case "DATE_DATE": return $"DateValue({args[0]})";
+                case "COALESCE": return $"IIf({args[0]} IS NULL, {args[1]}, {args[0]})";
+                case "CASE_WHEN": return $"IIf({args[0]}, {args[1]}, {args[2]})";
+                default: return base.RenderFunction(name, args);
             }
         }
     }

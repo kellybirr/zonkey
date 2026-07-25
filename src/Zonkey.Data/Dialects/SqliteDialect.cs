@@ -106,19 +106,35 @@ namespace Zonkey.Dialects
             return $"SELECT {columnString} FROM {tableName} WHERE {whereText} ORDER BY {orderBy} LIMIT {length} OFFSET {start};";
         }
 
-        public override string ParseWhereFunction(string functionName, string left, string right)
+        public override string RenderFunction(string name, params string[] args)
         {
-            switch (functionName)
+            switch (name)
             {
-                case "StartsWith":
-                    return $"({left} LIKE ({right} || '%'))";
-                case "EndsWith":
-                    return $"({left} LIKE ('%' || {right}))";
-                case "Contains":
-                    return $"({left} LIKE ('%' || {right} || '%'))";
-                default:
-                    throw new NotSupportedException();
+                case "SUBSTRING": return $"SUBSTR({args[0]}, {args[1]}, {args[2]})";
+                case "SUBSTRING2": return $"SUBSTR({args[0]}, {args[1]})";
+                case "INDEXOF": return $"(INSTR({args[0]}, {args[1]}) - 1)";
+                case "CEILING": return $"CEIL({args[0]})";
+                case "DATE_YEAR": return $"CAST(strftime('%Y', {args[0]}) AS INTEGER)";
+                case "DATE_MONTH": return $"CAST(strftime('%m', {args[0]}) AS INTEGER)";
+                case "DATE_DAY": return $"CAST(strftime('%d', {args[0]}) AS INTEGER)";
+                case "DATE_HOUR": return $"CAST(strftime('%H', {args[0]}) AS INTEGER)";
+                case "DATE_MINUTE": return $"CAST(strftime('%M', {args[0]}) AS INTEGER)";
+                case "DATE_SECOND": return $"CAST(strftime('%S', {args[0]}) AS INTEGER)";
+                case "DATE_DATE": return $"date({args[0]})";
+                default: return base.RenderFunction(name, args);
             }
+        }
+
+        /// <summary>
+        /// Gets the maximum number of parameters allowed per text command. 32766 matches
+        /// SQLITE_MAX_VARIABLE_NUMBER of modern builds (SQLite 3.32+, including Microsoft.Data.Sqlite's
+        /// bundled e_sqlite3). Older native builds behind Mono.Data.Sqlite/System.Data.SQLite may be
+        /// compiled with the pre-3.32 default of 999 - on those providers a list within this cap can
+        /// still fail at the provider level instead of surfacing Zonkey's SplitList hint.
+        /// </summary>
+        public override int MaxParameters
+        {
+            get { return 32766; }
         }
     }
 }

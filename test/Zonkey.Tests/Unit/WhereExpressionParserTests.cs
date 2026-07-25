@@ -38,50 +38,56 @@ namespace Zonkey.Tests.Unit
         public void Equals_IntConstant()
         {
             var result = Parse(a => a.SpeciesId == 1);
-            Assert.Contains("SpeciesId", result.SqlText);
-            Assert.Contains("=", result.SqlText);
+            Assert.Equal("(SpeciesId = $0)", result.SqlText);
+            Assert.Equal(new object[] { 1 }, result.Parameters);
         }
 
         [Fact]
         public void NotEquals_IntConstant()
         {
             var result = Parse(a => a.SpeciesId != 1);
-            Assert.Contains("!=", result.SqlText);
+            Assert.Equal("(SpeciesId != $0)", result.SqlText);
+            Assert.Equal(new object[] { 1 }, result.Parameters);
         }
 
         [Fact]
         public void GreaterThan()
         {
             var result = Parse(a => a.SpeciesId > 1);
-            Assert.Contains(">", result.SqlText);
+            Assert.Equal("(SpeciesId > $0)", result.SqlText);
+            Assert.Equal(new object[] { 1 }, result.Parameters);
         }
 
         [Fact]
         public void LessThan()
         {
             var result = Parse(a => a.SpeciesId < 5);
-            Assert.Contains("<", result.SqlText);
+            Assert.Equal("(SpeciesId < $0)", result.SqlText);
+            Assert.Equal(new object[] { 5 }, result.Parameters);
         }
 
         [Fact]
         public void GreaterThanOrEqual()
         {
             var result = Parse(a => a.SpeciesId >= 2);
-            Assert.Contains(">=", result.SqlText);
+            Assert.Equal("(SpeciesId >= $0)", result.SqlText);
+            Assert.Equal(new object[] { 2 }, result.Parameters);
         }
 
         [Fact]
         public void LessThanOrEqual()
         {
             var result = Parse(a => a.SpeciesId <= 3);
-            Assert.Contains("<=", result.SqlText);
+            Assert.Equal("(SpeciesId <= $0)", result.SqlText);
+            Assert.Equal(new object[] { 3 }, result.Parameters);
         }
 
         [Fact]
         public void Equals_StringConstant()
         {
             var result = Parse(a => a.Name == "Mei Mei");
-            Assert.Contains("Name", result.SqlText);
+            Assert.Equal("(Name = $0)", result.SqlText);
+            Assert.Equal(new object[] { "Mei Mei" }, result.Parameters);
         }
 
         // Null comparisons
@@ -90,14 +96,16 @@ namespace Zonkey.Tests.Unit
         public void EqualsNull_GeneratesIsNull()
         {
             var result = Parse(a => a.ExhibitId == null);
-            Assert.Contains("IS NULL", result.SqlText);
+            Assert.Equal("(ExhibitId IS NULL)", result.SqlText);
+            Assert.Empty(result.Parameters);
         }
 
         [Fact]
         public void NotEqualsNull_GeneratesIsNotNull()
         {
             var result = Parse(a => a.ExhibitId != null);
-            Assert.Contains("IS NOT NULL", result.SqlText);
+            Assert.Equal("(ExhibitId IS NOT NULL)", result.SqlText);
+            Assert.Empty(result.Parameters);
         }
 
         // Boolean fields
@@ -106,14 +114,16 @@ namespace Zonkey.Tests.Unit
         public void BooleanField_TrueExpression()
         {
             var result = ParseSpecies(s => s.IsEndangered);
-            Assert.NotNull(result.SqlText);
+            Assert.Equal("(IsEndangered = 1)", result.SqlText);
+            Assert.Empty(result.Parameters);
         }
 
         [Fact]
         public void BooleanField_NegatedExpression()
         {
             var result = ParseSpecies(s => !s.IsEndangered);
-            Assert.NotNull(result.SqlText);
+            Assert.Equal("(NOT (IsEndangered = 1))", result.SqlText);
+            Assert.Empty(result.Parameters);
         }
 
         // Logical operators
@@ -122,22 +132,24 @@ namespace Zonkey.Tests.Unit
         public void And_CombinesTwoConditions()
         {
             var result = Parse(a => a.SpeciesId == 1 && a.Name == "Mei Mei");
-            Assert.Contains("AND", result.SqlText);
+            Assert.Equal("((SpeciesId = $0) AND (Name = $1))", result.SqlText);
+            Assert.Equal(new object[] { 1, "Mei Mei" }, result.Parameters);
         }
 
         [Fact]
         public void Or_CombinesTwoConditions()
         {
             var result = Parse(a => a.SpeciesId == 1 || a.SpeciesId == 2);
-            Assert.Contains("OR", result.SqlText);
+            Assert.Equal("((SpeciesId = $0) OR (SpeciesId = $1))", result.SqlText);
+            Assert.Equal(new object[] { 1, 2 }, result.Parameters);
         }
 
         [Fact]
         public void NestedLogical_HasParentheses()
         {
             var result = Parse(a => (a.SpeciesId == 1 || a.SpeciesId == 2) && a.Name == "Test");
-            Assert.Contains("(", result.SqlText);
-            Assert.Contains(")", result.SqlText);
+            Assert.Equal("(((SpeciesId = $0) OR (SpeciesId = $1)) AND (Name = $2))", result.SqlText);
+            Assert.Equal(new object[] { 1, 2, "Test" }, result.Parameters);
         }
 
         // SqlIn
@@ -146,23 +158,31 @@ namespace Zonkey.Tests.Unit
         public void SqlIn_IntArray()
         {
             var ids = new[] { 1, 2, 3 };
+#pragma warning disable 618
             var result = Parse(a => a.SpeciesId.SqlInInt(ids));
-            Assert.Contains("IN", result.SqlText);
+#pragma warning restore 618
+            Assert.Equal("(SpeciesId IN (1,2,3))", result.SqlText);
+            Assert.Empty(result.Parameters);
         }
 
         [Fact]
         public void SqlIn_GuidArray()
         {
             var guids = new[] { Guid.NewGuid(), Guid.NewGuid() };
+#pragma warning disable 618
             var result = Parse(a => a.ZookeeperId.SqlInGuid(guids));
-            Assert.Contains("IN", result.SqlText);
+#pragma warning restore 618
+            Assert.Equal($"(ZookeeperId IN ('{guids[0]}','{guids[1]}'))", result.SqlText);
+            Assert.Empty(result.Parameters);
         }
 
         [Fact]
         public void SqlIn_EmptyArray_ThrowsArgumentException()
         {
             var empty = Array.Empty<int>();
+#pragma warning disable 618
             Assert.Throws<ArgumentException>(() => Parse(a => a.SpeciesId.SqlInInt(empty)));
+#pragma warning restore 618
         }
 
         // String methods
@@ -171,21 +191,24 @@ namespace Zonkey.Tests.Unit
         public void Contains_GeneratesLike()
         {
             var result = Parse(a => a.Name.Contains("Mei"), new SqlServerDialect());
-            Assert.Contains("LIKE", result.SqlText);
+            Assert.Equal("([Name] LIKE $0)", result.SqlText);
+            Assert.Equal(new object[] { "%Mei%" }, result.Parameters);
         }
 
         [Fact]
         public void StartsWith_GeneratesLike()
         {
             var result = Parse(a => a.Name.StartsWith("Mei"), new SqlServerDialect());
-            Assert.Contains("LIKE", result.SqlText);
+            Assert.Equal("([Name] LIKE $0)", result.SqlText);
+            Assert.Equal(new object[] { "Mei%" }, result.Parameters);
         }
 
         [Fact]
         public void EndsWith_GeneratesLike()
         {
             var result = Parse(a => a.Name.EndsWith("Mei"), new SqlServerDialect());
-            Assert.Contains("LIKE", result.SqlText);
+            Assert.Equal("([Name] LIKE $0)", result.SqlText);
+            Assert.Equal(new object[] { "%Mei" }, result.Parameters);
         }
 
         // Parameterization
@@ -200,7 +223,9 @@ namespace Zonkey.Tests.Unit
             var paramList = new ArrayList();
             Expression<Func<Animal, bool>> expr = a => a.SpeciesId == 1;
             var result = parser.Parse(expr, paramList);
-            Assert.NotEmpty(paramList);
+            Assert.Equal("(SpeciesId = $0)", result.SqlText);
+            Assert.Equal(new object[] { 1 }, paramList.ToArray());
+            Assert.Equal(new object[] { 1 }, result.Parameters);
         }
 
         // Dialect-specific output
@@ -209,7 +234,8 @@ namespace Zonkey.Tests.Unit
         public void SqlServer_OutputContainsFieldName()
         {
             var result = Parse(a => a.SpeciesId == 1, new SqlServerDialect());
-            Assert.Contains("SpeciesId", result.SqlText);
+            Assert.Equal("([SpeciesId] = $0)", result.SqlText);
+            Assert.Equal(new object[] { 1 }, result.Parameters);
         }
 
         // Decimal comparisons
@@ -218,7 +244,8 @@ namespace Zonkey.Tests.Unit
         public void Decimal_GreaterThan()
         {
             var result = Parse(a => a.Weight > 5.0m);
-            Assert.Contains(">", result.SqlText);
+            Assert.Equal("(Weight > $0)", result.SqlText);
+            Assert.Equal(new object[] { 5.0m }, result.Parameters);
         }
 
         // Arithmetic
@@ -227,7 +254,8 @@ namespace Zonkey.Tests.Unit
         public void Arithmetic_InExpression()
         {
             var result = ParseExhibit(e => e.Capacity + 5 > 10);
-            Assert.Contains("+", result.SqlText);
+            Assert.Equal("((Capacity + $0) > $1)", result.SqlText);
+            Assert.Equal(new object[] { 5, 10 }, result.Parameters);
         }
     }
 }

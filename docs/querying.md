@@ -35,26 +35,89 @@ await adapter.Fill(products, p => p.Description != null);
 
 **Important:** These are not `IQueryable` -- they only generate WHERE clauses. There is no query composition or deferred execution. The expression is evaluated once, a SQL command is generated, and the command is executed immediately.
 
-### Expression Parser Limitations
+### How Expressions Are Translated
 
-The parser translates the expression tree to SQL -- it does not execute C# code. Three rules follow from this:
+Lambda filters go through a three-stage pipeline: a **partial evaluator** folds every parameter-independent subexpression down to a value, an **expression translator** walks what remains into a small SQL AST, and a **dialect-aware text generator** renders that AST to SQL text plus an ordered parameter list. The upshot for callers: you write ordinary C#, and anything that does not depend on the lambda's parameter -- method calls, indexers, static members, arithmetic on locals, nested property chains -- is evaluated client-side automatically, no matter how it's spelled.
 
-1. **No method calls inside the lambda.** The parser can read fields, properties, and captured local variables, but it cannot evaluate method calls -- `Guid.Parse(...)`, `DateTime.Now.AddDays(-7)`, `name.Trim()`, and anything similar throw `NotSupportedException`. Compute the value into a local variable first, then use the variable:
+```csharp
+// All of these work with no local-variable hoisting:
+var animal = await adapter.GetOne(a => a.OwnerId == Guid.Parse(idText));
+var recent = await adapter.GetOne(a => a.Created > DateTime.Now.AddDays(-7));
+await adapter.Fill(animals, a => a.Name == lookup[key].DisplayName);
+```
 
-   ```csharp
-   // Throws NotSupportedException:
-   var animal = await adapter.GetOne(a => a.OwnerId == Guid.Parse(idText));
+Only subexpressions that *reference the lambda parameter* are translated to SQL; everything else is "just C#" and runs once, before the query is built. If the translator encounters a construct on the parameter side that has no SQL equivalent -- an arbitrary method with no registered translation, for example -- it throws `SqlExpressionException` naming the offending subexpression and the reason it cannot be translated (e.g., `Cannot translate expression 'a.Name.PadLeft(5)': method 'String.PadLeft' has no SQL translation.`). There is no silent client-side fallback for the parameter side: an expression either translates to SQL or the call throws before anything executes.
 
-   // Works -- hoist the value into a local:
-   var ownerId = Guid.Parse(idText);
-   var animal = await adapter.GetOne(a => a.OwnerId == ownerId);
-   ```
+### Supported Expression Surface
 
-   The only method calls the parser understands are the `SqlIn` family (see [IN Clauses](#in-clauses)) and string predicate methods (`StartsWith`, `Contains`, `EndsWith`, ...), which translate to SQL.
+| C# expression | SQL emitted | Notes |
+|---|---|---|
+| `==  !=  <  <=  >  >=` | `=  !=  <  <=  >  >=` | All six comparison operators. |
+| `&&`&nbsp;&nbsp;`\|\|`&nbsp;&nbsp;`!` | `AND`&nbsp;&nbsp;`OR`&nbsp;&nbsp;`NOT` | Parenthesized by precedence rank; nesting is always correct, never over- or under-parenthesized. |
+| `+  -  *  /  %`, unary `-` | `+  -  *  /  %`, unary `-` | Arithmetic on numeric columns, e.g. `e.Capacity * 2 - 1 >= 9` → `(((Capacity * $0) - $1) >= $2)`. |
+| `a.Notes ?? "none"` | `COALESCE(Notes, $0)` | `??` on a nullable column. |
+| `cond ? x : y` | `CASE WHEN cond THEN x ELSE y END` | Ternary. |
+| `a.NullableId.HasValue` | `IS NOT NULL` | See the [migration note](#pre-v70-behavior-changes) below -- the legacy parser emitted this backwards. |
+| `a.NullableId.Value` | (bare column) | Unwraps; the column itself already carries the value. |
+| `a.BoolColumn` (predicate position) | `BoolColumn = 1` | Bare bool column used as a condition (root, or operand of `AND`/`OR`/`NOT`). PostgreSQL renders the bare column instead: `(IsEndangered)`. Controlled by dialect via `FormatUnaryBoolean`. |
+| `a.BoolColumn` (value position) | bare column | E.g. as the argument of another comparison. |
+| `a.BoolColumn == true` | `BoolColumn = $0` | Explicit comparison, parameterized normally. |
+| `a => true` / `a => false` | `1 = 1` / `1 = 0` | Constant predicates. |
+| `a.Name.StartsWith(s)` / `EndsWith(s)` / `Contains(s)` | `Name LIKE $0` (with `%`/`_` positioned and the *value* wildcard-escaped) | See [Wildcards and case-insensitivity](#wildcards-and-case-insensitivity). |
+| `...With(s, StringComparison.OrdinalIgnoreCase)` (also `InvariantCultureIgnoreCase`, `CurrentCultureIgnoreCase`) | PostgreSQL: `Name ILIKE $0`; other dialects: `UPPER(Name) LIKE UPPER($0)` | Case-sensitive `StringComparison` values (`Ordinal`, etc.) behave like the plain overload. |
+| `a.Name.ToUpper()` / `ToLower()` (on a column) | `UPPER(Name)` / `LOWER(Name)` | On a captured value instead, folds client-side (stage 1). |
+| `a.Name.Trim()` | `TRIM(Name)` | |
+| `a.Name.Length` | `LENGTH(Name)` (SQL Server: `LEN([Name])`) | |
+| `a.Name.Substring(start, len)` | `SUBSTRING(Name FROM $0 FOR $1)` | 0-based C# `start` becomes a 1-based SQL parameter. |
+| `a.Name.Substring(start)` | `SUBSTRING(Name FROM $0)` | Same 1-based adjustment. |
+| `a.Name.IndexOf(s)` | `(POSITION($0 IN Name) - 1)` | 0-based, matching C# `IndexOf` semantics. |
+| `a.Name.Replace(a, b)` | `REPLACE(Name, $0, $1)` | |
+| `string.IsNullOrEmpty(a.Notes)` | `(Notes IS NULL OR Notes = '')` | |
+| `a.Name.Equals(s)` / `string.Equals(a.Name, s)` | `Name = $0` | Instance and static forms both translate. |
+| `a.Name.Equals(s, StringComparison.OrdinalIgnoreCase)` | `UPPER(Name) = UPPER($0)` | |
+| `a.Name.SqlLike(pattern)` | `Name LIKE $0` | Raw pattern, passed through **unescaped** -- caller owns `%`/`_`. |
+| `a.Name.SqlILike(pattern)` | PostgreSQL: `Name ILIKE $0`; other dialects: `UPPER(Name) LIKE UPPER($0)` | Case-insensitive raw pattern. |
+| `list.Contains(a.Field)` | `Field IN (...)` | See [IN Clauses](#in-clauses) for the parameterize/inline policy. |
+| `a.Field.SqlIn(...)` (subquery overloads) | `Field IN (SELECT ... FROM ... WHERE ...)` | See [Subquery SqlIn](#subquery-sqlin). |
+| `a.DateColumn.Value.Year` / `.Month` / `.Day` / `.Hour` / `.Minute` / `.Second` | ANSI: `EXTRACT(YEAR FROM DateColumn)`; SQL Server: `DATEPART(year, [DateColumn])`; SQLite: `CAST(strftime('%Y', [DateColumn]) AS INTEGER)` | Each date part follows the same per-dialect pattern. |
+| `a.DateColumn.Value.Date` | `CAST(DateColumn AS DATE)` | |
+| `Math.Abs(x)` / `Floor(x)` / `Ceiling(x)` | `ABS(x)` / `FLOOR(x)` / `CEILING(x)` | |
+| `Math.Round(x)` / `Math.Round(x, n)` | `ROUND(x)` / `ROUND(x, $0)` | |
+| `Regex.IsMatch(a.Field, pattern)` | PostgreSQL only: `(Field ~ $0)` | Other dialects throw `SqlExpressionException` naming the limitation. |
+| `Regex.IsMatch(a.Field, pattern, RegexOptions.IgnoreCase)` | PostgreSQL only: `(Field ~* $0)` | Other `RegexOptions` values throw. |
 
-2. **String methods depend on the dialect.** `StartsWith`/`Contains` translate through the dialect's function mapping; the real dialects (SQL Server, SQLite, PostgreSQL, MySQL, Access) all support them, but the generic fallback dialect does not and will throw.
+### Values Come From Anywhere
 
-3. **`SqlIn` needs a variable, a non-empty list, and at most 2,100 items.** Inline array literals (`p.X.SqlIn(new[]{...})`) and method-call results throw -- assign to a variable first. Empty lists throw `ArgumentException`. For large lists, see [SplitList](#large-lists-with-splitlist).
+Any subexpression that does not reference the lambda parameter is evaluated client-side before translation -- method calls, indexers, static members and fields, `DateTime.Now.AddDays(-7)`, nested property paths through captured objects, arithmetic on locals. There is no longer a need to hoist values into locals first:
+
+```csharp
+// All fold to a single client-side value, then translate as a normal parameter:
+await adapter.Fill(animals, a => a.Created > DateTime.Now.AddDays(-7));
+await adapter.Fill(animals, a => a.OwnerId == config.DefaultOwnerId);
+await adapter.Fill(animals, a => a.Weight > weights[index]);
+```
+
+The one exception is `DateTime.Now`/`UtcNow`/`Today`: these are evaluated **on the client at translation time**, not translated to `GETDATE()` or an equivalent server function. A filter built at 09:00 and executed a minute later still compares against 09:00.
+
+On modern targets (net8.0+, C# 14+), `array.Contains(x)` binds to the span-based `MemoryExtensions.Contains` overload rather than `Enumerable.Contains`; Zonkey translates it the same way, with the same IN semantics -- no special handling required.
+
+### Wildcards and case-insensitivity
+
+- Wildcard characters (`%`, `_`) in the *value* passed to `StartsWith`/`EndsWith`/`Contains` are escaped automatically, so a value containing a literal `%` or `_` matches literally rather than as a wildcard. Use `SqlLike`/`SqlILike` when you want to write a raw pattern with caller-controlled wildcards.
+- Case-insensitive matching has two surfaces: the BCL `StringComparison` overloads of `StartsWith`/`EndsWith`/`Contains`/`Equals` (`*IgnoreCase` values), and the `SqlLike`/`SqlILike` marker methods. Both render PostgreSQL `ILIKE` and `UPPER(x) LIKE UPPER(y)` (or `UPPER(x) = UPPER(y)` for `Equals`) elsewhere.
+- **These are database/collation approximations, not CLR semantics.** `StringComparison.*IgnoreCase` values (`Ordinal`, `InvariantCulture`, `CurrentCulture`, all case-insensitive) all translate the same way -- `UPPER(x) LIKE UPPER(y)` (PostgreSQL: `ILIKE`) -- there is no distinct handling per comparison kind. Case-sensitive values (`Ordinal`, etc.) emit a plain `LIKE`/`=` and defer entirely to the column's collation. Neither path reproduces .NET's ordinal or culture-aware comparison rules exactly; results can differ from the in-memory C# comparison for non-ASCII text, Turkish-I-style casing, or collations that are themselves case-insensitive or accent-insensitive.
+- **Indexing caveat:** `ILIKE` and `UPPER(col)` both defeat a plain b-tree index. If case-insensitive search on a large table needs to be fast, that's a schema decision, not something the translator can paper over -- add a trigram index (PostgreSQL `pg_trgm`) or a computed/persisted uppercase column with its own index (SQL Server), matching how you query.
+
+### Correlated subqueries are not supported
+
+The subquery `SqlIn` where-lambda (see [Subquery SqlIn](#subquery-sqlin)) cannot reference the *outer* lambda's parameter -- there is no correlated-subquery support. Referencing the outer parameter inside the subquery's filter currently fails with an unhelpful exception rather than a clear "not supported" message. Keep subquery filters self-contained to the inner table (plus captured locals, which fold normally).
+
+### Pre-v7.0 behavior changes
+
+If you're upgrading from an earlier Zonkey release, two things changed:
+
+- **`HasValue` now emits `IS NOT NULL`.** The legacy string-based parser emitted this inverted (a bug); code that happened to compensate for the old behavior will need to drop that compensation.
+- **Empty `Contains`/`list.Contains(field)` now yields `1 = 0`** (no rows) instead of throwing. The obsolete `SqlIn`/`SqlInInt`/`SqlInGuid` methods keep throwing `ArgumentException` on an empty list, unchanged, for backward compatibility.
 
 ---
 
@@ -154,44 +217,67 @@ String filters are parameterized and injection-safe when you use the placeholder
 
 ## IN Clauses
 
-Use `SqlIn` extension methods within lambda expressions to generate SQL `IN (...)` clauses.
+The idiomatic form is a plain LINQ `Contains` call on any in-scope list, array, or `IEnumerable<T>` inside a lambda expression -- no extension method needed:
 
 ```csharp
-using Zonkey.Extensions;
-
 var categoryList = new[] { "shirts", "hoodies", "accessories" };
-await adapter.Fill(products, p => p.Category.SqlIn(categoryList));
+await adapter.Fill(products, p => categoryList.Contains(p.Category));
+
+var ids = new List<int> { 1, 2, 3, 42 };
+await adapter.Fill(products, p => ids.Contains(p.Id));
 ```
 
-### Type-Specific Variants
+### Inlining policy
 
-For better performance with numeric and GUID types, use the type-specific methods. Unlike `SqlIn`, which binds one command parameter per value (and is therefore subject to parameter-count limits like SQL Server's 2,100), `SqlInInt` and `SqlInGuid` emit the values as inline SQL literals -- safe because the types cannot carry injection payloads:
+The translator decides automatically whether values are parameterized or inlined as literals -- there is no type-specific method to choose between:
+
+- **64 values or fewer:** one command parameter per value, regardless of type.
+- **More than 64 values of an injection-safe literal type** (`byte`, `short`, `int`, `long`, `Guid`): inlined directly into the SQL text as literals, avoiding the parameter-count limit. Enums are *not* inlined this way -- see the note below.
+- **More than 64 values of any other type** (strings, dates, enums): stay parameterized. Past the dialect's parameter limit (2,100 for SQL Server) this throws `SqlExpressionException` with a hint to use `SplitList`.
+- **Empty list:** renders `1 = 0` (matches no rows) rather than throwing.
+
+Enum values are always sent as parameters, never inlined as literals, even in large lists -- this keeps PostgreSQL's natively-mapped enum columns working, since the provider (not the translator) decides the enum's wire representation.
+
+### Subquery SqlIn
+
+For `IN (SELECT ...)` against another mapped type, use the `SqlIn` lambda overloads. These remain the supported, non-obsolete way to express a subquery:
 
 ```csharp
 using Zonkey.Extensions;
 
-// Integer IN clause (works with Int16, Int32, Int64 and their nullable equivalents)
-var ids = new[] { 1, 2, 3, 42 };
-await adapter.Fill(products, p => p.Id.SqlInInt(ids));
+// 3-arg form: explicit select field + filter
+await adapter.Fill(animals, a => a.ExhibitId.SqlIn((Exhibit e) => e.ExhibitId, e => e.IsOpen));
+// => ExhibitId IN (SELECT ExhibitId FROM Exhibit WHERE (IsOpen = 1))
 
-// GUID IN clause
-var guids = new[] { guid1, guid2, guid3 };
-await adapter.Fill(items, i => i.ExternalId.SqlInGuid(guids));
+// 2-arg form: select field name is inferred from the outer member
+await adapter.Fill(animals, a => a.ExhibitId.SqlIn((Exhibit e) => e.Capacity > 50));
+// => ExhibitId IN (SELECT ExhibitId FROM Exhibit WHERE (Capacity > $0))
 ```
+
+The subquery's filter lambda can reference its own parameter and captured locals, but **cannot reference the outer lambda's parameter** -- correlated subqueries are not supported (see [Correlated subqueries are not supported](#correlated-subqueries-are-not-supported)). Subquery parameters share numbering with the outer clause's parameters, and `NoLock` is honored on dialects that support it (`WITH (NOLOCK)` on SQL Server).
+
+### Legacy `SqlIn`/`SqlInInt`/`SqlInGuid`
+
+The original `SqlIn(IEnumerable)`, `SqlInInt`, and `SqlInGuid` extension methods are `[Obsolete]` as of v7.0 in favor of `list.Contains(field)`, which now covers everything they did (parameterized or inlined, chosen automatically) plus types they never supported. They still translate and still work -- existing code is not broken -- but two legacy quirks are preserved intentionally for backward compatibility rather than adopting the new `Contains` behavior:
+
+- **An empty list still throws `ArgumentException`**, where `list.Contains(field)` now renders `1 = 0`.
+- `SqlInInt`/`SqlInGuid` **always inline as literals**, regardless of list size, matching their original semantics.
+
+New code should prefer `list.Contains(field)`.
 
 ### Large Lists with SplitList
 
-For large lists that may exceed database parameter limits, use `SplitList` to break them into batches:
+For large lists of strings or dates (types that stay parameterized past 64 items and hit the 2,100-parameter limit), use `SplitList` to break them into batches:
 
 ```csharp
 using Zonkey.Extensions;
 
-var allIds = GetLargeIdList(); // thousands of IDs
+var allNames = GetLargeNameList(); // thousands of names
 var results = new List<Product>();
 
-foreach (var chunk in allIds.SplitList(2000))
+foreach (var chunk in allNames.SplitList(2000))
 {
-    await adapter.Fill(results, p => p.Id.SqlInInt(chunk));
+    await adapter.Fill(results, p => chunk.Contains(p.Name));
 }
 ```
 
@@ -257,7 +343,7 @@ await adapter.FillAll(products);
 
 All three approaches are parameterized and injection-safe. Choose based on readability and your use case.
 
-- Use **lambda expressions** when you want compile-time type safety and the conditions are straightforward. Remember the [parser limitations](#expression-parser-limitations): values must be pre-computed into locals, and you work in property names.
+- Use **lambda expressions** when you want compile-time type safety. Values can come from anywhere in scope (see [Values Come From Anywhere](#values-come-from-anywhere)), but the [supported expression surface](#supported-expression-surface) is not the full C# language -- untranslatable constructs throw `SqlExpressionException` rather than falling back to client evaluation. You work in property names.
 - Use **SqlFilter** when you need to build filters conditionally at runtime (e.g., optional search parameters from a user interface or API). You work in database column names.
 - Use **string filters** when you need database-specific SQL syntax or complex expressions that lambda parsing does not support.
 

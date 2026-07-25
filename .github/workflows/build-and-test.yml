@@ -56,6 +56,7 @@ jobs:
     env:
       ZONKEY_TEST_MSSQL: "Server=localhost,1433;User=sa;Password=Zonkey#Test123;TrustServerCertificate=true"
       ZONKEY_TEST_PGSQL: "Host=localhost;Port=5432;Username=zonkey;Password=zonkey"
+      ZONKEY_REQUIRE_DB: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

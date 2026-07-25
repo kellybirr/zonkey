@@ -209,18 +209,25 @@ namespace Zonkey.Dialects
             command.Parameters.Add(cdcp);
         }
 
-        public override string ParseWhereFunction(string functionName, string left, string right)
+        public override string RenderFunction(string name, params string[] args)
         {
-            switch (functionName)
+            switch (name)
             {
-                case "StartsWith":
-                    return $"({left} LIKE ({right}+'%'))";
-                case "EndsWith":
-                    return $"({left} LIKE ('%'+{right}))";
-                case "Contains":
-                    return $"({left} LIKE ('%'+{right}+'%'))";
-                default:
-                    throw new NotSupportedException();
+                case "LENGTH": return $"LEN({args[0]})";
+                case "SUBSTRING": return $"SUBSTRING({args[0]}, {args[1]}, {args[2]})";
+                case "SUBSTRING2": return $"SUBSTRING({args[0]}, {args[1]}, 2147483647)";
+                case "INDEXOF": return $"(CHARINDEX({args[1]}, {args[0]}) - 1)";
+                case "CONCAT": return $"({args[0]} + {args[1]})";
+                case "CEILING": return $"CEILING({args[0]})";
+                case "ROUND1": return $"ROUND({args[0]}, 0)";
+                case "DATE_YEAR": return $"DATEPART(year, {args[0]})";
+                case "DATE_MONTH": return $"DATEPART(month, {args[0]})";
+                case "DATE_DAY": return $"DATEPART(day, {args[0]})";
+                case "DATE_HOUR": return $"DATEPART(hour, {args[0]})";
+                case "DATE_MINUTE": return $"DATEPART(minute, {args[0]})";
+                case "DATE_SECOND": return $"DATEPART(second, {args[0]})";
+                case "DATE_DATE": return $"CAST({args[0]} AS DATE)";
+                default: return base.RenderFunction(name, args);
             }
         }
     }

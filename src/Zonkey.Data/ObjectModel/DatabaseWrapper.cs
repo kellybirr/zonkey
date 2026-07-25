@@ -213,6 +213,10 @@ namespace Zonkey.ObjectModel
             if (Connection != null)
                 await Connection.DisposeAsync().ConfigureAwait(false);
 
+            // Connection is already disposed above; Dispose(bool) still runs so subclasses
+            // that override it to release their own resources are not bypassed on the
+            // `await using` path. Connection?.Dispose() inside it is a safe no-op re-dispose.
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 #endif

@@ -51,4 +51,8 @@ jobs:
           user: KellyBirr
 
       - name: Publish to NuGet.org
-        run: dotnet nuget push src/**/bin/Release/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path src -Recurse -Filter *.nupkg | Where-Object FullName -like '*\bin\Release\*' | ForEach-Object {
+            dotnet nuget push $_.FullName --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          }

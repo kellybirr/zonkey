@@ -46,5 +46,16 @@ namespace Zonkey.Dialects
         {
             return "?";
         }
+
+        public override string RenderFunction(string name, params string[] args)
+        {
+            switch (name)
+            {
+                case "SUBSTRING": return $"SUBSTR({args[0]}, {args[1]}, {args[2]})";
+                case "SUBSTRING2": return $"SUBSTR({args[0]}, {args[1]})";
+                case "INDEXOF": return $"(LOCATE({args[1]}, {args[0]}) - 1)";
+                default: return base.RenderFunction(name, args);
+            }
+        }
     }
 }

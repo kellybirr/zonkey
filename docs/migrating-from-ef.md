@@ -60,25 +60,34 @@ EF can generate and apply database migrations from model changes, keeping your c
 
 Zonkey does not manage your schema. Your data classes must match your database tables, but how you maintain that correspondence is up to you. Use database-native tools, third-party migration libraries, or the [code generation tools](code-generation.md) to generate classes from existing tables.
 
-## Pitfall: Method Calls Inside Lambdas
+## Pitfall: Method Calls That Reference the Entity
 
-This is the single most common EF habit that breaks. Zonkey's lambda support is a WHERE-clause translator, not LINQ-to-objects -- method calls inside the lambda are not evaluated, and the expression parser throws `NotSupportedException`:
+As of v7.0, Zonkey's lambda translator evaluates parameter-independent subexpressions client-side automatically, much like EF's provider does -- `DateTime.Now.AddDays(-7)`, `Guid.Parse(...)`, indexers, and nested property paths through captured locals all just work without hoisting into a variable first:
 
 ```csharp
-// Both throw NotSupportedException -- method calls are not translated
+// Both translate fine -- neither subexpression references the lambda parameter:
 var recent = await adapter.GetOne(a => a.Created > DateTime.Now.AddDays(-7));
 var item = await adapter.GetOne(a => a.Id == Guid.Parse("6f9619ff-8b86-d011-b42d-00cf4fc964ff"));
 ```
 
-EF providers evaluate these subexpressions client-side before translating the query; Zonkey does not. Compute the value into a local variable first and use the variable in the lambda:
+The line EF and Zonkey still draw differently is the same one: a method call that *references the entity's mapped property* (the lambda parameter) is not evaluated in C#, it must translate to SQL. Zonkey's translator recognizes a fixed set of methods on the parameter side (see [Supported Expression Surface](querying.md#supported-expression-surface) in the querying guide) -- string methods, `Contains`/IN, date parts, math functions, PostgreSQL regex. A method on the parameter side that isn't in that set throws `SqlExpressionException`, not silently falls back to loading everything and filtering in memory:
 
 ```csharp
-var cutoff = DateTime.Now.AddDays(-7);
-var recent = await adapter.GetOne(a => a.Created > cutoff);
-
-var id = Guid.Parse("6f9619ff-8b86-d011-b42d-00cf4fc964ff");
-var item = await adapter.GetOne(a => a.Id == id);
+// Throws SqlExpressionException -- PadLeft has no SQL translation, and it references a.Name:
+var item = await adapter.GetOne(a => a.Name.PadLeft(5) == "x");
 ```
+
+This mirrors EF Core 3+'s behavior (client evaluation of the *root* query predicate was removed in EF Core 3.0) more than it differs from it -- the difference from earlier EF versions is that Zonkey never silently pulls the table into memory to finish filtering with LINQ-to-objects.
+
+## WHERE-Clause Differences vs EF Core
+
+A few translation behaviors are worth calling out explicitly if you're coming from EF's `IQueryable` translator:
+
+- **`StringComparison` overloads translate.** `a.Name.StartsWith(s, StringComparison.OrdinalIgnoreCase)` and the `Equals`/`EndsWith`/`Contains` equivalents render case-insensitive SQL (`ILIKE` on PostgreSQL, `UPPER(x) LIKE UPPER(y)` elsewhere). EF Core refuses to translate the `StringComparison` overloads at all and throws at query time.
+- **`Regex.IsMatch` is PostgreSQL-only.** It translates to `~`/`~*` there; on every other dialect it throws `SqlExpressionException` naming the limitation, rather than silently falling back to a slow client-side regex scan.
+- **`DateTime.Now`/`UtcNow`/`Today` fold client-side**, at translation time, not to a server-side function like `GETDATE()`. If you need the database's clock rather than the application's, you cannot express that through a lambda filter.
+- **Empty `IN` lists yield `1 = 0`** (no rows), matching EF's behavior for `list.Contains(x)` over an empty list, rather than throwing or generating invalid SQL.
+- **Untranslatable expressions throw `SqlExpressionException`.** Like EF Core 3+, there is no client-side evaluation fallback for the query's WHERE predicate -- an expression Zonkey cannot translate is a compile-time-valid, run-time error, not a silent full-table-scan-and-filter.
 
 ## Side-by-Side Examples
 

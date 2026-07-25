@@ -406,6 +406,47 @@ namespace Zonkey.Tests.Unit
             Assert.Equal(new TimeOnly(16, 15), slot.Slot2);
         }
 
+        // ---- DateOnly/TimeOnly delivered as a NATIVE field type (e.g. Npgsql's DateOnly/
+        //      TimeOnly mapping). The mock reader's IEnumerable-row path (as opposed to its
+        //      DataTable path, which can't host DateOnly/TimeOnly columns because they don't
+        //      implement IConvertible) reports GetFieldType() from the runtime type of the
+        //      value itself -- so a plain TimeOnly/DateOnly property here reproduces exactly
+        //      what such a provider reports. Before the C1 fix, the fast builder mis-detected
+        //      this as the string/DateTime/TimeSpan-sourced case and round-tripped the value
+        //      through ToString()/Parse, which uses TimeOnly's short-time pattern and silently
+        //      drops seconds (data loss). ----
+
+        private class NativeScheduleRow
+        {
+            public int Id { get; set; }
+            public DateOnly Day { get; set; }
+            public TimeOnly Slot1 { get; set; }
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void DateOnlyTimeOnly_FromNativeFieldType_PreservesSeconds(bool fast)
+        {
+            var row = new NativeScheduleRow
+            {
+                Id = 1,
+                Day = new DateOnly(2024, 8, 9),
+                Slot1 = new TimeOnly(13, 45, 57) // seconds must survive
+            };
+
+            var conn = new Zonkey.Mocks.MockDbConnection();
+            conn.Open();
+            conn.SetupCommandFunc = cmd => cmd.DoExecuteReader = _ => new List<NativeScheduleRow> { row };
+
+            using var command = conn.CreateCommand();
+            using var reader = new DataClassReader<Slot>(command.ExecuteReader()) { UseFastBuilder = fast };
+            var slot = reader.Read();
+
+            Assert.Equal(new DateOnly(2024, 8, 9), slot.Day);
+            Assert.Equal(new TimeOnly(13, 45, 57), slot.Slot1);
+        }
+
         // ---- volume: alternating null patterns exercise every branch repeatedly ----
 
         [Fact]
