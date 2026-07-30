@@ -33,8 +33,10 @@ public class Product : DataClass
     private string? _description;
     private DateTime _createdUtc;
 
-    public Product() : base(false) { }
     public Product(bool addingNew) : base(addingNew) { }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use Product(bool addingNew) in code.", true)]
+    public Product() : this(false) { }
 
     [DataField("id", DbType.Int32, IsKeyField = true, IsAutoIncrement = true)]
     public int Id { get => _id; set => SetFieldValue(ref _id, value); }
@@ -57,8 +59,10 @@ The pattern is consistent across every property: a private backing field paired 
 
 The two constructors serve distinct purposes:
 
-- **Parameterless constructor** (`base(false)`) -- used by the adapter when it creates instances during query operations like `Fill` and `GetOne`. The object starts in the `Detached` state, then transitions to `Unchanged` after the adapter populates it and calls `CommitValues`. This constructor must be `public`: the materializer instantiates through it (via generated IL), and throws if it is missing -- unless you supply a custom `adapter.ObjectFactory`.
-- **Bool constructor** (`base(addingNew: true)`) -- used when you create a new record in application code. Passing `true` sets `DataRowState` to `Added`, which tells the adapter to perform an INSERT when you call `Save`.
+- **Bool constructor** (`base(addingNew: true)`) -- the one *you* call. Passing `true` sets `DataRowState` to `Added`, which tells the adapter to perform an INSERT when you call `Save`.
+- **Parameterless constructor** -- used *only* by the adapter, when it creates instances during query operations like `Fill` and `GetOne`. The object starts in the `Detached` state, then transitions to `Unchanged` after the adapter populates it and calls `CommitValues`. It must be `public`: the materializer instantiates through it (via generated IL), and throws if it is missing -- unless you supply a custom `adapter.ObjectFactory`.
+
+Mark the parameterless constructor `[Obsolete(..., true)]`, as above. It is public only because the materializer needs it, and the attribute turns an accidental `new Product()` into a compile error instead of an `InvalidOperationException` at save time. The materializer is unaffected -- it constructs through emitted IL, which never sees the attribute. See [Data Classes](data-classes.md#constructor) for the full rationale.
 
 ## Your First Query
 

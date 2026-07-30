@@ -10,8 +10,10 @@ The examples use a small order-taking domain:
 [DataItem("customers")]
 public class Customer : DataClass
 {
-    public Customer() : base(false) { }
     public Customer(bool addingNew) : base(addingNew) { }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use Customer(bool addingNew) in code.", true)]
+    public Customer() : this(false) { }
 
     [DataField("id", DbType.Int32, IsKeyField = true, IsAutoIncrement = true)]
     public int Id { get => field; set => SetFieldValue(ref field, value); }
@@ -23,8 +25,10 @@ public class Customer : DataClass
 [DataItem("orders")]
 public class Order : DataClass
 {
-    public Order() : base(false) { }
     public Order(bool addingNew) : base(addingNew) { }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use Order(bool addingNew) in code.", true)]
+    public Order() : this(false) { }
 
     [DataField("id", DbType.Int32, IsKeyField = true, IsAutoIncrement = true)]
     public int Id { get => field; set => SetFieldValue(ref field, value); }
@@ -43,8 +47,10 @@ public class Order : DataClass
 [DataItem("order_lines")]
 public class OrderLine : DataClass
 {
-    public OrderLine() : base(false) { }
     public OrderLine(bool addingNew) : base(addingNew) { }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use OrderLine(bool addingNew) in code.", true)]
+    public OrderLine() : this(false) { }
 
     [DataField("id", DbType.Int32, IsKeyField = true, IsAutoIncrement = true)]
     public int Id { get => field; set => SetFieldValue(ref field, value); }
@@ -205,8 +211,10 @@ A junction table is just another mapped class:
 [DataItem("order_tags")]
 public class OrderTag : DataClass
 {
-    public OrderTag() : base(false) { }
     public OrderTag(bool addingNew) : base(addingNew) { }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use OrderTag(bool addingNew) in code.", true)]
+    public OrderTag() : this(false) { }
 
     [DataField("order_id", DbType.Int32, IsKeyField = true)]
     public int OrderId { get => field; set => SetFieldValue(ref field, value); }

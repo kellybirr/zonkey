@@ -57,8 +57,10 @@ public partial class Product : DataClass
     private decimal _price;
     private string? _description;
 
-    public Product() : base(false) { }
     public Product(bool addingNew) : base(addingNew) { }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use Product(bool addingNew) in code.", true)]
+    public Product() : this(false) { }
 
     [DataField("id", DbType.Int32, IsKeyField = true, IsAutoIncrement = true)]
     public virtual int Id { get => _id; set => SetFieldValue(ref _id, value); }

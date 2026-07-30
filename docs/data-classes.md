@@ -94,9 +94,9 @@ protected DataClass(bool addingNew)
 
 If `addingNew` is `true`, sets `DataRowState` to `Added`. If `false`, sets it to `Detached`.
 
-Your subclass also needs a **public parameterless constructor** (conventionally `public MyClass() : base(false)`): the adapter materializes query results through generated IL that requires it, and throws `InvalidOperationException` if it is missing. The alternative is supplying a custom `adapter.ObjectFactory` delegate.
+Your subclass also needs a **public parameterless constructor**: the adapter materializes query results through generated IL that requires it, and throws `InvalidOperationException` if it is missing. The alternative is supplying a custom `adapter.ObjectFactory` delegate.
 
-A field-proven pattern to keep application code from calling the wrong constructor: mark the parameterless one obsolete-as-error. The compiler blocks accidental `new MyClass()` in your code, while the materializer is unaffected -- `Obsolete` is a compile-time check that generated IL and reflection never see:
+**That constructor is for the adapter, never for your code — so mark it obsolete-as-error.** This is the standard pattern, used in every example in these docs and emitted by the scaffolding tool:
 
 ```csharp
 public Product(bool addingNew) : base(addingNew)
@@ -108,6 +108,10 @@ public Product(bool addingNew) : base(addingNew)
 [Obsolete("Required by the DataClassAdapter materializer; use Product(bool addingNew) in code.", true)]
 public Product() : this(false) { }
 ```
+
+Why it matters: `base(false)` leaves the object `Detached`, and saving a `Detached` object throws `InvalidOperationException`. Without the attribute, `new Product()` compiles cleanly and fails at runtime, usually far from the mistake. With it, the mistake is `CS0619` at the call site.
+
+Why it is free: `Obsolete` is compile-time metadata only. The materializer constructs through emitted IL and reflection, which never see it. It also does **not** interfere with the `where Tdc : class, new()` constraint on `DatabaseWrapper.Adapter<Tdc>()` and `DataClassAdapter<Tdc>` — the compiler reports `CS0619` for a direct `new Product()` but not for constraint satisfaction or for `new T()` inside a generic.
 
 ### Key Members
 
@@ -194,8 +198,10 @@ public class Product : DataClass<int>
 {
     private int _id;
 
-    public Product() : base(false) { }
     public Product(bool addingNew) : base(addingNew) { }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use Product(bool addingNew) in code.", true)]
+    public Product() : this(false) { }
 
     [DataField("id", DbType.Int32, IsKeyField = true, IsAutoIncrement = true)]
     public int Id { get => _id; set => SetFieldValue(ref _id, value); }
@@ -246,7 +252,11 @@ When `ImplicitFieldDefinition = true` on `DataItemAttribute`, Zonkey auto-genera
 [DataItem("products", ImplicitFieldDefinition = true)]
 public class Product : DataClass
 {
-    public Product() : base(false) { }
+    public Product(bool addingNew) : base(addingNew) { }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use Product(bool addingNew) in code.", true)]
+    public Product() : this(false) { }
+
     public int Id { get; set; }
     public string Name { get; set; } = "";
 }
@@ -275,12 +285,14 @@ public class Order : DataClass
     private DateTime? _modifiedUtc;
     private byte[] _rowVersion = [];
 
-    public Order() : base(false) { }
     public Order(bool addingNew) : base(addingNew)
     {
         if (addingNew)
             _orderDate = DateTime.UtcNow;
     }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use Order(bool addingNew) in code.", true)]
+    public Order() : this(false) { }
 
     [DataField("id", DbType.Int32, IsKeyField = true, IsAutoIncrement = true)]
     public int Id { get => _id; set => SetFieldValue(ref _id, value); }
@@ -364,12 +376,14 @@ Here is the complete `Order` example rewritten with `field`:
 [DataItem("orders", SchemaName = "store")]
 public class Order : DataClass
 {
-    public Order() : base(false) { }
     public Order(bool addingNew) : base(addingNew)
     {
         if (addingNew)
             OrderDate = DateTime.UtcNow;
     }
+
+    [Obsolete("Required by the DataClassAdapter materializer; use Order(bool addingNew) in code.", true)]
+    public Order() : this(false) { }
 
     [DataField("id", DbType.Int32, IsKeyField = true, IsAutoIncrement = true)]
     public int Id { get => field; set => SetFieldValue(ref field, value); }
