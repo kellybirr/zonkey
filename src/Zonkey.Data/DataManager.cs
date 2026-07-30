@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Zonkey.Dialects;
 
@@ -439,8 +440,12 @@ namespace Zonkey
             newParm.Value = (value ?? DBNull.Value);
             newParm.ParameterName = dialect.FormatParameterName(index, command.CommandType);
 
-            string sParmHolder = string.Concat(placeholderPrefix, index);
-            command.CommandText = command.CommandText.Replace(sParmHolder, newParm.ParameterName);
+            // Boundary-aware replace: "$1" must not match inside "$10". The negative lookahead
+            // ensures only the exact index token is replaced, while still replacing every
+            // occurrence so a placeholder reused multiple times in one statement (e.g. "$0 ... $0")
+            // still resolves to the same single parameter.
+            string pattern = Regex.Escape(string.Concat(placeholderPrefix, index)) + "(?!\\d)";
+            command.CommandText = Regex.Replace(command.CommandText, pattern, _ => newParm.ParameterName);
 
             dialect.FixParameter(newParm);
             command.Parameters.Add(newParm);

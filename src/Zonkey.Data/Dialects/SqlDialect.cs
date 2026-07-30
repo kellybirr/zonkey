@@ -21,6 +21,7 @@ namespace Zonkey.Dialects
                 { "Devart.Data.MySql.MySqlConnection", _ => new MySqlDialect() },
                 { "MySql.Data.MySqlClient.MySqlConnection", _ => new MySqlDialect() },
                 { "MySqlConnector.MySqlConnection", _ => new MySqlDialect() },
+                { "MariaDB.Data.MariaDbConnection", _ => new MySqlDialect() },
                 { "System.Data.OracleClient.OracleConnection", _ => new OracleSqlDialect() },
                 { "Oracle.ManagedDataAccess.Client.OracleConnection", _ => new OracleSqlDialect() },
                 { "IBM.Data.DB2.DB2Connection", _ => new DB2SqlDialect() },

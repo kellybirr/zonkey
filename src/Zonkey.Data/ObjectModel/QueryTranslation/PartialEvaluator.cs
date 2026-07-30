@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 
 namespace Zonkey.ObjectModel.QueryTranslation
 {
@@ -110,7 +111,16 @@ namespace Zonkey.ObjectModel.QueryTranslation
                 if (TryEvaluateMemberChain(e, out object chainValue))
                     return Expression.Constant(chainValue, e.Type);
 
-                object value = Expression.Lambda(e).Compile().DynamicInvoke();
+                object value;
+                try
+                {
+                    value = Expression.Lambda(e).Compile().DynamicInvoke();
+                }
+                catch (TargetInvocationException tie) when (tie.InnerException != null)
+                {
+                    ExceptionDispatchInfo.Capture(tie.InnerException).Throw();
+                    throw;   // unreachable
+                }
                 return Expression.Constant(value, e.Type);
             }
 

@@ -11,5 +11,9 @@ namespace Zonkey.Tests.Infrastructure
         public static string PgsqlConnectionString =>
             Environment.GetEnvironmentVariable("ZONKEY_TEST_PGSQL")
             ?? "Host=localhost;Port=5433;Username=zonkey;Password=zonkey";
+
+        public static string MysqlConnectionString =>
+            Environment.GetEnvironmentVariable("ZONKEY_TEST_MYSQL")
+            ?? "Server=localhost;Port=3308;User=root;Password=zonkey;AllowPublicKeyRetrieval=True;SslMode=None;GuidFormat=Char36";
     }
 }

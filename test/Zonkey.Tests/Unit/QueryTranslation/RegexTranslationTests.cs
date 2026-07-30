@@ -54,5 +54,14 @@ namespace Zonkey.Tests.Unit.QueryTranslation
             Assert.Equal("((SpeciesId = $0) AND 1 = 1)", r.SqlText);
             Assert.Equal(new object[] { 1 }, r.Parameters);
         }
+
+        // T4: negation matrix - Regex.IsMatch on Postgres.
+        [Fact]
+        public void NegatedIsMatch_WrapsWithNot()
+        {
+            var r = T(a => !Regex.IsMatch(a.Name, "^Mei"), new PostgreSqlDialect());
+            Assert.Equal("(NOT (Name ~ $0))", r.SqlText);
+            Assert.Equal(new object[] { "^Mei" }, r.Parameters);
+        }
     }
 }

@@ -22,15 +22,16 @@ namespace Zonkey.ObjectModel.QueryTranslation
 
         public SqlNode TranslatePredicate(Expression e)
         {
-            return ToPredicate(Translate(e));
-        }
+            SqlNode node = Translate(e);
 
-        private static SqlNode ToPredicate(SqlNode node)
-        {
             if (node is SqlColumn c && c.IsBoolean)
                 return new SqlBoolPredicate { Column = c };
             if (node is SqlValue v && v.Value is bool b)
                 return new SqlLiteral { Text = b ? "1 = 1" : "1 = 0" };
+            // only COALESCE/CASE_WHEN produce a scalar value that needs "= 1" style boolean coercion;
+            // other bool-returning functions (e.g. ISNULLOREMPTY) already render a complete predicate.
+            if (node is SqlFunction sf && (sf.Name == "COALESCE" || sf.Name == "CASE_WHEN") && IsBooleanType(e.Type))
+                return new SqlBoolExprPredicate { Operand = node };
             return node;
         }
 

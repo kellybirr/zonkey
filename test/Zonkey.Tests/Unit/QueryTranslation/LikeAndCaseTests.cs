@@ -116,5 +116,107 @@ namespace Zonkey.Tests.Unit.QueryTranslation
             Assert.Equal("%i", r3.Parameters[0]);
         }
 #endif
+
+        // T3: empty-pattern LIKE overloads. An empty search string has nothing to escape, so the
+        // pattern is pure wildcard(s) and no ESCAPE clause is emitted.
+        [Fact]
+        public void StartsWith_EmptyString_PatternIsJustWildcard()
+        {
+            var r = T(a => a.Name.StartsWith(""));
+            Assert.Equal("(Name LIKE $0)", r.SqlText);
+            Assert.Equal("%", r.Parameters[0]);
+        }
+
+        [Fact]
+        public void EndsWith_EmptyString_PatternIsJustWildcard()
+        {
+            var r = T(a => a.Name.EndsWith(""));
+            Assert.Equal("(Name LIKE $0)", r.SqlText);
+            Assert.Equal("%", r.Parameters[0]);
+        }
+
+        [Fact]
+        public void Contains_EmptyString_PatternIsDoubleWildcard()
+        {
+            var r = T(a => a.Name.Contains(""));
+            Assert.Equal("(Name LIKE $0)", r.SqlText);
+            Assert.Equal("%%", r.Parameters[0]);
+        }
+
+        [Fact]
+        public void Contains_UnicodePattern_RoundTripsWithoutEscaping()
+        {
+            var r = T(a => a.Name.Contains("pâté🦓"));
+            Assert.Equal("(Name LIKE $0)", r.SqlText);
+            Assert.Equal("%pâté🦓%", r.Parameters[0]);
+        }
+
+        [Fact]
+        public void Contains_BackslashInData_EscapesBackslashAndAddsEscapeClause()
+        {
+            var r = T(a => a.Name.Contains(@"a\b"));
+            Assert.Equal("(Name LIKE $0 ESCAPE '\\')", r.SqlText);
+            Assert.Equal(@"%a\\b%", r.Parameters[0]);
+        }
+
+        [Fact]
+        public void Contains_AllMetacharsInData_EscapesEveryOne()
+        {
+            var r = T(a => a.Name.Contains(@"100%_a\[b"));
+            Assert.Equal("(Name LIKE $0 ESCAPE '\\')", r.SqlText);
+            Assert.Equal("%100\\%\\_a\\\\\\[b%", r.Parameters[0]);
+        }
+
+        // T4: negation matrix - StartsWith/EndsWith/SqlLike/SqlILike.
+        [Fact]
+        public void NegatedStartsWith_WrapsWithNot()
+        {
+            Assert.Equal("(NOT (Name LIKE $0))", T(a => !a.Name.StartsWith("Mei")).SqlText);
+        }
+
+        [Fact]
+        public void NegatedEndsWith_WrapsWithNot()
+        {
+            Assert.Equal("(NOT (Name LIKE $0))", T(a => !a.Name.EndsWith("Mei")).SqlText);
+        }
+
+        [Fact]
+        public void NegatedSqlLike_WrapsWithNot()
+        {
+            Assert.Equal("(NOT (Name LIKE $0))", T(a => !a.Name.SqlLike("M%")).SqlText);
+        }
+
+        [Fact]
+        public void NegatedSqlILike_WrapsWithNot()
+        {
+            Assert.Equal("(NOT (UPPER(Name) LIKE UPPER($0)))", T(a => !a.Name.SqlILike("m%")).SqlText);
+            Assert.Equal("(NOT (Name ILIKE $0))", T(a => !a.Name.SqlILike("m%"), new PostgreSqlDialect()).SqlText);
+        }
+
+        // T5: dynamic (entity-referencing) LIKE patterns render dialect-specific concatenation
+        // since the pattern can't be pre-escaped client-side.
+        [Fact]
+        public void StartsWith_EntityPattern_PerDialect()
+        {
+            Assert.Equal("(Name LIKE (Notes || $0))", T(a => a.Name.StartsWith(a.Notes)).SqlText);
+            Assert.Equal("([Name] LIKE ([Notes] + $0))", T(a => a.Name.StartsWith(a.Notes), new SqlServerDialect()).SqlText);
+            Assert.Equal("(Name LIKE CONCAT(Notes, $0))", T(a => a.Name.StartsWith(a.Notes), new MySqlDialect()).SqlText);
+            Assert.Equal("([Name] LIKE ([Notes] & $0))", T(a => a.Name.StartsWith(a.Notes), new AccessSqlDialect()).SqlText);
+            Assert.Equal("([Name] LIKE ([Notes] || $0))", T(a => a.Name.StartsWith(a.Notes), new SqliteDialect()).SqlText);
+        }
+
+        [Fact]
+        public void EndsWith_EntityPattern_NestedConcat_OnTwoDialects()
+        {
+            Assert.Equal("(Name LIKE ($0 || Notes))", T(a => a.Name.EndsWith(a.Notes)).SqlText);
+            Assert.Equal("([Name] LIKE ($0 + [Notes]))", T(a => a.Name.EndsWith(a.Notes), new SqlServerDialect()).SqlText);
+        }
+
+        [Fact]
+        public void Contains_EntityPattern_NestedConcat_OnTwoDialects()
+        {
+            Assert.Equal("(Name LIKE (($0 || Notes) || $1))", T(a => a.Name.Contains(a.Notes)).SqlText);
+            Assert.Equal("([Name] LIKE (($0 + [Notes]) + $1))", T(a => a.Name.Contains(a.Notes), new SqlServerDialect()).SqlText);
+        }
     }
 }

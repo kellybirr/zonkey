@@ -7,10 +7,10 @@ Zonkey is a deterministic, explicit, async-first .NET ORM (packages: `Zonkey.Dat
 ```shell
 dotnet build Zonkey.sln                                 # all projects, all target frameworks
 dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj       # xUnit v3 suite (net10.0 + net48)
-docker compose up -d --wait                             # MSSQL (host port 1434) + PostgreSQL (host port 5433) for integration tests
+docker compose up -d --wait                             # MSSQL (host port 1434) + PostgreSQL (host port 5433) + MySQL (host port 3308) for integration tests
 ```
 
-SQLite integration tests always run; MSSQL/PostgreSQL tests skip gracefully when the containers are down. Connection overrides: `ZONKEY_TEST_MSSQL`, `ZONKEY_TEST_PGSQL`. Targets are net8.0/net10.0/net48 (Zonkey.Text: netstandard2.0/net48); `Directory.Build.props` makes net48 build on Linux.
+SQLite integration tests always run; MSSQL/PostgreSQL/MySQL tests skip gracefully when the containers are down. Connection overrides: `ZONKEY_TEST_MSSQL`, `ZONKEY_TEST_PGSQL`, `ZONKEY_TEST_MYSQL`. Targets are net8.0/net10.0/net48 (Zonkey.Text: netstandard2.0/net48); `Directory.Build.props` makes net48 build on Linux.
 
 ## Documentation Map
 

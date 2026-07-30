@@ -297,8 +297,11 @@ namespace Zonkey.ObjectModel.QueryTranslation
                 Expression body = fieldLambda.Body;
                 while (body is UnaryExpression u && (u.NodeType == ExpressionType.Convert || u.NodeType == ExpressionType.ConvertChecked))
                     body = u.Operand;
-                var member = (MemberExpression)body;
-                IDataMapField f = map.GetFieldForProperty((PropertyInfo)member.Member);
+
+                if (!(body is MemberExpression member) || !(member.Member is PropertyInfo property))
+                    throw SqlExpressionException.ForNode(fieldLambda, "the SqlIn field selector must be a simple mapped property access");
+
+                IDataMapField f = map.GetFieldForProperty(property);
                 if (f == null)
                     throw SqlExpressionException.ForNode(fieldLambda, $"property '{member.Member.Name}' is not mapped on '{targetType.Name}'");
                 rawField = f.FieldName;

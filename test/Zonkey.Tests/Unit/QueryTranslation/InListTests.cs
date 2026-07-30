@@ -302,5 +302,40 @@ namespace Zonkey.Tests.Unit.QueryTranslation
             Assert.Throws<ArgumentException>(() => T(a => a.SpeciesId.SqlInInt(empty)));
         }
 #pragma warning restore 618
+
+        // T4: negation matrix - IN list forms.
+        [Fact]
+        public void NegatedContains_SmallList_WrapsWithNot()
+        {
+            var ids = new[] { 1, 2, 3 };
+            var r = T(a => !ids.Contains(a.SpeciesId));
+            Assert.Equal("(NOT (SpeciesId IN ($0,$1,$2)))", r.SqlText);
+            Assert.Equal(new object[] { 1, 2, 3 }, r.Parameters);
+        }
+
+        [Fact]
+        public void NegatedContains_LargeList_OnPostgres_WrapsArrayFormWithNot()
+        {
+            var ids = Enumerable.Range(1, 65).ToArray();
+            var r = TranslationTestHelper.Translate<Animal>(a => !ids.Contains(a.SpeciesId), new PostgreSqlDialect());
+            Assert.Equal("(NOT (SpeciesId = ANY($0)))", r.SqlText);
+            Assert.IsType<int[]>(Assert.Single(r.Parameters));
+        }
+
+        [Fact]
+        public void NegatedContains_EmptyList_WrapsConstantFalseWithNot()
+        {
+            var ids = new int[0];
+            var r = T(a => !ids.Contains(a.SpeciesId));
+            Assert.Equal("(NOT 1 = 0)", r.SqlText);
+            Assert.Empty(r.Parameters);
+        }
+
+        [Fact]
+        public void NegatedThreeArgSqlIn_WrapsSubqueryWithNot()
+        {
+            var r = T(a => !a.ExhibitId.SqlIn((Exhibit e) => e.ExhibitId, e => e.IsOpen));
+            Assert.Equal("(NOT (ExhibitId IN (SELECT ExhibitId FROM Exhibit WHERE (IsOpen = 1))))", r.SqlText);
+        }
     }
 }

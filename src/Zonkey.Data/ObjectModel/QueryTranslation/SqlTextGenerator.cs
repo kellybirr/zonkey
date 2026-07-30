@@ -51,6 +51,9 @@ namespace Zonkey.ObjectModel.QueryTranslation
                 case SqlBoolPredicate b:
                     _sb.Append(_dialect.FormatUnaryBoolean(ColumnText(b.Column)));
                     break;
+                case SqlBoolExprPredicate p:
+                    _sb.Append(_dialect.FormatUnaryBoolean(Render(p.Operand)));
+                    break;
                 case SqlValue v:
                     AppendValue(v.Value);
                     break;

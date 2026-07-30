@@ -116,6 +116,85 @@ namespace Zonkey.Tests.Integration
             Assert.Single(animals);   // Bao Bao (null ExhibitId)
             Assert.Equal("Bao Bao", animals[0].Name);
         }
+
+        // seed facts (all three providers): 4 animals - Mei Mei, Waddles, Bubbles, Bao Bao.
+        // Species 1 = Mei Mei + Bao Bao. Bao Bao has a null ExhibitId. Bubbles has a null DateOfBirth.
+        // All four names happen to be exactly 7 characters long.
+
+        [Fact]
+        public async Task TrimThenToUpper_Filter()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+            var animals = await Fill(a => a.Name.Trim().ToUpper() == "MEI MEI");
+            Assert.Single(animals);
+            Assert.Equal("Mei Mei", animals[0].Name);
+        }
+
+        [Fact]
+        public async Task Substring_Filter()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+            var animals = await Fill(a => a.Name.Substring(0, 3) == "Mei");
+            Assert.Single(animals);
+            Assert.Equal("Mei Mei", animals[0].Name);
+        }
+
+        [Fact]
+        public async Task Length_Filter()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+            // Mei Mei, Waddles, Bubbles, and Bao Bao are all exactly 7 characters - all four match.
+            var animals = await Fill(a => a.Name.Length > 6);
+            Assert.Equal(4, animals.Count);
+        }
+
+        [Fact]
+        public async Task Replace_Filter()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+            // Only "Mei Mei" collapses to "MeiMei" once its space is removed.
+            var animals = await Fill(a => a.Name.Replace(" ", "") == "MeiMei");
+            Assert.Single(animals);
+            Assert.Equal("Mei Mei", animals[0].Name);
+        }
+
+        [Fact]
+        public async Task IndexOf_Filter()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+            // "ao" only occurs (at index 1) in "Bao Bao"; none of the other seed names contain it.
+            var animals = await Fill(a => a.Name.IndexOf("ao") > 0);
+            Assert.Single(animals);
+            Assert.Equal("Bao Bao", animals[0].Name);
+        }
+
+        [Fact]
+        public async Task Ternary_Filter()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+            var animals = await Fill(a => (a.ExhibitId == null ? 1 : 0) == 1);
+            Assert.Single(animals);
+            Assert.Equal("Bao Bao", animals[0].Name);
+        }
+
+        [Fact]
+        public async Task Negation_Filter()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+            var animals = await Fill(a => !a.Name.StartsWith("Mei"));
+            Assert.Equal(3, animals.Count);
+            Assert.Equal(new[] { "Bao Bao", "Bubbles", "Waddles" }, animals.Select(a => a.Name).OrderBy(n => n));
+        }
+
+        [Fact]
+        public async Task HasValue_Filter()
+        {
+            if (!Db.IsAvailable) Assert.Skip(Db.SkipReason);
+            // Only "Bubbles" has a null DateOfBirth in the seed data.
+            var animals = await Fill(a => !a.DateOfBirth.HasValue);
+            Assert.Single(animals);
+            Assert.Equal("Bubbles", animals[0].Name);
+        }
     }
 }
 #endif

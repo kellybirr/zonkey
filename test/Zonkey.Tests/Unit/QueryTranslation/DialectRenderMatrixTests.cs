@@ -175,5 +175,98 @@ namespace Zonkey.Tests.Unit.QueryTranslation
             Assert.Equal("(CEIL(Weight) = $0)",
                 T(a => Math.Ceiling(a.Weight.Value) == 6m, new OracleSqlDialect()).SqlText);
         }
+
+        // T6: complete date-part matrix - all seven parts x seven dialects, one fact per dialect.
+        [Fact]
+        public void DateParts_AllSeven_Generic()
+        {
+            Assert.Equal("(EXTRACT(YEAR FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Year == 2020, new GenericSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(MONTH FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Month == 6, new GenericSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(DAY FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Day == 15, new GenericSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(HOUR FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Hour == 10, new GenericSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(MINUTE FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Minute == 30, new GenericSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(SECOND FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Second == 45, new GenericSqlDialect()).SqlText);
+            Assert.Equal("(CAST(DateOfBirth AS DATE) = $0)", T(a => a.DateOfBirth.Value.Date == new DateTime(2020, 6, 15), new GenericSqlDialect()).SqlText);
+        }
+
+        [Fact]
+        public void DateParts_AllSeven_SqlServer()
+        {
+            Assert.Equal("(DATEPART(year, [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Year == 2020, new SqlServerDialect()).SqlText);
+            Assert.Equal("(DATEPART(month, [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Month == 6, new SqlServerDialect()).SqlText);
+            Assert.Equal("(DATEPART(day, [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Day == 15, new SqlServerDialect()).SqlText);
+            Assert.Equal("(DATEPART(hour, [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Hour == 10, new SqlServerDialect()).SqlText);
+            Assert.Equal("(DATEPART(minute, [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Minute == 30, new SqlServerDialect()).SqlText);
+            Assert.Equal("(DATEPART(second, [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Second == 45, new SqlServerDialect()).SqlText);
+            Assert.Equal("(CAST([DateOfBirth] AS DATE) = $0)", T(a => a.DateOfBirth.Value.Date == new DateTime(2020, 6, 15), new SqlServerDialect()).SqlText);
+        }
+
+        [Fact]
+        public void DateParts_AllSeven_Sqlite()
+        {
+            Assert.Equal("(CAST(strftime('%Y', [DateOfBirth]) AS INTEGER) = $0)", T(a => a.DateOfBirth.Value.Year == 2020, new SqliteDialect()).SqlText);
+            Assert.Equal("(CAST(strftime('%m', [DateOfBirth]) AS INTEGER) = $0)", T(a => a.DateOfBirth.Value.Month == 6, new SqliteDialect()).SqlText);
+            Assert.Equal("(CAST(strftime('%d', [DateOfBirth]) AS INTEGER) = $0)", T(a => a.DateOfBirth.Value.Day == 15, new SqliteDialect()).SqlText);
+            Assert.Equal("(CAST(strftime('%H', [DateOfBirth]) AS INTEGER) = $0)", T(a => a.DateOfBirth.Value.Hour == 10, new SqliteDialect()).SqlText);
+            Assert.Equal("(CAST(strftime('%M', [DateOfBirth]) AS INTEGER) = $0)", T(a => a.DateOfBirth.Value.Minute == 30, new SqliteDialect()).SqlText);
+            Assert.Equal("(CAST(strftime('%S', [DateOfBirth]) AS INTEGER) = $0)", T(a => a.DateOfBirth.Value.Second == 45, new SqliteDialect()).SqlText);
+            Assert.Equal("(date([DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Date == new DateTime(2020, 6, 15), new SqliteDialect()).SqlText);
+        }
+
+        [Fact]
+        public void DateParts_AllSeven_PostgreSql()
+        {
+            // PostgreSqlDialect only overrides ROUND2/LIKE/regex - date parts fall through to the
+            // base ANSI EXTRACT() implementation, with unquoted fields by default.
+            Assert.Equal("(EXTRACT(YEAR FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Year == 2020, new PostgreSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(MONTH FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Month == 6, new PostgreSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(DAY FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Day == 15, new PostgreSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(HOUR FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Hour == 10, new PostgreSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(MINUTE FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Minute == 30, new PostgreSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(SECOND FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Second == 45, new PostgreSqlDialect()).SqlText);
+            Assert.Equal("(CAST(DateOfBirth AS DATE) = $0)", T(a => a.DateOfBirth.Value.Date == new DateTime(2020, 6, 15), new PostgreSqlDialect()).SqlText);
+        }
+
+        [Fact]
+        public void DateParts_AllSeven_Access()
+        {
+            Assert.Equal("(DatePart('yyyy', [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Year == 2020, new AccessSqlDialect()).SqlText);
+            Assert.Equal("(DatePart('m', [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Month == 6, new AccessSqlDialect()).SqlText);
+            Assert.Equal("(DatePart('d', [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Day == 15, new AccessSqlDialect()).SqlText);
+            Assert.Equal("(DatePart('h', [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Hour == 10, new AccessSqlDialect()).SqlText);
+            Assert.Equal("(DatePart('n', [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Minute == 30, new AccessSqlDialect()).SqlText);
+            Assert.Equal("(DatePart('s', [DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Second == 45, new AccessSqlDialect()).SqlText);
+            Assert.Equal("(DateValue([DateOfBirth]) = $0)", T(a => a.DateOfBirth.Value.Date == new DateTime(2020, 6, 15), new AccessSqlDialect()).SqlText);
+        }
+
+        [Fact]
+        public void DateParts_AllSeven_Oracle()
+        {
+            // Oracle overrides SUBSTRING/INDEXOF/CEILING/DATE_DATE - the remaining date parts fall
+            // through to the base ANSI implementation. DATE_DATE uses TRUNC() rather than the base
+            // CAST(x AS DATE): Oracle's DATE type keeps the time portion, so a CAST is a no-op and
+            // TRUNC() is the correct truncate-to-midnight idiom.
+            Assert.Equal("(EXTRACT(YEAR FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Year == 2020, new OracleSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(MONTH FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Month == 6, new OracleSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(DAY FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Day == 15, new OracleSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(HOUR FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Hour == 10, new OracleSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(MINUTE FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Minute == 30, new OracleSqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(SECOND FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Second == 45, new OracleSqlDialect()).SqlText);
+            Assert.Equal("(TRUNC(DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Date == new DateTime(2020, 6, 15), new OracleSqlDialect()).SqlText);
+        }
+
+        [Fact]
+        public void DateParts_AllSeven_MySql()
+        {
+            // MySqlDialect's RenderFunction override doesn't touch DATE_* - falls through to the
+            // base EXTRACT() implementation, fields unquoted by default.
+            Assert.Equal("(EXTRACT(YEAR FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Year == 2020, new MySqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(MONTH FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Month == 6, new MySqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(DAY FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Day == 15, new MySqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(HOUR FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Hour == 10, new MySqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(MINUTE FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Minute == 30, new MySqlDialect()).SqlText);
+            Assert.Equal("(EXTRACT(SECOND FROM DateOfBirth) = $0)", T(a => a.DateOfBirth.Value.Second == 45, new MySqlDialect()).SqlText);
+            Assert.Equal("(CAST(DateOfBirth AS DATE) = $0)", T(a => a.DateOfBirth.Value.Date == new DateTime(2020, 6, 15), new MySqlDialect()).SqlText);
+        }
     }
 }

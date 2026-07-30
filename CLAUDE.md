@@ -26,11 +26,11 @@ dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj --filter "FullyQualifiedName~T
 # Run tests for a specific framework
 dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj -f net10.0
 
-# Start MSSQL (host port 1434) and PostgreSQL (host port 5433) for integration tests
+# Start MSSQL (host port 1434), PostgreSQL (host port 5433), and MySQL (host port 3308) for integration tests
 docker compose up -d --wait
 ```
 
-Tests use xUnit v3 with a zoo-themed schema (Animal, Species, Exhibit, Zookeeper, FeedingSchedule). SQLite integration tests always run (temp-file DB); MSSQL and PostgreSQL integration tests run against the docker-compose containers and skip gracefully when unavailable. Connection strings can be overridden with the `ZONKEY_TEST_MSSQL` and `ZONKEY_TEST_PGSQL` environment variables. On net48 only unit tests run.
+Tests use xUnit v3 with a zoo-themed schema (Animal, Species, Exhibit, Zookeeper, FeedingSchedule). SQLite integration tests always run (temp-file DB); MSSQL, PostgreSQL, and MySQL integration tests run against the docker-compose containers and skip gracefully when unavailable. Connection strings can be overridden with the `ZONKEY_TEST_MSSQL`, `ZONKEY_TEST_PGSQL`, and `ZONKEY_TEST_MYSQL` environment variables. On net48 only unit tests run.
 
 ## Solution Structure
 

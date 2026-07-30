@@ -27,3 +27,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  mysql:
+    image: mysql:8
+    # MySQL on Linux defaults to lower_case_table_names=0 (case-sensitive table
+    # names), unlike SQL Server (case-insensitive collation) and PostgreSQL
+    # (folds unquoted identifiers to lowercase). Force case-insensitive table
+    # names so the shared Integration test suites -- which mix PascalCase
+    # (DataItemAttribute-driven) and lowercase (raw-SQL) table references --
+    # behave the same way here as on the other two providers. Must be set at
+    # first startup; safe here since the container has no persistent volume.
+    command: --lower-case-table-names=1
+    environment:
+      MYSQL_ROOT_PASSWORD: zonkey
+      MYSQL_DATABASE: zonkey_zoo
+    ports:
+      # Host port 3308 avoids clashing with a locally running MySQL on 3306/3307
+      - "3308:3306"
+    healthcheck:
+      test: mysqladmin ping -h localhost -u root -pzonkey
+      interval: 10s
+      timeout: 5s
+      retries: 10

@@ -72,5 +72,55 @@ namespace Zonkey.Tests.Unit.QueryTranslation
             var r = T(a => a.SpeciesId.SqlIn((RenamedFieldTarget t) => t.Active));
             Assert.Equal("(SpeciesId IN (SELECT record_id FROM RenamedFieldTarget WHERE (is_active = 1)))", r.SqlText);
         }
+
+        [Fact]
+        public void ThreeArgSqlIn_NonPropertySelector_ThrowsDiagnostic()
+        {
+            var ex = Assert.Throws<SqlExpressionException>(
+                () => T(a => a.ExhibitId.SqlIn((Exhibit e) => e.Capacity + 1, e => e.IsOpen)));
+            Assert.Contains("field selector", ex.Message);
+        }
+
+        // T9: subquery completion.
+
+        [Fact]
+        public void SqlServer_UseQuotedIdentifier_BracketsSubqueryFieldAndTable()
+        {
+            // Verifies that WhereExpressionParser.UseQuotedIdentifier is actually forwarded into the
+            // SqlTextGenerator used for the subquery branch (VisitInSubquery), not just the outer one.
+            var parser = new WhereExpressionParser<Animal>(new SqlServerDialect()) { UseQuotedIdentifier = true };
+            Expression<Func<Animal, bool>> expr = a => a.ExhibitId.SqlIn((Exhibit e) => e.ExhibitId, e => e.IsOpen);
+            var r = parser.Parse(expr);
+            Assert.Equal("([ExhibitId] IN (SELECT [ExhibitId] FROM [Exhibit] WHERE ([IsOpen] = 1)))", r.SqlText);
+        }
+
+        [Fact]
+        public void SubqueryWhere_NullComparison_RendersIsNull()
+        {
+            var r = T(a => a.ExhibitId.SqlIn((Exhibit e) => e.ExhibitId, e => e.Location == null));
+            Assert.Equal("(ExhibitId IN (SELECT ExhibitId FROM Exhibit WHERE (Location IS NULL)))", r.SqlText);
+        }
+
+        [Fact]
+        public void SubqueryWhere_NestedLogicals_Translate()
+        {
+            var r = T(a => a.ExhibitId.SqlIn((Exhibit e) => e.ExhibitId,
+                e => e.IsOpen && (e.Capacity > 10 || e.Capacity < 2)));
+            Assert.Equal(
+                "(ExhibitId IN (SELECT ExhibitId FROM Exhibit WHERE ((IsOpen = 1) AND ((Capacity > $0) OR (Capacity < $1)))))",
+                r.SqlText);
+            Assert.Equal(new object[] { 10, 2 }, r.Parameters);
+        }
+
+        [Fact]
+        public void ThreeArgSqlIn_BoolFieldSelector_RendersAsSelectColumnNotPredicate()
+        {
+            // The field selector must be a plain property access - IsOpen is a bool property, and
+            // even though bool properties render as "(IsOpen = 1)" in predicate position, the field
+            // selector path only ever extracts the mapped column name, never wraps it as a predicate.
+            var r = TranslationTestHelper.Translate<Species>(
+                s => s.IsEndangered.SqlIn((Exhibit e) => e.IsOpen, e => e.Capacity > 10));
+            Assert.Equal("(IsEndangered IN (SELECT IsOpen FROM Exhibit WHERE (Capacity > $0)))", r.SqlText);
+        }
     }
 }

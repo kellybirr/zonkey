@@ -34,6 +34,7 @@ namespace Zonkey.Dialects
                 case "SUBSTRING2": return $"SUBSTR({args[0]}, {args[1]})";
                 case "INDEXOF": return $"(INSTR({args[0]}, {args[1]}) - 1)";
                 case "CEILING": return $"CEIL({args[0]})";
+                case "DATE_DATE": return $"TRUNC({args[0]})";
                 default: return base.RenderFunction(name, args);
             }
         }

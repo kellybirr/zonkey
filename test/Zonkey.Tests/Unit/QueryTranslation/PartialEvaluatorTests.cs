@@ -117,5 +117,15 @@ namespace Zonkey.Tests.Unit.QueryTranslation
             Assert.Null(c.Value);
             Assert.Equal(typeof(string), c.Type);
         }
+
+        private static int Boom() => throw new InvalidOperationException("boom");
+
+        [Fact]
+        public void UserCodeException_UnwrapsTargetInvocationException()
+        {
+            Expression<Func<Animal, bool>> expr = a => a.SpeciesId == Boom();
+            var ex = Assert.Throws<InvalidOperationException>(() => PartialEvaluator.Reduce(expr.Body));
+            Assert.Equal("boom", ex.Message);
+        }
     }
 }

@@ -26,6 +26,13 @@ namespace Zonkey.ObjectModel.QueryTranslation
         public SqlColumn Column;
     }
 
+    // a boolean-typed non-column expression (COALESCE/CASE) used in predicate position;
+    // rendered via the dialect's boolean formatting (base: (x = 1), PostgreSql: (x))
+    internal sealed class SqlBoolExprPredicate : SqlNode
+    {
+        public SqlNode Operand;
+    }
+
     internal sealed class SqlValue : SqlNode
     {
         public object Value;

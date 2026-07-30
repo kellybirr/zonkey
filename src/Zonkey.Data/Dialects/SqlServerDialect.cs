@@ -213,6 +213,7 @@ namespace Zonkey.Dialects
         {
             switch (name)
             {
+                case "COALESCE": return $"ISNULL({args[0]}, {args[1]})";
                 case "LENGTH": return $"LEN({args[0]})";
                 case "SUBSTRING": return $"SUBSTRING({args[0]}, {args[1]}, {args[2]})";
                 case "SUBSTRING2": return $"SUBSTRING({args[0]}, {args[1]}, 2147483647)";

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Linq.Expressions;
 using Xunit;
 using Zonkey;
 using Zonkey.Dialects;
+using Zonkey.Extensions;
 using Zonkey.ObjectModel;
 using Zonkey.ObjectModel.QueryTranslation;
 using Zonkey.Tests.Models;
@@ -147,6 +149,105 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         {
             Assert.Equal("((SpeciesId & $0) = $1)", T(a => (a.SpeciesId & 4) == 4).SqlText);
             Assert.Equal("((SpeciesId | $0) > $1)", T(a => (a.SpeciesId | 1) > 0).SqlText);
+        }
+
+        [Fact]
+        public void BoolCoalesce_PredicatePosition_AllDialects()
+        {
+            var generic = TranslationTestHelper.Translate<NullBoolModel>(m => m.MaybeFlag ?? false);
+            Assert.Equal("(COALESCE(MaybeFlag, $0) = 1)", generic.SqlText);
+
+            var mssql = TranslationTestHelper.Translate<NullBoolModel>(m => m.MaybeFlag ?? false, new SqlServerDialect());
+            Assert.Equal("(ISNULL([MaybeFlag], $0) = 1)", mssql.SqlText);
+
+            var pg = TranslationTestHelper.Translate<NullBoolModel>(m => m.MaybeFlag ?? false, new PostgreSqlDialect());
+            Assert.Equal("(COALESCE(MaybeFlag, $0))", pg.SqlText);
+        }
+
+        [Fact]
+        public void BoolCoalesce_Negated_WrapsCorrectly()
+        {
+            var r = TranslationTestHelper.Translate<NullBoolModel>(m => !(m.MaybeFlag ?? false));
+            Assert.Equal("(NOT (COALESCE(MaybeFlag, $0) = 1))", r.SqlText);
+        }
+
+        [Fact]
+        public void BoolTernary_PredicatePosition_WrapsCaseWhen()
+        {
+            var r = TS(s => s.SpeciesId > 1 ? true : s.IsEndangered);
+            Assert.Equal("(CASE WHEN (SpeciesId > $0) THEN $1 ELSE IsEndangered END = 1)", r.SqlText);
+        }
+
+        // T1: one predicate chaining equality, an escaped Contains, Math.Round, a coalesce, an IN
+        // list, and a subquery SqlIn, all combined with left-associative AndAlso. This guards that
+        // SqlTextGenerator.Render()'s mark/truncate mechanism keeps parameter numbering in strict
+        // left-to-right appearance order even when nested through SqlFunction args and a subquery.
+        [Fact]
+        public void ComplexPredicate_NestedParameterOrdering_MatchesAppearanceOrder()
+        {
+            var ids3 = new[] { 1, 2, 3 };
+            Expression<Func<Animal, bool>> expr = a =>
+                a.SpeciesId == 9
+                && a.Name.Contains("50%")
+                && Math.Round(a.Weight.Value) > 5m
+                && (a.ExhibitId ?? -1) != -2
+                && ids3.Contains(a.SpeciesId)
+                && a.ExhibitId.SqlIn((Exhibit e) => e.ExhibitId, e => e.Capacity > 10);
+
+            var r = TranslationTestHelper.Translate(expr);
+
+            Assert.Equal(
+                "((((((SpeciesId = $0) AND (Name LIKE $1 ESCAPE '\\')) AND (ROUND(Weight) > $2)) AND " +
+                "(COALESCE(ExhibitId, $3) != $4)) AND (SpeciesId IN ($5,$6,$7))) AND " +
+                "(ExhibitId IN (SELECT ExhibitId FROM Exhibit WHERE (Capacity > $8))))",
+                r.SqlText);
+            Assert.Equal(new object[] { 9, "%50\\%%", 5m, -1, -2, 1, 2, 3, 10 }, r.Parameters);
+        }
+
+        // T2: Convert/ConvertChecked nodes must be transparent - the translator unwraps them and
+        // translates the operand directly, so the column renders bare and the constant keeps its
+        // original CLR type (no coercion to the target conversion type).
+        [Fact]
+        public void Conversion_LongCast_IsTransparentAndPreservesParameterType()
+        {
+            var r = T(a => (long)a.SpeciesId == 5L);
+            Assert.Equal("(SpeciesId = $0)", r.SqlText);
+            Assert.IsType<long>(r.Parameters[0]);
+            Assert.Equal(5L, r.Parameters[0]);
+        }
+
+        [Fact]
+        public void Conversion_DecimalCast_IsTransparentAndPreservesParameterType()
+        {
+            var r = T(a => (decimal)a.SpeciesId > 1m);
+            Assert.Equal("(SpeciesId > $0)", r.SqlText);
+            Assert.IsType<decimal>(r.Parameters[0]);
+        }
+
+        [Fact]
+        public void NullableLift_RendersSameColumnAsExplicitValue()
+        {
+            // a.Weight is decimal?; comparing it directly (without .Value) goes through the
+            // lifted-to-null GreaterThan operator, but the translator only looks at Left/Right
+            // expressions, so it renders identically to a.Weight.Value > 5m.
+            Assert.Equal("(Weight > $0)", T(a => a.Weight > 5m).SqlText);
+        }
+
+        [Fact]
+        public void ManuallyBuiltConvertChecked_TranslatesTransparently()
+        {
+            // C# never emits ConvertChecked for an int -> long widening conversion (it can't
+            // overflow), so build the tree directly to exercise the ConvertChecked branch in
+            // ExpressionTranslator.Translate.
+            ParameterExpression param = Expression.Parameter(typeof(Animal), "a");
+            MemberExpression access = Expression.Property(param, nameof(Animal.SpeciesId));
+            UnaryExpression convert = Expression.ConvertChecked(access, typeof(long));
+            BinaryExpression eq = Expression.Equal(convert, Expression.Constant(5L));
+            var lambda = Expression.Lambda<Func<Animal, bool>>(eq, param);
+
+            var r = TranslationTestHelper.Translate(lambda);
+            Assert.Equal("(SpeciesId = $0)", r.SqlText);
+            Assert.Equal(new object[] { 5L }, r.Parameters);
         }
     }
 
