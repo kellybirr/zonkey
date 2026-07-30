@@ -129,6 +129,17 @@ namespace Zonkey.Tests.Unit
         }
 
         [Fact]
+        public void SqlServer_FormatLimitQuery_UsesAnsiOffsetFetch()
+        {
+            // SQL Server 2012+ inherits the ANSI SQL:2008 OFFSET/FETCH form from the base
+            // SqlDialect (the pre-v7.0 ROW_NUMBER() wrapper, compatible with SQL Server
+            // 2005/2008, has been removed).
+            var dialect = new SqlServerDialect();
+            var sql = dialect.FormatLimitQuery("*", "Animal", "1=1", "AnimalId", 20, 10);
+            Assert.Equal("SELECT * FROM Animal WHERE 1=1 ORDER BY AnimalId OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY;", sql);
+        }
+
+        [Fact]
         public void SqlServer_FormatTableName_WithSchema()
         {
             var dialect = new SqlServerDialect();

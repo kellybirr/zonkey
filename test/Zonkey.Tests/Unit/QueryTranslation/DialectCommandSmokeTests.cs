@@ -16,8 +16,10 @@ namespace Zonkey.Tests.Unit.QueryTranslation
     // WHERE-expression set through the translator, plus direct calls to the command-shaping
     // members (FormatLimitQuery/FormatExistsQuery/FormatParameterName/FormatFieldName) - so a
     // future refactor can't silently change any of these dialects' output without a test
-    // noticing. These pin CURRENT behavior, including gaps (e.g. FormatLimitQuery isn't
-    // implemented for any of the three and throws), not aspirations about what "should" work.
+    // noticing. These pin CURRENT behavior, including gaps (e.g. Access has no OFFSET/FETCH or
+    // LIMIT/OFFSET equivalent and FormatLimitQuery throws for it), not aspirations about what
+    // "should" work. Oracle and DB2 inherit the ANSI SQL:2008 OFFSET/FETCH paging form from the
+    // base SqlDialect and report SupportsLimit == true.
     public class DialectCommandSmokeTests
     {
         private static SqlWhereClause T(Expression<Func<Animal, bool>> e, SqlDialect d)
@@ -70,11 +72,16 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         }
 
         [Fact]
-        public void Oracle_FormatLimitQuery_NotSupported()
+        public void Oracle_FormatLimitQuery_UsesAnsiOffsetFetch()
         {
-            Assert.Throws<NotSupportedException>(() =>
+            Assert.Equal(
+                "SELECT * FROM Animal WHERE  ORDER BY  OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY;",
                 new OracleSqlDialect().FormatLimitQuery("*", "Animal", "", "", 0, 10));
         }
+
+        [Fact]
+        public void Oracle_SupportsLimit() =>
+            Assert.True(new OracleSqlDialect().SupportsLimit);
 
         [Fact]
         public void Oracle_FormatExistsQuery_UsesDualTable()
@@ -147,11 +154,16 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         }
 
         [Fact]
-        public void Db2_FormatLimitQuery_NotSupported()
+        public void Db2_FormatLimitQuery_UsesAnsiOffsetFetch()
         {
-            Assert.Throws<NotSupportedException>(() =>
+            Assert.Equal(
+                "SELECT * FROM Animal WHERE  ORDER BY  OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY;",
                 new DB2SqlDialect().FormatLimitQuery("*", "Animal", "", "", 0, 10));
         }
+
+        [Fact]
+        public void Db2_SupportsLimit() =>
+            Assert.True(new DB2SqlDialect().SupportsLimit);
 
         [Fact]
         public void Db2_FormatExistsQuery_UsesSysDummy()

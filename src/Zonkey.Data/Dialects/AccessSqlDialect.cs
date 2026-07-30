@@ -72,6 +72,15 @@ namespace Zonkey.Dialects
         }
 
         /// <summary>
+        /// Access has no OFFSET/FETCH or LIMIT/OFFSET equivalent, so FillRange-style paging
+        /// cannot be expressed as SQL text for this dialect.
+        /// </summary>
+        public override string FormatLimitQuery(string columnString, string tableName, string whereText, string orderBy, int start, int length)
+        {
+            throw new NotSupportedException("This SQL dialect does not support the FormatLimitQuery feature.");
+        }
+
+        /// <summary>
         /// Optimizes the select single command.
         /// </summary>
         /// <param name="command">The command.</param>

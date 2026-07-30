@@ -181,6 +181,7 @@ Zonkey 7.0 is a major release. Beyond the target-framework and strong-naming cha
   - `list.Contains(x)` where the list contains a `null` now also matches NULL rows (`OR IS NULL`), matching C#/EF `Contains` semantics.
   - Untranslatable expressions throw `SqlExpressionException` (derives from `NotSupportedException`) instead of silently mistranslating or falling back to client-side evaluation.
 - **SQLite paging (`FillRange`) fixed.** v6 had the `LIMIT`/`OFFSET` operands swapped and returned the wrong page of rows.
+- **SQL Server paging (`FillRange`) now emits `OFFSET ... FETCH NEXT ... ROWS ONLY`** and requires **SQL Server 2012 or later**. v6 used a `ROW_NUMBER() OVER(...)` wrapper compatible with SQL Server 2005/2008; that wrapper has been removed. Oracle and DB2 now also support `FillRange` via the same ANSI SQL:2008 offset-fetch form (previously unsupported and threw `NotSupportedException`).
 - **`Recordset.MoveLast` now positions on the last row.** v6 landed on EOF and returned `false`.
 - **Integral-to-enum conversion now throws for out-of-range values** instead of silently wrapping (v6 behavior).
 - **`DataClassReader`'s IL-emitted fast builder is on by default** (`DataClassReader<T>.DefaultUseFastBuilder = true`). Set it to `false` to fall back to the previous per-field reflection path.

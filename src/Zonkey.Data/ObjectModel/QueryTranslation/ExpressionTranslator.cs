@@ -31,7 +31,15 @@ namespace Zonkey.ObjectModel.QueryTranslation
             // only COALESCE/CASE_WHEN produce a scalar value that needs "= 1" style boolean coercion;
             // other bool-returning functions (e.g. ISNULLOREMPTY) already render a complete predicate.
             if (node is SqlFunction sf && (sf.Name == "COALESCE" || sf.Name == "CASE_WHEN") && IsBooleanType(e.Type))
-                return new SqlBoolExprPredicate { Operand = node };
+            {
+                // COALESCE in bool-predicate position is rewritten to the COALESCE_BOOL logical name so
+                // dialects (SqlServer) can render it with ISNULL, which types its result as the FIRST
+                // argument and truncates the replacement - safe only here, never for a general `??`.
+                SqlNode operand = (sf.Name == "COALESCE")
+                    ? new SqlFunction { Name = "COALESCE_BOOL", Args = sf.Args }
+                    : node;
+                return new SqlBoolExprPredicate { Operand = operand };
+            }
             return node;
         }
 
@@ -164,7 +172,11 @@ namespace Zonkey.ObjectModel.QueryTranslation
 
             if (m.Expression is ParameterExpression pex)
             {
-                DataMap map = _maps[pex.Name];
+                if (!_maps.TryGetValue(pex.Name, out DataMap map))
+                    throw SqlExpressionException.ForNode(m,
+                        $"parameter '{pex.Name}' is not in scope here",
+                        "correlated subqueries (referencing the outer query's lambda parameter inside a SqlIn subquery) are not yet supported");
+
                 IDataMapField field = map.GetFieldForProperty((PropertyInfo)m.Member);
                 if (field == null)
                     throw SqlExpressionException.ForNode(m, $"property '{m.Member.Name}' is not mapped to a column on '{map.ObjectType.Name}'");

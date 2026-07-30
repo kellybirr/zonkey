@@ -97,7 +97,7 @@ namespace Zonkey.Tests.Integration
             else
             {
                 adapter.FillAll(dt);
-                Assert.Equal(0, dt.Columns.Count);
+                Assert.Empty(dt.Columns);
             }
         }
 

@@ -108,8 +108,18 @@ namespace Zonkey.ObjectModel.QueryTranslation
             {
                 if (e.NodeType == ExpressionType.Constant) return e;
 
-                if (TryEvaluateMemberChain(e, out object chainValue))
-                    return Expression.Constant(chainValue, e.Type);
+                try
+                {
+                    if (TryEvaluateMemberChain(e, out object chainValue))
+                        return Expression.Constant(chainValue, e.Type);
+                }
+                catch (TargetInvocationException tie) when (tie.InnerException != null)
+                {
+                    // PropertyInfo.GetValue (used by the fast member-chain path) wraps getter
+                    // exceptions in TargetInvocationException just like DynamicInvoke below.
+                    ExceptionDispatchInfo.Capture(tie.InnerException).Throw();
+                    throw;   // unreachable
+                }
 
                 object value;
                 try

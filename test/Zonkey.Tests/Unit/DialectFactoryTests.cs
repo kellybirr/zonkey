@@ -68,6 +68,14 @@ namespace Zonkey.Tests.Unit
     /// connector types, plus a dedicated "MariaDB.Data.MariaDbConnection" entry. Unregistered
     /// drivers are the consumer's job via the public Factories dictionary.
     /// </summary>
+    [CollectionDefinition("DialectFactoryMutation", DisableParallelization = true)]
+    public class DialectFactoryMutationCollection
+    { }
+
+    // Mutates the static, non-thread-safe SqlDialect.Factories dictionary (see
+    // ConsumerCanRegisterExactTypeName_ViaPublicFactories below); SqlDialect.Create() reads it
+    // lock-free, so this class must not run concurrently with other test classes that call Create().
+    [Collection("DialectFactoryMutation")]
     public class DialectFactoryTests
     {
         [Fact]

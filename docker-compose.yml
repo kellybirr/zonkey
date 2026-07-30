@@ -45,7 +45,7 @@ services:
       # Host port 3308 avoids clashing with a locally running MySQL on 3306/3307
       - "3308:3306"
     healthcheck:
-      test: mysqladmin ping -h localhost -u root -pzonkey
+      test: mysqladmin ping -h 127.0.0.1 -u root -pzonkey
       interval: 10s
       timeout: 5s
       retries: 10

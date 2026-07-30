@@ -153,24 +153,6 @@ namespace Zonkey.Dialects
         }
 
         /// <summary>
-        /// Formats the limit query.
-        /// </summary>
-        /// <param name="columnString">The column string.</param>
-        /// <param name="tableName">Name of the table.</param>
-        /// <param name="whereText">The where text.</param>
-        /// <param name="orderBy">The order by.</param>
-        /// <param name="start">The start.</param>
-        /// <param name="length">The length.</param>
-        /// <returns></returns>
-        public override string FormatLimitQuery(string columnString, string tableName, string whereText, string orderBy, int start, int length)
-        {
-            return
-                string.Format(
-                    "SELECT {6} FROM ( SELECT {0}, ROW_NUMBER() OVER(ORDER BY {3}) AS [__ZONKEY_ROW_INDEX__] FROM {1} WHERE {2} ) [__ZONKEY_INNER_QUERY__] WHERE [__ZONKEY_ROW_INDEX__] BETWEEN {4} AND {5};",
-                        columnString, tableName, whereText, orderBy, start + 1, start + length, columnString.Replace(tableName+".", ""));
-        }
-
-        /// <summary>
         /// Optimizes the select single command.
         /// </summary>
         /// <param name="command">The command.</param>
@@ -213,7 +195,7 @@ namespace Zonkey.Dialects
         {
             switch (name)
             {
-                case "COALESCE": return $"ISNULL({args[0]}, {args[1]})";
+                case "COALESCE_BOOL": return $"ISNULL({args[0]}, {args[1]})";
                 case "LENGTH": return $"LEN({args[0]})";
                 case "SUBSTRING": return $"SUBSTRING({args[0]}, {args[1]}, {args[2]})";
                 case "SUBSTRING2": return $"SUBSTRING({args[0]}, {args[1]}, 2147483647)";

@@ -44,14 +44,16 @@ The result is a raw, unhandled `KeyNotFoundException` with no context about what
 went wrong or which parameter was unresolvable — a confusing failure for something
 that reads like valid, idiomatic C#.
 
-## Interim improvement (cheap, could ship in a 7.0.x patch)
+## Interim improvement — SHIPPED in 7.0
 
-Catch the unresolved parameter in `TranslateMember` and throw a proper
+`TranslateMember` now catches the unresolved parameter and throws a proper
 `SqlExpressionException` naming the parameter and stating that correlated
 subqueries are not yet supported, instead of letting `KeyNotFoundException` leak
-through. This is a few lines — replace the dictionary index with a `TryGetValue`
-and a targeted throw — and turns a confusing crash into an actionable message. It
-does not implement correlation; it only makes the unsupported case fail clearly.
+through. The dictionary index was replaced with a `TryGetValue` and a targeted
+throw, turning a confusing crash into an actionable message. It does not
+implement correlation; it only makes the unsupported case fail clearly. See
+`ExpressionTranslator.TranslateMember` and
+`test/Zonkey.Tests/Unit/QueryTranslation/SubqueryTests.cs::CorrelatedSubquery_ThrowsDiagnosticNotKeyNotFound`.
 
 ## Real feature (v7.1)
 

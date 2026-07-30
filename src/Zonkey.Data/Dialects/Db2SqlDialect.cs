@@ -9,6 +9,15 @@ namespace Zonkey.Dialects
     public class DB2SqlDialect : AnsiSqlDialect
     {
         /// <summary>
+        /// Gets a value indicating whether database supports limit.
+        /// DB2 supports the ANSI OFFSET/FETCH syntax inherited from the base dialect.
+        /// </summary>
+        public override bool SupportsLimit
+        {
+            get { return true; }
+        }
+
+        /// <summary>
         /// Gets the server-specific command to obtain the last inserted identity.
         /// </summary>
         public override string FormatAutoIncrementSelect(string sequenceName)

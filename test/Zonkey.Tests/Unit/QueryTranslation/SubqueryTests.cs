@@ -113,6 +113,15 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         }
 
         [Fact]
+        public void CorrelatedSubquery_ThrowsDiagnosticNotKeyNotFound()
+        {
+            var ex = Assert.Throws<SqlExpressionException>(
+                () => T(a => a.ExhibitId.SqlIn((Exhibit e) => e.ExhibitId, e => e.Name == a.Name)));
+            Assert.Contains("correlated", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("'a'", ex.Message);
+        }
+
+        [Fact]
         public void ThreeArgSqlIn_BoolFieldSelector_RendersAsSelectColumnNotPredicate()
         {
             // The field selector must be a plain property access - IsOpen is a bool property, and

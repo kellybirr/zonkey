@@ -140,18 +140,22 @@ namespace Zonkey.Dialects
         }
 
         /// <summary>
-        /// Formats the limit query.
+        /// Formats the limit query using the ANSI SQL:2008 <c>OFFSET ... FETCH NEXT ... ROWS ONLY</c> form.
+        /// This is the default implementation inherited by dialects that support standard offset-fetch
+        /// paging (SQL Server 2012+, Oracle, DB2, and any dialect that doesn't override it). Dialects
+        /// with their own paging syntax (SQLite/PostgreSQL/MySQL use LIMIT/OFFSET) or that cannot page
+        /// at all (Access) override this method.
         /// </summary>
         /// <param name="columnString">The column string.</param>
         /// <param name="tableName">Name of the table.</param>
         /// <param name="whereText">The where text.</param>
         /// <param name="orderBy">The order by.</param>
-        /// <param name="start">The start.</param>
-        /// <param name="length">The length.</param>
+        /// <param name="start">The start (0-based row offset).</param>
+        /// <param name="length">The length (page size).</param>
         /// <returns></returns>
         public virtual string FormatLimitQuery(string columnString, string tableName, string whereText, string orderBy, int start, int length)
         {
-            throw new NotSupportedException("This SQL dialect does not support the FormatLimitQuery feature.");
+            return $"SELECT {columnString} FROM {tableName} WHERE {whereText} ORDER BY {orderBy} OFFSET {start} ROWS FETCH NEXT {length} ROWS ONLY;";
         }
 
         /// <summary>
@@ -300,7 +304,7 @@ namespace Zonkey.Dialects
                 case "INDEXOF": return $"(POSITION({args[1]} IN {args[0]}) - 1)";
                 case "REPLACE": return $"REPLACE({args[0]}, {args[1]}, {args[2]})";
                 case "CONCAT": return $"({args[0]} || {args[1]})";
-                case "COALESCE": return $"COALESCE({args[0]}, {args[1]})";
+                case "COALESCE": case "COALESCE_BOOL": return $"COALESCE({args[0]}, {args[1]})";
                 case "CASE_WHEN": return $"CASE WHEN {args[0]} THEN {args[1]} ELSE {args[2]} END";
                 case "ISNULLOREMPTY": return $"({args[0]} IS NULL OR {args[0]} = '')";
                 case "DATE_YEAR": return $"EXTRACT(YEAR FROM {args[0]})";

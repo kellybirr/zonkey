@@ -110,6 +110,17 @@ namespace Zonkey.Tests.Unit.QueryTranslation
                 T(a => (a.ExhibitId == null ? 0 : 1) == 1).SqlText);
         }
 
+        // Regression: T-SQL ISNULL types its result as the FIRST argument and truncates the
+        // replacement (e.g. a VARCHAR(3) column ?? 'UNKNOWN' silently becomes 'UNK'). ISNULL must
+        // only be used for the bool-predicate COALESCE_BOOL rewrite; a plain non-bool `??` must
+        // keep rendering as COALESCE on SqlServer too.
+        [Fact]
+        public void NonBoolCoalesce_OnSqlServer_UsesCoalesceNotIsNull()
+        {
+            var r = TranslationTestHelper.Translate<Animal>(a => (a.Notes ?? "none") == "x", new SqlServerDialect());
+            Assert.Equal("(COALESCE([Notes], $0) = $1)", r.SqlText);
+        }
+
         [Fact]
         public void CapturedValues_ProduceParameters()
         {

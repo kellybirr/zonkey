@@ -127,5 +127,19 @@ namespace Zonkey.Tests.Unit.QueryTranslation
             var ex = Assert.Throws<InvalidOperationException>(() => PartialEvaluator.Reduce(expr.Body));
             Assert.Equal("boom", ex.Message);
         }
+
+        private sealed class ExplodingHolder
+        {
+            public string Exploding => throw new InvalidOperationException("getter boom");
+        }
+
+        [Fact]
+        public void PropertyGetterException_OnMemberChainFastPath_UnwrapsTargetInvocationException()
+        {
+            var holder = new ExplodingHolder();
+            Expression<Func<Animal, bool>> expr = a => a.Name == holder.Exploding;
+            var ex = Assert.Throws<InvalidOperationException>(() => PartialEvaluator.Reduce(expr.Body));
+            Assert.Equal("getter boom", ex.Message);
+        }
     }
 }
