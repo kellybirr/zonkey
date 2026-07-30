@@ -62,7 +62,7 @@ namespace Zonkey
         private async Task<bool> ExistsInternal(string text, FillMethod method, IList parameters)
         {
             if (Connection == null)
-                throw new InvalidOperationException("must set connection before calling GetCount()");
+                throw new InvalidOperationException("must set connection before calling Exists()");
 
             DbCommand command;
             switch (method)
@@ -79,7 +79,9 @@ namespace Zonkey
             }
 
             object result = await ExecuteScalerInternal(command).ConfigureAwait(false);
-            return ((result as int?) == 1);
+
+            // providers box the scalar differently (int on SqlClient, long on SQLite/MySQL, decimal on Oracle)
+            return (result != null) && (result != DBNull.Value) && (Convert.ToInt64(result) == 1L);
         }
     }
 }

@@ -9,7 +9,11 @@ namespace Zonkey.ObjectModel
     /// <summary>
     /// The preferred method of managing database connections
     /// </summary>
+#if !NETFRAMEWORK
+    public abstract class DatabaseWrapper : IDisposable, IAsyncDisposable
+#else
     public abstract class DatabaseWrapper : IDisposable
+#endif
     {
         /// <summary>
         /// Private cache of adapters
@@ -84,16 +88,16 @@ namespace Zonkey.ObjectModel
         }
 
         /// <summary>
-        /// Executes an action within a DB transaction
+        /// Executes an async function within a DB transaction
         /// </summary>
-        /// <param name="code">The code to execute</param>
-        public void WithTransaction(Action<DbTransaction> code)
+        /// <param name="code">The async code to execute</param>
+        public async Task WithTransaction(Func<DbTransaction, Task> code)
         {
             using (var trx = BeginTransaction())
             {
                 try
                 {
-                    code(trx);
+                    await code(trx);
                     trx.Commit();
                 }
                 catch
@@ -158,6 +162,19 @@ namespace Zonkey.ObjectModel
         /// </summary>
         /// <typeparam name="Tdc">The type of the dc.</typeparam>
         /// <param name="obj">The obj.</param>
+        /// <param name="selectBack">Select what back</param>
+        /// <returns></returns>
+        public virtual Task<bool> Save<Tdc>(Tdc obj, SelectBack selectBack)
+            where Tdc : class, ISavable, new()
+        {
+            return Adapter<Tdc>().Save(obj, selectBack);
+        }
+
+        /// <summary>
+        /// Equivalent to calling DataClassAdapter.Save
+        /// </summary>
+        /// <typeparam name="Tdc">The type of the dc.</typeparam>
+        /// <param name="obj">The obj.</param>
         /// <param name="updateCriteria">The update criteria</param>
         /// <param name="updateAffect">Affect which fields</param>
         /// <param name="selectBack">Select what back</param>
@@ -172,7 +189,7 @@ namespace Zonkey.ObjectModel
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()
-        {			
+        {           
             Dispose(true);
         }
 
@@ -184,5 +201,24 @@ namespace Zonkey.ObjectModel
             if (disposing)
                 GC.SuppressFinalize(this);
         }
+
+#if !NETFRAMEWORK
+        /// <summary>
+        /// Asynchronously disposes the connection and clears the adapter cache.
+        /// </summary>
+        public virtual async ValueTask DisposeAsync()
+        {
+            _adapters.Clear();
+
+            if (Connection != null)
+                await Connection.DisposeAsync().ConfigureAwait(false);
+
+            // Connection is already disposed above; Dispose(bool) still runs so subclasses
+            // that override it to release their own resources are not bypassed on the
+            // `await using` path. Connection?.Dispose() inside it is a safe no-op re-dispose.
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+#endif
     }
 }

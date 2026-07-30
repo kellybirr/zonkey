@@ -1,3 +1,4 @@
+using System;
 using System.Data;
 using System.Data.Common;
 
@@ -71,6 +72,15 @@ namespace Zonkey.Dialects
         }
 
         /// <summary>
+        /// Access has no OFFSET/FETCH or LIMIT/OFFSET equivalent, so FillRange-style paging
+        /// cannot be expressed as SQL text for this dialect.
+        /// </summary>
+        public override string FormatLimitQuery(string columnString, string tableName, string whereText, string orderBy, int start, int length)
+        {
+            throw new NotSupportedException("This SQL dialect does not support the FormatLimitQuery feature.");
+        }
+
+        /// <summary>
         /// Optimizes the select single command.
         /// </summary>
         /// <param name="command">The command.</param>
@@ -81,6 +91,31 @@ namespace Zonkey.Dialects
 
             string cmdWOselect = command.CommandText.Substring(6);
             command.CommandText = "SELECT TOP 1" + cmdWOselect;
+        }
+
+        public override string RenderFunction(string name, params string[] args)
+        {
+            switch (name)
+            {
+                case "UPPER": return $"UCase({args[0]})";
+                case "LOWER": return $"LCase({args[0]})";
+                case "LENGTH": return $"Len({args[0]})";
+                case "SUBSTRING": return $"Mid({args[0]}, {args[1]}, {args[2]})";
+                case "SUBSTRING2": return $"Mid({args[0]}, {args[1]})";
+                case "INDEXOF": return $"(InStr({args[0]}, {args[1]}) - 1)";
+                case "CONCAT": return $"({args[0]} & {args[1]})";
+                case "TRIM": return $"Trim({args[0]})";
+                case "DATE_YEAR": return $"DatePart('yyyy', {args[0]})";
+                case "DATE_MONTH": return $"DatePart('m', {args[0]})";
+                case "DATE_DAY": return $"DatePart('d', {args[0]})";
+                case "DATE_HOUR": return $"DatePart('h', {args[0]})";
+                case "DATE_MINUTE": return $"DatePart('n', {args[0]})";
+                case "DATE_SECOND": return $"DatePart('s', {args[0]})";
+                case "DATE_DATE": return $"DateValue({args[0]})";
+                case "COALESCE": return $"IIf({args[0]} IS NULL, {args[1]}, {args[0]})";
+                case "CASE_WHEN": return $"IIf({args[0]}, {args[1]}, {args[2]})";
+                default: return base.RenderFunction(name, args);
+            }
         }
     }
 }

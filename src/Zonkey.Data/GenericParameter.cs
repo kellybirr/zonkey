@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
-using System.Reflection;
+using Zonkey.ObjectModel;
 
 namespace Zonkey
 {
@@ -215,11 +214,12 @@ namespace Zonkey
                 _nativeParam.ParameterName = dialect.FormatParameterName(_parameterName, command.CommandType);
 
             _nativeParam.Direction = _direction;
-            _nativeParam.SmartSetType(_dbType);
 
             if (_size != 0) _nativeParam.Size = _size;
             _nativeParam.SourceColumn = _sourceColumn;
             _nativeParam.Value = (_value ?? DBNull.Value);
+
+            _nativeParam.SmartSetType(_dbType);
 
             dialect.FixParameter(_nativeParam);
             command.Parameters.Add(_nativeParam);
@@ -289,42 +289,30 @@ namespace Zonkey
         }
     }
 
-    static class DbParameterExtensions
+    public static class DbParameterExtensions
     {
+        private static readonly IDictionary<(Type, DbType), Action<DbParameter, IDataMapField>> _smartTypes 
+            = new Dictionary<(Type, DbType), Action<DbParameter, IDataMapField>>();
+
+        public static void UseTypeSetter<TParam>(DbType dataType, Action<DbParameter, IDataMapField> setter) where TParam : DbParameter
+        {
+            _smartTypes[(typeof(TParam), dataType)] = setter;
+        }
+
+        internal static void SmartSetType(this DbParameter parameter, IDataMapField field)
+        {
+            parameter.DbType = field.DataType;
+
+            if (_smartTypes.TryGetValue((parameter.GetType(), field.DataType), out Action<DbParameter, IDataMapField> setter))
+                setter(parameter, field);
+        }
+
         internal static void SmartSetType(this DbParameter parameter, DbType dbType)
         {
             parameter.DbType = dbType;
 
-            // This is a hack for a MS defect in the SqlParameter Class when using Time types.
-            if ( (dbType == DbType.Time) && (parameter is SqlParameter sqlParameter) )
-                sqlParameter.SqlDbType = SqlDbType.Time;
+            if (_smartTypes.TryGetValue((parameter.GetType(), dbType), out Action<DbParameter, IDataMapField> setter))
+                setter(parameter, null);
         }
-
-#if (false)
-        internal static void SmartSetType(this DbParameter parameter, DbType dbType)
-        {
-            parameter.DbType = dbType;
-
-            if (dbType == DbType.Time)
-                FixSqlServerTime(parameter);
-        }
-
-        /// <summary>
-        /// This is a hack for a MS defect in the SqlParameter Class when using Time types.
-        /// </summary>
-        /// <param name="parameter"></param>
-        private static void FixSqlServerTime(DbParameter parameter)
-        {
-            Type objType = parameter.GetType();
-            if (objType.FullName == "System.Data.SqlClient.SqlParameter")
-            {
-                PropertyInfo propInfo = objType.GetTypeInfo().GetProperty("SqlDbType");
-                propInfo?.SetValue(parameter, SqlDbType_Time);
-            }
-        }
-
-        // I hate this, but i don't want to have a reference to System.Data.SqlClient in Zonkey Core
-        private const int SqlDbType_Time = 32;
-#endif
     }
 }

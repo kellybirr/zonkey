@@ -38,7 +38,7 @@ namespace Zonkey.ObjectModel
             IsNullable = isNullable;
 
             Length = -1;
-            AccessType = AccessType.ReadWrite;            
+            AccessType = AccessType.ReadWrite;
         }
 
         /// <summary>
@@ -52,6 +52,11 @@ namespace Zonkey.ObjectModel
         /// </summary>
         /// <value>The type of the data.</value>
         public DbType DataType { get; set; }
+
+        /// <summary>
+        /// Gets the native type for the field.
+        /// </summary>
+        public object NativeType { get; set; }
 
         /// <summary>
         /// Gets or sets the length.

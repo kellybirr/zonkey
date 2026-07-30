@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
@@ -21,11 +22,21 @@ namespace ZonkeyCodeGen.CodeGen
         /// <value><c>true</c> if [cs nullable]; otherwise, <c>false</c>.</value>
         public bool CsNullable { get; set; }
 
+        /// <summary>Gets or sets a value indicating whether to create partial classes.</summary>
+        /// <value>
+        ///   <c>true</c> if partial classes; otherwise, <c>false</c>.</value>
+        public bool PartialClasses { get; set; }
+
         /// <summary>
         /// Gets or sets the tab level.
         /// </summary>
         /// <value>The tab level.</value>
-        protected int TabLevel { get; set; }
+        protected int IndentLevel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the indent string.
+        /// </summary>
+        protected string IndentString { get; set; } = new string(' ', 4);
 
         /// <summary>
         /// Gets or sets a value indicating whether [virtual properties].
@@ -71,17 +82,12 @@ namespace ZonkeyCodeGen.CodeGen
         /// <summary>
         /// One or more lines of code to be added the the (addingnew) constructor
         /// </summary>
-        public IList<string> AddConstructorCode
-        {
-            get 
-            {
-                if (_addConstructorCode == null)
-                    _addConstructorCode = new List<string>();
+        public List<string> AddConstructorCode { get; set; } = new List<string>();
 
-                return _addConstructorCode; 
-            }
-        }
-        private List<string> _addConstructorCode;
+        /// <summary>
+        /// One or more fields to be ignored
+        /// </summary>
+        public List<string> IgnoreFields { get; set; } = new List<string>();
 
         /// <summary>
         /// Gets or sets the generate collections mode.
@@ -93,7 +99,7 @@ namespace ZonkeyCodeGen.CodeGen
         /// Gets or sets a value indicating whether [generate typed adapters].
         /// </summary>
         /// <value>
-        /// 	<c>true</c> if [generate typed adapters]; otherwise, <c>false</c>.
+        ///     <c>true</c> if [generate typed adapters]; otherwise, <c>false</c>.
         /// </value>
         public bool GenerateTypedAdapters { get; set; }
 
@@ -120,7 +126,8 @@ namespace ZonkeyCodeGen.CodeGen
         /// </summary>
         protected void WriteBeginLine()
         {
-            _output.Write(new string('\t', TabLevel));
+            for (int i = 0; i < IndentLevel; i++)
+                _output.Write(IndentString);
         }
 
         /// <summary>
@@ -171,11 +178,50 @@ namespace ZonkeyCodeGen.CodeGen
             _output.Write(s);
         }
 
+        public PropertyNameFormatter FormatPropertyName { get; set; } = (fn,cn) => fn;
+
+        public NullableChecker NullableCheck { get; set; }
+
+        public SequenceNameLookup SequenceNameFunc { get; set; }
+
+        public DateTimeKindChecker DateTimeKindFunc { get; set; }
+
         /// <summary>
         /// Generates this instance.
         /// </summary>
         public abstract void Generate();
     }
+
+    /// <summary>
+    /// A delegate to handle formatting property names
+    /// </summary>
+    /// <param name="fieldName"></param>
+    /// <param name="className"></param>
+    /// <returns></returns>
+    public delegate string PropertyNameFormatter(string fieldName, string className);
+
+    /// <summary>
+    /// A delegate to override checking for nullability of fields
+    /// </summary>
+    /// <param name="tableName">The name of the table</param>
+    /// <param name="columnName">The name of the column</param>
+    /// <returns></returns>
+    public delegate bool NullableChecker(string tableName, string columnName);
+
+    /// <summary>
+    /// A delegate to lookup sequence names
+    /// </summary>
+    /// <param name="columnName"></param>
+    /// <returns></returns>
+    public delegate string SequenceNameLookup(string columnName);
+
+    /// <summary>
+    /// A delegate to check the Kind (Unspecified/Local/Utc) of a DateTime column
+    /// </summary>
+    /// <param name="tableName"></param>
+    /// <param name="columnName"></param>
+    /// <returns></returns>
+    public delegate DateTimeKind DateTimeKindChecker(string tableName, string columnName);
 
     /// <summary>
     /// Enumeration that describes the inheritance of a <see cref="Zonkey.ObjectModel.DataClass"/> collection.

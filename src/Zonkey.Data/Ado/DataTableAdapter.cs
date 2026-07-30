@@ -1,7 +1,6 @@
 using System;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 
 namespace Zonkey.Ado
 {
@@ -41,7 +40,7 @@ namespace Zonkey.Ado
         /// </summary>
         protected override void OnConnectionChanged()
         {
-            _providerFactory = DbConnectionFactory.GetFactory(Connection.GetType().Namespace);
+            _providerFactory = DbProviderFactories.GetFactory(Connection);
         }
 
         /// <summary>

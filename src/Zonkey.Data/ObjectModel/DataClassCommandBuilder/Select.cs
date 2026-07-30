@@ -151,15 +151,7 @@ namespace Zonkey.ObjectModel
         /// <returns></returns>
         public DbCommand GetExistsCommand(string filter)
         {
-            var commandText = new StringBuilder();
-            commandText.AppendFormat("IF EXISTS(SELECT * FROM {0}", SelectTableName);
-
-            if (!string.IsNullOrEmpty(filter))
-                commandText.AppendFormat(" WHERE {0}", filter);
-
-            commandText.Append(") SELECT 1 AS ZONKEY_EXISTS ELSE SELECT 0 AS ZONKEY_EXISTS");
-
-            return GetTextCommand(commandText.ToString());
+            return GetTextCommand(_dialect.FormatExistsQuery(SelectTableName, filter));
         }
 
         /// <summary>
@@ -169,15 +161,10 @@ namespace Zonkey.ObjectModel
         /// <returns></returns>
         public DbCommand GetExistsCommand(SqlFilter[] filters)
         {
-            var commandText = new StringBuilder();
-            commandText.AppendFormat("IF EXISTS(SELECT * FROM {0}", SelectTableName);
-
             DbCommand command = GetTextCommand("");
-            commandText.Append(ProcessFilters(command, filters, true));
+            string whereText = ProcessFilters(command, filters, false);
 
-            commandText.Append(") SELECT 1 AS ZONKEY_EXISTS ELSE SELECT 0 AS ZONKEY_EXISTS");
-
-            command.CommandText = commandText.ToString();
+            command.CommandText = _dialect.FormatExistsQuery(SelectTableName, whereText);
             return command;
         }
 
@@ -262,13 +249,13 @@ namespace Zonkey.ObjectModel
 				if (_builtColumnsStr == null)
 				{
 					var columnsSb = new StringBuilder();
-					foreach (IDataMapField field in _dataMap.ReadableFields)
+					foreach (IDataMapField mapField in _dataMap.ReadableFields)
 					{
 						if (columnsSb.Length > 0) columnsSb.Append(", ");
 
 						if (_useTableWithFieldNames) columnsSb.Append(TableName + ".");
 
-						columnsSb.Append(_dialect.FormatFieldName(field.FieldName, (field.UseQuotedIdentifier ?? UseQuotedIdentifier)));
+						columnsSb.Append(_dialect.FormatFieldName(mapField.FieldName, (mapField.UseQuotedIdentifier ?? UseQuotedIdentifier)));
 					}
 
 					if (columnsSb.Length == 0)

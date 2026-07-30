@@ -9,11 +9,28 @@ namespace Zonkey.Dialects
     public class DB2SqlDialect : AnsiSqlDialect
     {
         /// <summary>
+        /// Gets a value indicating whether database supports limit.
+        /// DB2 supports the ANSI OFFSET/FETCH syntax inherited from the base dialect.
+        /// </summary>
+        public override bool SupportsLimit
+        {
+            get { return true; }
+        }
+
+        /// <summary>
         /// Gets the server-specific command to obtain the last inserted identity.
         /// </summary>
         public override string FormatAutoIncrementSelect(string sequenceName)
         {
             return "SYSIBM.IDENTITY_VAL_LOCAL()";
+        }
+
+        /// <summary>
+        /// DB2 requires a FROM clause on scalar selects.
+        /// </summary>
+        public override string FormatExistsQuery(string tableName, string whereText)
+        {
+            return base.FormatExistsQuery(tableName, whereText) + " FROM SYSIBM.SYSDUMMY1";
         }
 
         /// <summary>
@@ -37,6 +54,17 @@ namespace Zonkey.Dialects
         public override string FormatParameterName(int index, CommandType commandType)
         {
             return "?";
+        }
+
+        public override string RenderFunction(string name, params string[] args)
+        {
+            switch (name)
+            {
+                case "SUBSTRING": return $"SUBSTR({args[0]}, {args[1]}, {args[2]})";
+                case "SUBSTRING2": return $"SUBSTR({args[0]}, {args[1]})";
+                case "INDEXOF": return $"(LOCATE({args[1]}, {args[0]}) - 1)";
+                default: return base.RenderFunction(name, args);
+            }
         }
     }
 }

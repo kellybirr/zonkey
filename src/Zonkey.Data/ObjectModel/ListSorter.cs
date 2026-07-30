@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Zonkey.ObjectModel
 {
@@ -50,6 +49,16 @@ namespace Zonkey.ObjectModel
                 // return based on direction
                 return (descending) ? -(result) : result;
             });
+        }
+
+        public void Sort(List<T> list, string propertyName, bool descending)
+            => Sort(list, propertyName, descending, StringComparison.CurrentCulture);
+
+        public void Sort(List<T> list, string propertyName, bool descending, StringComparison stringComparison)
+        {
+            // Apply and set the sort, if items to sort
+            var pc = new PropertyComparer<T>(propertyName, descending, stringComparison);
+            if (pc.IsValid) list.Sort(pc);
         }
     }
 }

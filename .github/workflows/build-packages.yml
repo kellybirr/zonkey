@@ -1,0 +1,58 @@
+name: Build NuGet Packages
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # required for NuGet trusted publishing (OIDC)
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Get version from release tag
+        id: version
+        run: |
+          $version = "${{ github.event.release.tag_name }}".TrimStart('v')
+          "VERSION=$version" | Out-File -Append $env:GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore Zonkey.sln
+
+      - name: Build Release
+        run: dotnet build Zonkey.sln -c Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }} -p:ContinuousIntegrationBuild=true
+
+      - name: Run Tests
+        run: dotnet test Zonkey.sln -c Release --no-build
+
+      - name: Upload NuGet Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: src/**/bin/Release/*.nupkg
+
+      # Trusted Publishing: exchanges the GitHub OIDC token for a one-time,
+      # 1-hour API key minted by nuget.org — no stored secrets involved.
+      - name: NuGet login (OIDC -> temp API key)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: KellyBirr
+
+      - name: Publish to NuGet.org
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path src -Recurse -Filter *.nupkg | Where-Object FullName -like '*\bin\Release\*' | ForEach-Object {
+            dotnet nuget push $_.FullName --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          }

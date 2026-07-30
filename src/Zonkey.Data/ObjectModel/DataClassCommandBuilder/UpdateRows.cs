@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Reflection;
 using System.Text;
-using Zonkey.Dialects;
 
 namespace Zonkey.ObjectModel
 {
@@ -42,6 +41,7 @@ namespace Zonkey.ObjectModel
                 else
                     setParm.Value = (pair.Value ?? DBNull.Value);
 
+                _dialect.FixParameter(setParm);
                 setParmList.Add(setParm);
             }
             if (setParmList.Count == 0) return null;

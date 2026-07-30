@@ -1,0 +1,38 @@
+<Project>
+
+  <!-- Source Link: lets debuggers, IDE navigation (Ctrl+Click / F12), and anyone
+       inspecting the assemblies resolve the exact sources on GitHub for the built
+       commit. The provider package is included implicitly by the .NET 8+ SDK; these
+       properties turn the wiring on. PDBs are embedded in the assemblies so source
+       navigation works straight from the NuGet package with no symbol server. -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <!-- Shared package metadata (a csproj can override any of these) -->
+  <PropertyGroup>
+    <Version>7.0.0</Version>
+    <PackageReleaseNotes>Zonkey 7.0 is a major release with breaking changes. Packages now target .NET 8, .NET 10, and .NET Framework 4.8 (Zonkey.Text targets .NET Standard 2.0 and .NET Framework 4.8), and assemblies are no longer strong-name signed. Applications on .NET 7 or earlier (including .NET 5/6 and .NET Core), on .NET Framework before 4.8, or requiring strong-named assemblies should stay on the latest v6.x release. See https://github.com/kellybirr/zonkey for full documentation, and see the repository README's "Breaking Changes from v6.x" section for the complete list of API changes (such as WithTransaction) and WHERE-expression behavior changes. FillRange paging on SQL Server now uses OFFSET/FETCH and requires SQL Server 2012 or later.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <!-- Show the project's own README on nuget.org; fall back to the repo-root README
+       for any project that doesn't have a local one. -->
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)/README.md')">
+    <None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+  <ItemGroup Condition="!Exists('$(MSBuildProjectDirectory)/README.md')">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <!-- Allows net48 targets to build on non-Windows machines (e.g. Linux CI runners) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

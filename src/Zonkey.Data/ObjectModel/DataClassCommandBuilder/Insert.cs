@@ -79,6 +79,8 @@ namespace Zonkey.ObjectModel
                     whereString.Append(whereParam.ParameterName);
 
                     whereParam.Value = pi.GetValue(obj, null);
+
+                    _dialect.FixParameter(whereParam);
                     whereParmList.Add(whereParam);
                 }
 
@@ -89,11 +91,11 @@ namespace Zonkey.ObjectModel
                 if ((oValue == null) && (!field.IsNullable)) continue;
                 if ((oValue is Guid) && (Guid.Empty == (Guid)oValue)) continue;
 
-                DbParameter parm = CreateSetParam(command1, field);
+                DbParameter setParm = CreateSetParam(command1, field);
                 if (pi.PropertyType == typeof (string))
-                    SetStringParamValue(field, parm, oValue, true);
+                    SetStringParamValue(field, setParm, oValue, true);
                 else
-                    parm.Value = (oValue ?? DBNull.Value);
+                    setParm.Value = (oValue ?? DBNull.Value);
 
                 if (intoString.Length > 0)
                 {
@@ -102,9 +104,10 @@ namespace Zonkey.ObjectModel
                 }
 
                 intoString.Append(sFieldDescr);
-                valuesString.Append(parm.ParameterName);
+                valuesString.Append(setParm.ParameterName);
 
-                setParmList.Add(parm);
+                _dialect.FixParameter(setParm);
+                setParmList.Add(setParm);
             }
 
             if (intoString.Length == 0)

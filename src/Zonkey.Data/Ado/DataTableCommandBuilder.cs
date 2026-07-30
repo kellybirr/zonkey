@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Text;
 using Zonkey.Dialects;
 
@@ -324,10 +323,8 @@ namespace Zonkey.Ado
             param.ParameterName = SqlDialect.FormatParameterName(column.ColumnName, command.CommandType);
             param.SourceColumn = column.ColumnName;
 
-            if ( (param is SqlParameter) && (column.DataType == typeof(TimeSpan)) )   // hack M$ issue
-                ((SqlParameter) param).SqlDbType = SqlDbType.Time;
-            else
-                param.DbType = DataManager.GetDbType(column.DataType);
+            DbType dbType = DataManager.GetDbType(column.DataType);
+            param.SmartSetType(dbType);
             
             if (column.MaxLength > 0) param.Size = column.MaxLength;
 
@@ -347,10 +344,8 @@ namespace Zonkey.Ado
             param.SourceColumn = column.ColumnName;
             param.SourceVersion = DataRowVersion.Original;
 
-            if ((param is SqlParameter) && (column.DataType == typeof(TimeSpan)))   // hack M$ issue
-                ((SqlParameter)param).SqlDbType = SqlDbType.Time;
-            else
-                param.DbType = DataManager.GetDbType(column.DataType);
+            DbType dbType = DataManager.GetDbType(column.DataType);
+            param.SmartSetType(dbType);
             
             if (column.MaxLength > 0) param.Size = column.MaxLength;
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 #pragma warning disable 8424
@@ -14,10 +15,8 @@ namespace Zonkey.ObjectModel
     /// A class that reads DCs from a DataReader
     /// </summary>
     /// <typeparam name="T"></typeparam>
-#if (NETSTANDARD2_1)
+#if !NETFRAMEWORK
     public class DataClassReader<T> : IEnumerable<T>, IAsyncEnumerable<T>, IDisposable, IAsyncDisposable where T : class
-#elif (NETSTANDARD2_0)
-    public class DataClassReader<T> : IEnumerable<T>, IAsyncEnumerable<T>, IDisposable where T : class
 #else
     public class DataClassReader<T> : IEnumerable<T>, IDisposable where T : class
 #endif
@@ -25,7 +24,8 @@ namespace Zonkey.ObjectModel
         private readonly DataMap _dataMap;
         private readonly DbDataReader _reader;
         private QuickFillInfo[] _fillInfo;
-        //private Func<IDataRecord, T> _builder;
+        private BuilderDelegate _builder;
+        private readonly int[] _builderTracker = new int[1];
         private bool _disposed;
 
         private readonly Type _objectType;
@@ -34,9 +34,20 @@ namespace Zonkey.ObjectModel
         private bool _isCustomFill;
         private bool _isSavable;
 
-#if (false)
-        public bool UseFastBuilder { get; set; };
-#endif
+        private delegate T BuilderDelegate(IDataRecord record, int[] tracker, Func<T> factory);
+
+        /// <summary>
+        /// The process-wide default for <see cref="UseFastBuilder"/>. Defaults to true.
+        /// </summary>
+        public static bool DefaultUseFastBuilder { get; set; } = true;
+
+        /// <summary>
+        /// When true (the default), rows are populated by an IL-emitted builder compiled
+        /// once per (type, result-set shape) instead of per-field reflection. Conversion
+        /// failures throw <see cref="PropertyReadException"/> identifying the property,
+        /// exactly like the reflection path.
+        /// </summary>
+        public bool UseFastBuilder { get; set; } = DefaultUseFastBuilder;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DataClassReader&lt;T&gt;"/> class.
@@ -138,7 +149,7 @@ namespace Zonkey.ObjectModel
             return GetEnumerator();
         }
 
-#if (NETSTANDARD)
+#if !NETFRAMEWORK
         async IAsyncEnumerator<T> IAsyncEnumerable<T>.GetAsyncEnumerator([EnumeratorCancellation] System.Threading.CancellationToken cancellationToken = default)
         {
             T item;
@@ -163,7 +174,7 @@ namespace Zonkey.ObjectModel
 
         ~DataClassReader() => Dispose(false);
 
-#if (NETSTANDARD2_1)
+#if !NETFRAMEWORK
         public async ValueTask DisposeAsync()
         {
             if (DisposeBaseReader && !_disposed)
@@ -209,26 +220,42 @@ namespace Zonkey.ObjectModel
             }
             else
             {
-#if (false)
                 if (UseFastBuilder)
                 {
-                    if (_builder == null)
-                        _builder = CreateBuilder(_reader);
+                    _builder ??= CreateBuilder();
 
-                    item = _builder(_reader);
+                    try
+                    {
+                        item = _builder(_reader, _builderTracker, ObjectFactory);
+                    }
+                    catch (Exception ex) when (ex is not PropertyReadException)
+                    {
+                        throw WrapBuilderException(ex);
+                    }
                 }
                 else
                 {
                     item = BuildObject(_reader);
                 }
-#else
-                item = BuildObject(_reader);
-#endif
+
                 if (_isSavable)
                     ((ISavable)item).CommitValues();
             }
 
             return item;
+        }
+
+        private Exception WrapBuilderException(Exception ex)
+        {
+            int ordinal = _builderTracker[0];
+            QuickFillInfo info = ((ordinal >= 0) && (ordinal < _fillInfo.Length)) ? _fillInfo[ordinal] : null;
+            if (info == null) return ex; // failed outside a field set (e.g. object construction)
+
+            object value = null;
+            try { value = _reader.GetValue(ordinal); }
+            catch { /* value stays null for the exception report */ }
+
+            return new PropertyReadException(info.PropertyInfo, value, ex);
         }
 
         private T BuildObject(IDataRecord record)
@@ -237,34 +264,9 @@ namespace Zonkey.ObjectModel
             for (int i = 0; i < _fillInfo.Length; i++)
             {
                 QuickFillInfo info = _fillInfo[i];
-                if (info == null) continue;
+                if (info == null || record.IsDBNull(i)) continue;
 
-                if (record.IsDBNull(i)) continue;
-                object oValue = record.GetValue(i);				
-
-                try
-                {                    
-                    if (!info.IsAssignable)
-                    {
-                        if ((info.PropertyType == typeof(Guid)) && (oValue is string))
-                            info.PropertyInfo.SetValue(obj, new Guid(oValue.ToString()), null);
-                        else if (info.FieldType.Name.EndsWith("SqlHierarchyId")) // if the column is a HierarchyID type, then just treat it as a string (SQL server can implicitly convert between the two)
-                            info.PropertyInfo.SetValue(obj, oValue.ToString(), null);
-                        else
-                            info.PropertyInfo.SetValue(obj, Convert.ChangeType(oValue, info.PropertyType), null);
-                    }
-                    else if ((oValue is DateTime) && (info.MapField.DateTimeKind != DateTimeKind.Unspecified))
-                    {	// special date/time handling for UTC and Local times
-                        var dtValue = new DateTime(((DateTime)oValue).Ticks, info.MapField.DateTimeKind);
-                        info.PropertyInfo.SetValue(obj, dtValue, null);
-                    }
-                    else
-                        info.PropertyInfo.SetValue(obj, oValue, null);
-                }
-                catch (Exception ex)
-                {	
-                    throw new PropertyReadException(info.PropertyInfo, oValue, ex);
-                }
+                FieldHandler.SetValue(obj, record.GetValue(i), info.MapField, info.FieldType, info.PropertyInfo, info.PropertyType, info.IsAssignable);
             }
 
             return obj;
@@ -328,7 +330,7 @@ namespace Zonkey.ObjectModel
                                 MapField = field,
                                 PropertyInfo = field.Property, 
                                 PropertyType = propType, 
-                                FieldType = reader.GetFieldType(ordinal),								
+                                FieldType = reader.GetFieldType(ordinal),
                             };
                 
                 // determine quickly if is assignable
@@ -479,116 +481,232 @@ namespace Zonkey.ObjectModel
 
 #endregion
 
-#if (false)
-        private Func<IDataRecord, T> CreateBuilder(DbDataReader reader)
+        /// <summary>
+        /// Emits an IL method that populates one T from the current row of a reader with
+        /// this reader's exact column layout. Conversions are resolved at emit time from
+        /// the known reader field types, so the generated code is branch-free straight-line
+        /// IL: null-check, convert, set -- per mapped column. Before each field-set the
+        /// method writes the ordinal into the tracker array, which lets the single
+        /// try/catch in ReadObjectInternal report the failing property without any
+        /// exception handling inside the generated code.
+        /// </summary>
+        private BuilderDelegate CreateBuilder()
         {
-            // put field name/ordinal pairs in dictionary for exception free lookup
-            var keyComparer = StringComparer.CurrentCultureIgnoreCase;
-            var readerFields = new Dictionary<string, int>(keyComparer);
-            for (int i = 0; i < reader.VisibleFieldCount; i++)
-                readerFields.Add(reader.GetName(i), i);
+            var method = new DynamicMethod(
+                "ZonkeyBuild_" + _objectType.Name, _objectType,
+                new[] { typeof(IDataRecord), typeof(int[]), typeof(Func<T>) },
+                typeof(DataClassReader<T>).Module, skipVisibility: true);
 
-            // start generator
-            var method = new DynamicMethod("DynamicCreate", _objectType, new[] { typeof(IDataRecord) }, _objectType, true);
-            var generator = method.GetILGenerator();
+            ILGenerator il = method.GetILGenerator();
+            LocalBuilder result = il.DeclareLocal(_objectType);
+            LocalBuilder strTemp = il.DeclareLocal(typeof(string)); // scratch for string-sourced enum parsing
 
-            var result = generator.DeclareLocal(_objectType);
-            generator.Emit(OpCodes.Newobj, _typeInfo.GetConstructor(Type.EmptyTypes));
-            generator.Emit(OpCodes.Stloc, result);
+            // tracker[0] = -1: failures before any field-set (e.g. construction) stay unattributed
+            il.Emit(OpCodes.Ldarg_1);
+            il.Emit(OpCodes.Ldc_I4_0);
+            il.Emit(OpCodes.Ldc_I4_M1);
+            il.Emit(OpCodes.Stelem_I4);
 
-            foreach (IDataMapField field in _dataMap.ReadableFields)
+            // result = factory();
+            il.Emit(OpCodes.Ldarg_2);
+            il.Emit(OpCodes.Callvirt, FastBuilderRefs.FuncOfT_Invoke(typeof(T)));
+            il.Emit(OpCodes.Stloc, result);
+
+            for (int ordinal = 0; ordinal < _fillInfo.Length; ordinal++)
             {
-                int ordinal;
-                if (! readerFields.TryGetValue(field.FieldName, out ordinal)) continue;
-                if (field.Property.GetSetMethod(true) == null) continue;
+                QuickFillInfo info = _fillInfo[ordinal];
+                if (info == null) continue;
 
-                Type propType = field.Property.PropertyType;
-                TypeInfo propInfo = propType.GetTypeInfo();
-                if (propInfo.IsEnum)
+                PropertyInfo pi = info.PropertyInfo;
+                MethodInfo setter = pi.GetSetMethod(true);
+                if (setter == null) continue;
+
+                Type dbType = info.FieldType;
+                if (dbType == null) continue;
+
+                Type propType = pi.PropertyType;
+                Type nullableOf = Nullable.GetUnderlyingType(propType);
+                Type coreType = nullableOf ?? propType;                                     // e.g. decimal, Habitat, DateTime, Guid, string
+                Type enumType = coreType.IsEnum ? coreType : null;
+                Type basicType = (enumType != null) ? Enum.GetUnderlyingType(enumType) : coreType; // Convert.ChangeType target
+
+                Label endIfLabel = il.DefineLabel();
+
+                // tracker[0] = ordinal;
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ldc_I4_0);
+                il.Emit(OpCodes.Ldc_I4, ordinal);
+                il.Emit(OpCodes.Stelem_I4);
+
+                // if (record.IsDBNull(ordinal)) goto endIf;
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldc_I4, ordinal);
+                il.Emit(OpCodes.Callvirt, FastBuilderRefs.IDataRecord_IsDBNull);
+                il.Emit(OpCodes.Brtrue, endIfLabel);
+
+                // stack: [result], [boxed value]
+                il.Emit(OpCodes.Ldloc, result);
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldc_I4, ordinal);
+                il.Emit(OpCodes.Callvirt, FastBuilderRefs.IDataRecord_GetValue);
+
+                // convert the boxed value to an unboxed value of stack-type coreType
+                if ((coreType == typeof(Guid)) && (dbType == typeof(string)))
                 {
-                    propType = Enum.GetUnderlyingType(propType);
-                    propInfo = propType.GetTypeInfo();
+                    il.Emit(OpCodes.Castclass, typeof(string));
+                    il.Emit(OpCodes.Newobj, FastBuilderRefs.Guid_CtorString);
                 }
-
-                Type dbFieldType = reader.GetFieldType(ordinal);
-                if (dbFieldType == null) continue;
-
-                var endIfLabel = generator.DefineLabel();			
-
-                // gen code to check if field is null
-                generator.Emit(OpCodes.Ldarg_0);
-                generator.Emit(OpCodes.Ldc_I4, ordinal);
-                generator.Emit(OpCodes.Callvirt, RefBits.IDataRecord_IsDBNull);
-                generator.Emit(OpCodes.Brtrue, endIfLabel);
-
-                // get value from record onto stack
-                generator.Emit(OpCodes.Ldloc, result);
-                generator.Emit(OpCodes.Ldarg_0);
-                generator.Emit(OpCodes.Ldc_I4, ordinal);
-                generator.Emit(OpCodes.Callvirt, RefBits.IDataRecord_GetValue);
-
-                if (propInfo.IsAssignableFrom(dbFieldType))
+                else if (dbType.Name.EndsWith("SqlHierarchyId") && (coreType == typeof(string)))
                 {
-                    // special date/time handling for UTC and Local times
-                    if (dbFieldType == typeof(DateTime) && (field.DateTimeKind != DateTimeKind.Unspecified))
+                    il.Emit(OpCodes.Callvirt, FastBuilderRefs.Object_ToString);
+                }
+#if !NETFRAMEWORK
+                else if (coreType == typeof(DateOnly))
+                {
+                    if (dbType == typeof(DateOnly))
                     {
-                        generator.Emit(OpCodes.Unbox, typeof(DateTime));
-                        generator.Emit(OpCodes.Call, RefBits.DateTime_Ticks);
-                        generator.Emit(OpCodes.Ldc_I4, (int) field.DateTimeKind);
-                        generator.Emit(OpCodes.Newobj, RefBits.DateTime_Info.GetConstructor(new[] { typeof(long), typeof(DateTimeKind) }));
+                        // provider reports the target type natively (e.g. Npgsql DateOnly mapping):
+                        // direct-assign, mirroring the reflection slow path, to avoid ToString/Parse
+                        // round-tripping through a lossy short-date pattern.
+                        il.Emit(OpCodes.Unbox_Any, typeof(DateOnly));
+                    }
+                    else if (dbType == typeof(DateTime))
+                    {
+                        il.Emit(OpCodes.Unbox_Any, typeof(DateTime));
+                        il.Emit(OpCodes.Call, FastBuilderRefs.DateOnly_FromDateTime);
                     }
                     else
                     {
-                        // direct unbox/assign
-                        generator.Emit(OpCodes.Unbox_Any, dbFieldType);
+                        il.Emit(OpCodes.Callvirt, FastBuilderRefs.Object_ToString);
+                        il.Emit(OpCodes.Call, FastBuilderRefs.DateOnly_Parse);
                     }
                 }
-                else if ((propType == typeof(Guid)) && (dbFieldType == typeof(string)))
+                else if (coreType == typeof(TimeOnly))
                 {
-                    // deal with string->guid	
-                    generator.Emit(OpCodes.Castclass, typeof(string));
-                    generator.Emit(OpCodes.Newobj, RefBits.Guid_Info.GetConstructor(new[] { typeof(string) }) );
+                    if (dbType == typeof(TimeOnly))
+                    {
+                        // provider reports the target type natively (e.g. Npgsql TimeOnly mapping):
+                        // direct-assign, mirroring the reflection slow path. Falling through to the
+                        // ToString/Parse branch would use TimeOnly's short-time pattern and silently
+                        // drop seconds/sub-seconds -- see data-loss finding C1.
+                        il.Emit(OpCodes.Unbox_Any, typeof(TimeOnly));
+                    }
+                    else if (dbType == typeof(TimeSpan))
+                    {
+                        il.Emit(OpCodes.Unbox_Any, typeof(TimeSpan));
+                        il.Emit(OpCodes.Call, FastBuilderRefs.TimeOnly_FromTimeSpan);
+                    }
+                    else if (dbType == typeof(DateTime))
+                    {
+                        il.Emit(OpCodes.Unbox_Any, typeof(DateTime));
+                        il.Emit(OpCodes.Call, FastBuilderRefs.TimeOnly_FromDateTime);
+                    }
+                    else
+                    {
+                        il.Emit(OpCodes.Callvirt, FastBuilderRefs.Object_ToString);
+                        il.Emit(OpCodes.Call, FastBuilderRefs.TimeOnly_Parse);
+                    }
                 }
-                else if (dbFieldType.Name.EndsWith("SqlHierarchyId"))
-                {   // if the column is a SqlHierarchyId, then just treat it as a string
-                    generator.Emit(OpCodes.Callvirt, RefBits.Object_ToString);
+#endif
+                else if (enumType != null)
+                {
+                    if (dbType == enumType)
+                    {
+                        // provider returns the enum itself (e.g. Npgsql MapEnum):
+                        // no conversion needed; the shared Unbox_Any below is all it takes
+                    }
+                    else if (dbType == typeof(string))
+                    {
+                        // string-sourced enums accept names or numeric strings, case-insensitively:
+                        // Enum.Parse(enumType, (string)value, ignoreCase: true)
+                        il.Emit(OpCodes.Castclass, typeof(string));
+                        il.Emit(OpCodes.Stloc, strTemp);
+                        il.Emit(OpCodes.Ldtoken, enumType);
+                        il.Emit(OpCodes.Call, FastBuilderRefs.Type_GetTypeFromHandle);
+                        il.Emit(OpCodes.Ldloc, strTemp);
+                        il.Emit(OpCodes.Ldc_I4_1);
+                        il.Emit(OpCodes.Call, FastBuilderRefs.Enum_Parse);
+                    }
+                    else if (dbType != basicType)
+                    {
+                        // widen/narrow integral sources via ChangeType so out-of-range throws
+                        EmitChangeType(il, basicType);
+                    }
+
+                    il.Emit(OpCodes.Unbox_Any, enumType);
+                }
+                else if (coreType.IsAssignableFrom(dbType))
+                {
+                    // exact match for value types; reference conversion for string/byte[]/object
+                    il.Emit(OpCodes.Unbox_Any, coreType);
+                }
+                else if (!coreType.IsValueType && (coreType != typeof(string)))
+                {
+                    // reference-typed targets (arrays, interfaces): the reader's static type
+                    // may be a base of the runtime value's type -- e.g. PostgreSQL array
+                    // columns report System.Array while values are string[]/int[]. A checked
+                    // downcast handles every runtime-assignable case; a wrong element type
+                    // fails with InvalidCastException, surfaced as PropertyReadException.
+                    il.Emit(OpCodes.Castclass, coreType);
                 }
                 else
                 {
-                    // deal with other converts
-                    generator.Emit(OpCodes.Ldtoken, dbFieldType);
-                    generator.Emit(OpCodes.Call, RefBits.getTypeHandleMethod);
-                    generator.Emit(OpCodes.Call, RefBits.Convert_ChangeType);
-                    generator.Emit(OpCodes.Unbox_Any, dbFieldType);
+                    EmitChangeType(il, basicType);
+                    il.Emit(OpCodes.Unbox_Any, coreType);
                 }
 
-                // load into property
-                generator.Emit(OpCodes.Callvirt, field.Property.GetSetMethod(true));
+                // apply the mapped DateTimeKind to every DateTime, whichever conversion produced it
+                if ((coreType == typeof(DateTime)) && (info.MapField.DateTimeKind != DateTimeKind.Unspecified))
+                {
+                    il.Emit(OpCodes.Ldc_I4, (int)info.MapField.DateTimeKind);
+                    il.Emit(OpCodes.Call, FastBuilderRefs.DateTime_SpecifyKind);
+                }
 
-                // end if
-                generator.MarkLabel(endIfLabel);
+                // wrap in Nullable<coreType> when the property is nullable
+                if (nullableOf != null)
+                    il.Emit(OpCodes.Newobj, FastBuilderRefs.NullableCtor(coreType));
+
+                il.Emit(OpCodes.Callvirt, setter);
+                il.MarkLabel(endIfLabel);
             }
 
-            generator.Emit(OpCodes.Ldloc, result);
-            generator.Emit(OpCodes.Ret);
+            il.Emit(OpCodes.Ldloc, result);
+            il.Emit(OpCodes.Ret);
 
-            return (Func<IDataRecord, T>)method.CreateDelegate(typeof(Func<IDataRecord, T>));
+            return (BuilderDelegate)method.CreateDelegate(typeof(BuilderDelegate));
         }
-#endif
+
+        private static void EmitChangeType(ILGenerator il, Type targetType)
+        {
+            il.Emit(OpCodes.Ldtoken, targetType);
+            il.Emit(OpCodes.Call, FastBuilderRefs.Type_GetTypeFromHandle);
+            il.Emit(OpCodes.Call, FastBuilderRefs.Convert_ChangeType);
+        }
     }
 
-#if (false)
-    internal static class RefBits
+    internal static class FastBuilderRefs
     {
-        internal static readonly TypeInfo Guid_Info = typeof(Guid).GetTypeInfo();
-        internal static readonly TypeInfo DateTime_Info = typeof(DateTime).GetTypeInfo();
+        internal static readonly MethodInfo IDataRecord_GetValue = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue), new[] { typeof(int) });
+        internal static readonly MethodInfo IDataRecord_IsDBNull = typeof(IDataRecord).GetMethod(nameof(IDataRecord.IsDBNull), new[] { typeof(int) });
+        internal static readonly MethodInfo Type_GetTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle), new[] { typeof(RuntimeTypeHandle) });
+        internal static readonly MethodInfo Convert_ChangeType = typeof(Convert).GetMethod(nameof(Convert.ChangeType), new[] { typeof(object), typeof(Type) });
+        internal static readonly MethodInfo Object_ToString = typeof(object).GetMethod(nameof(ToString));
+        internal static readonly MethodInfo DateTime_SpecifyKind = typeof(DateTime).GetMethod(nameof(DateTime.SpecifyKind), new[] { typeof(DateTime), typeof(DateTimeKind) });
+        internal static readonly MethodInfo Enum_Parse = typeof(Enum).GetMethod(nameof(Enum.Parse), new[] { typeof(Type), typeof(string), typeof(bool) });
+        internal static readonly ConstructorInfo Guid_CtorString = typeof(Guid).GetConstructor(new[] { typeof(string) });
 
-        internal static readonly MethodInfo IDataRecord_GetValue = typeof(IDataRecord).GetTypeInfo().GetMethod("get_Item", new[] { typeof(int) });
-        internal static readonly MethodInfo IDataRecord_IsDBNull = typeof(IDataRecord).GetTypeInfo().GetMethod("IsDBNull", new[] { typeof(int) });
-        internal static readonly MethodInfo getTypeHandleMethod = typeof(Type).GetTypeInfo().GetMethod("GetTypeFromHandle", new[] { typeof(RuntimeTypeHandle) });
-        internal static readonly MethodInfo Convert_ChangeType = typeof(Convert).GetTypeInfo().GetMethod("ChangeType", new[] { typeof(object), typeof(Type) });
-        internal static readonly MethodInfo Object_ToString = typeof(object).GetTypeInfo().GetMethod("ToString");
-        internal static readonly MethodInfo DateTime_Ticks = typeof(DateTime).GetTypeInfo().GetProperty("Ticks").GetGetMethod();
-    }
+#if !NETFRAMEWORK
+        internal static readonly MethodInfo DateOnly_FromDateTime = typeof(DateOnly).GetMethod(nameof(DateOnly.FromDateTime), new[] { typeof(DateTime) });
+        internal static readonly MethodInfo DateOnly_Parse = typeof(DateOnly).GetMethod(nameof(DateOnly.Parse), new[] { typeof(string) });
+        internal static readonly MethodInfo TimeOnly_FromTimeSpan = typeof(TimeOnly).GetMethod(nameof(TimeOnly.FromTimeSpan), new[] { typeof(TimeSpan) });
+        internal static readonly MethodInfo TimeOnly_FromDateTime = typeof(TimeOnly).GetMethod(nameof(TimeOnly.FromDateTime), new[] { typeof(DateTime) });
+        internal static readonly MethodInfo TimeOnly_Parse = typeof(TimeOnly).GetMethod(nameof(TimeOnly.Parse), new[] { typeof(string) });
 #endif
+
+        internal static MethodInfo FuncOfT_Invoke(Type itemType)
+            => typeof(Func<>).MakeGenericType(itemType).GetMethod("Invoke");
+
+        internal static ConstructorInfo NullableCtor(Type coreType)
+            => typeof(Nullable<>).MakeGenericType(coreType).GetConstructor(new[] { coreType });
+    }
 }

@@ -53,8 +53,8 @@ namespace Zonkey.Utility
                 sSql = File.ReadAllText(sqlFile);
             }
 
-            // Split sql statements at 'GO'
-            m_SqlArray = Regex.Split(sSql, @"\r\nGO(?:\r\n)*", RegexOptions.IgnoreCase);
+            // Split sql statements at 'GO' on its own line (supports both \r\n and \n)
+            m_SqlArray = Regex.Split(sSql, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
             try
             {
@@ -93,8 +93,7 @@ namespace Zonkey.Utility
             }
             finally
             {
-                if (m_cnxn.State == ConnectionState.Open)
-                    m_cnxn.Close();
+                // Connection lifecycle is the caller's responsibility
             }
         }
     }

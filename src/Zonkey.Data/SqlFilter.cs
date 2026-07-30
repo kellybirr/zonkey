@@ -148,6 +148,74 @@ namespace Zonkey
 			return new SimpleSqlFilter(fieldName, "NOT LIKE", value);
 		}
 
+		/// <summary>
+		/// Creates a SQL 'is ilike' WHERE clause.
+		/// </summary>
+		/// <param name="fieldName">Name of the database field.</param>
+		/// <param name="value">The value to compare.</param>
+		/// <returns>A <see cref="Zonkey.SqlFilter"/> object (WHERE fieldName !&lt; value).</returns>
+		public static SqlFilter ILIKE(string fieldName, string value)
+		{
+			return new SimpleSqlFilter(fieldName, "ILIKE", value);
+		}
+
+		/// <summary>
+		/// Creates a SQL 'is not ilike' WHERE clause.
+		/// </summary>
+		/// <param name="fieldName">Name of the database field.</param>
+		/// <param name="value">The value to compare.</param>
+		/// <returns>A <see cref="Zonkey.SqlFilter"/> object (WHERE fieldName !&lt; value).</returns>
+		public static SqlFilter NOTILIKE(string fieldName, string value)
+		{
+			return new SimpleSqlFilter(fieldName, "NOT ILIKE", value);
+		}
+
+		/// <summary>
+		/// Creates a SQL '~' WHERE clause.
+		/// </summary>
+		/// <param name="fieldName">Name of the database field.</param>
+		/// <param name="value">The value to compare.</param>
+		/// <returns>A <see cref="Zonkey.SqlFilter"/> object (WHERE fieldName !&lt; value).</returns>
+		public static SqlFilter MATCH(string fieldName, string regex)
+		{
+			return new SimpleSqlFilter(fieldName, "~", regex);
+		}
+
+		/// <summary>
+		/// Creates a SQL '!~' WHERE clause.
+		/// </summary>
+		/// <param name="fieldName">Name of the database field.</param>
+		/// <param name="value">The value to compare.</param>
+		/// <returns>A <see cref="Zonkey.SqlFilter"/> object (WHERE fieldName !&lt; value).</returns>
+		public static SqlFilter NOTMATCH(string fieldName, string value)
+		{
+			return new SimpleSqlFilter(fieldName, "!~", value);
+		}
+
+		/// <summary>
+		/// Creates a SQL '~*' WHERE clause.
+		/// </summary>
+		/// <param name="fieldName">Name of the database field.</param>
+		/// <param name="value">The value to compare.</param>
+		/// <returns>A <see cref="Zonkey.SqlFilter"/> object (WHERE fieldName !&lt; value).</returns>
+		public static SqlFilter IMATCH(string fieldName, string regex)
+		{
+			return new SimpleSqlFilter(fieldName, "~*", regex);
+		}
+
+		/// <summary>
+		/// Creates a SQL '!~*' WHERE clause.
+		/// </summary>
+		/// <param name="fieldName">Name of the database field.</param>
+		/// <param name="value">The value to compare.</param>
+		/// <returns>A <see cref="Zonkey.SqlFilter"/> object (WHERE fieldName !&lt; value).</returns>
+		public static SqlFilter NOTIMATCH(string fieldName, string regex)
+		{
+			return new SimpleSqlFilter(fieldName, "!~*", regex);
+		}
+
+
+
 		private SqlFilter(string fieldName)
 		{
 			FieldName = fieldName;

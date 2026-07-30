@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Data.Common;
 using System.Collections;
+using System.Data.Common;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 
@@ -13,7 +13,7 @@ namespace Zonkey
         /// </summary>
         /// <param name="filterExpression">the filter as a lambda expression</param>
         /// <returns></returns>
-        public Task<int> GetCount(Expression<Func<T, bool>> filterExpression)
+        public Task<long> GetCount(Expression<Func<T, bool>> filterExpression)
         {
             var parser = new ObjectModel.WhereExpressionParser<T>(DataMap, SqlDialect)
             {
@@ -31,7 +31,7 @@ namespace Zonkey
         /// <param name="filter">The filter.</param>
         /// <param name="parameters">The parameters.</param>
         /// <returns>the count</returns>
-        public Task<int> GetCount(string filter, params object[] parameters)
+        public Task<long> GetCount(string filter, params object[] parameters)
         {
             if (filter == null)
                 throw new ArgumentNullException(nameof(filter));
@@ -44,7 +44,7 @@ namespace Zonkey
         /// </summary>
         /// <param name="filters">The filters.</param>
         /// <returns></returns>
-        public Task<int> GetCount(params SqlFilter[] filters)
+        public Task<long> GetCount(params SqlFilter[] filters)
         {
             if ((filters == null) || (filters.Length == 0))
                 throw new ArgumentNullException(nameof(filters));
@@ -59,7 +59,7 @@ namespace Zonkey
         /// <param name="method">The method.</param>
         /// <param name="parameters">The parameters.</param>
         /// <returns></returns>
-        private async Task<int> GetCountInternal(string text, FillMethod method, IList parameters)
+        private async Task<long> GetCountInternal(string text, FillMethod method, IList parameters)
         {
             if (Connection == null)
                 throw new InvalidOperationException("must set connection before calling GetCount()");
@@ -78,7 +78,7 @@ namespace Zonkey
                     throw new NotSupportedException("this fill method is not supported by GetCount");
             }
 
-            return (int)await ExecuteScalerInternal(command).ConfigureAwait(false);
+            return Convert.ToInt64( await ExecuteScalerInternal(command).ConfigureAwait(false) );
         }
     }
 }

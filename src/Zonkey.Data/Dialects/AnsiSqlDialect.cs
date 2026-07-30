@@ -103,5 +103,6 @@ namespace Zonkey.Dialects
         {
             return (commandType == CommandType.Text) ? string.Concat(":p", index) : "?";
         }
+
     }
 }

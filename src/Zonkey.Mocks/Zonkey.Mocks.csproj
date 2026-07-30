@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <TargetFrameworks>net8.0;net10.0;net48</TargetFrameworks>
+	  <LangVersion>latest</LangVersion>
+	  <RootNamespace>Zonkey.Mocks</RootNamespace>
+	  <PackageTags>mocking;testing;unit-testing;ado-net;mocks</PackageTags>
+	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	  <Title>Zonkey Mocking</Title>
+	  <Authors>Kelly Birr</Authors>
+	  <Description>Mock ADO.NET objects (connections, commands, readers) for unit testing Zonkey-based data access</Description>
+	  <PackageProjectUrl>https://github.com/kellybirr/zonkey</PackageProjectUrl>
+	  <RepositoryUrl>https://github.com/kellybirr/zonkey</RepositoryUrl>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>

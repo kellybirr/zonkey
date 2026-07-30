@@ -1,0 +1,93 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  core-tests:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            run-args: ""
+          - os: ubuntu-latest
+            run-args: "-f net10.0"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet restore Zonkey.sln
+      - run: dotnet build Zonkey.sln -c Release --no-restore
+      - run: dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj -c Release --no-build ${{ matrix.run-args }}
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Zonkey#Test123"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Zonkey#Test123' -C -Q 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: zonkey
+          POSTGRES_PASSWORD: zonkey
+          POSTGRES_DB: zonkey_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U zonkey"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    # NOTE: MySQL is NOT a service container. It needs the trailing image argument
+    # --lower-case-table-names=1 (MySQL on Linux defaults to case-sensitive table
+    # names; the shared Integration suites assume the case-folding behavior of SQL
+    # Server/PostgreSQL — see the matching comment in docker-compose.yml), and the
+    # `services:` schema has no `command:` key. It is started via `docker run` in a
+    # step below instead.
+    env:
+      ZONKEY_TEST_MSSQL: "Server=localhost,1433;User=sa;Password=Zonkey#Test123;TrustServerCertificate=true"
+      ZONKEY_TEST_PGSQL: "Host=localhost;Port=5432;Username=zonkey;Password=zonkey"
+      ZONKEY_TEST_MYSQL: "Server=localhost;Port=3306;User=root;Password=zonkey;AllowPublicKeyRetrieval=True;SslMode=None;GuidFormat=Char36"
+      ZONKEY_REQUIRE_DB: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start MySQL (docker run — needs the --lower-case-table-names image argument)
+        run: |
+          docker run -d --name zonkey-mysql \
+            -e MYSQL_ROOT_PASSWORD=zonkey \
+            -e MYSQL_DATABASE=zonkey_zoo \
+            -p 3306:3306 \
+            --health-cmd "mysqladmin ping -h 127.0.0.1 -u root -pzonkey" \
+            --health-interval 5s --health-timeout 5s --health-retries 24 \
+            mysql:8 --lower-case-table-names=1
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet restore Zonkey.sln
+      - run: dotnet build Zonkey.sln -c Release --no-restore
+      - name: Wait for MySQL health
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' zonkey-mysql)
+            [ "$status" = "healthy" ] && exit 0
+            sleep 5
+          done
+          echo "MySQL container never became healthy" >&2
+          docker logs zonkey-mysql >&2
+          exit 1
+      - run: dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj -c Release --no-build -f net10.0

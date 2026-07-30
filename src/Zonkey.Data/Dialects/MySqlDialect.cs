@@ -181,5 +181,34 @@ namespace Zonkey.Dialects
         {
             command.CommandText += " LIMIT 0,1";
         }
+
+        public override string RenderFunction(string name, params string[] args)
+        {
+            switch (name)
+            {
+                case "SUBSTRING": return $"SUBSTRING({args[0]}, {args[1]}, {args[2]})";
+                case "SUBSTRING2": return $"SUBSTRING({args[0]}, {args[1]})";
+                case "INDEXOF": return $"(LOCATE({args[1]}, {args[0]}) - 1)";
+                case "CONCAT": return $"CONCAT({args[0]}, {args[1]})";
+                case "LENGTH": return $"CHAR_LENGTH({args[0]})";
+                default: return base.RenderFunction(name, args);
+            }
+        }
+
+        public override string RenderLike(string left, string right, bool ignoreCase, char? escapeChar)
+        {
+            // MySQL string literals treat backslash as an escape character, so the
+            // ESCAPE clause must double it: ESCAPE '\\'
+            string escape = escapeChar.HasValue ? @" ESCAPE '\\'" : string.Empty;
+            return ignoreCase
+                ? $"(UPPER({left}) LIKE UPPER({right}){escape})"
+                : $"({left} LIKE {right}{escape})";
+        }
+
+        /// <summary>Gets the maximum number of parameters allowed per text command.</summary>
+        public override int MaxParameters
+        {
+            get { return 65535; }
+        }
     }
 }
