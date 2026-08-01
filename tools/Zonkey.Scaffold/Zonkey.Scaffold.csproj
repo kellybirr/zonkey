@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Zonkey.Scaffold</RootNamespace>
+    <AssemblyName>Zonkey.Scaffold</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>zonkey-scaffold</ToolCommandName>
+    <PackageId>zonkey.scaffold</PackageId>
+    <Description>Scaffolds Zonkey data classes and a DatabaseWrapper from a live database schema.</Description>
+    <PackageTags>zonkey;orm;scaffolding;codegen;cli</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.*" />
+    <PackageReference Include="Humanizer.Core" Version="2.*" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.*" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.*" />
+    <PackageReference Include="Npgsql" Version="9.*" />
+    <PackageReference Include="MySqlConnector" Version="2.*" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.*" />
+  </ItemGroup>
+
+  <!--
+    The tool references the library it scaffolds for, for exactly one reason: the set of members
+    an emitted entity inherits from DataClass is read off the type by reflection rather than
+    transcribed into a literal list here. A literal list is a copy of another assembly's public
+    surface that nothing forces anyone to update, so it goes stale silently the first time a member
+    is added to DataClass — and going stale means the tool stops warning, which is the failure mode
+    that does not announce itself. See EmittedSurface.InheritedMemberNames.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Zonkey.Data\Zonkey.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zonkey.Scaffold.Tests" />
+  </ItemGroup>
+
+</Project>
