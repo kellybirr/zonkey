@@ -13,6 +13,26 @@ public sealed class WrapperEntry
 {
     public string PropertyName { get; set; } = "";
     public string EntityClassName { get; set; } = "";
+
+    /// <summary>
+    /// The namespace the entity class is declared in, or <c>null</c> when it is the wrapper's own.
+    /// </summary>
+    /// <remarks>
+    /// There is one wrapper per run and it names every entity type, so
+    /// <c>--schema-disambiguation namespace</c> — which puts each schema's classes in a namespace
+    /// of its own — is the case where a bare class name stops being enough to name the type. Two
+    /// schemas' <c>Animal</c> are then two distinct types, and the wrapper has to say which one
+    /// each adapter is for.
+    /// </remarks>
+    public string? EntityNamespace { get; set; }
+
+    /// <summary>
+    /// The entity type's full name — what makes two same-named classes from different schemas
+    /// distinguishable to anything reasoning about the wrapper's members.
+    /// </summary>
+    public string EntityTypeName => string.IsNullOrEmpty(EntityNamespace)
+        ? EntityClassName
+        : $"{EntityNamespace}.{EntityClassName}";
 }
 
 /// <summary>
@@ -23,24 +43,6 @@ public sealed class WrapperEntry
 /// </summary>
 public sealed class CSharpWrapperEmitter
 {
-    /// <summary>
-    /// Every type this emitter names in the source it writes, by simple name. See
-    /// <see cref="CSharpEntityEmitter.ReferencedTypeNames"/> for why the list exists and what
-    /// keeps it honest.
-    /// </summary>
-    /// <remarks>
-    /// The entity class names this emitter also writes are not here, and must not be: they are the
-    /// types the same run declares, so a reference to one resolves to the class that was emitted.
-    /// A generated class named after another generated class is a duplicate type name, which
-    /// <c>EmittedSurface.Check</c> refuses outright.
-    /// </remarks>
-    public static readonly IReadOnlyList<string> ReferencedTypeNames =
-    [
-        "DatabaseWrapper",      // the base type
-        "DbConnection",         // the connection-taking constructor's parameter
-        "DataClassAdapter"      // every adapter property's type
-    ];
-
     public string Emit(WrapperModel model)
     {
         var w = new IndentedWriter();
@@ -86,14 +88,35 @@ public sealed class CSharpWrapperEmitter
         foreach (WrapperEntry entry in model.Entries
                      .OrderBy(e => e.PropertyName, StringComparer.Ordinal))
         {
+            string type = TypeReference(entry, model.Namespace);
+
             w.Blank();
-            w.Line($"public DataClassAdapter<{entry.EntityClassName}> {entry.PropertyName} " +
-                   $"=> Adapter<{entry.EntityClassName}>();");
+            w.Line($"public DataClassAdapter<{type}> {entry.PropertyName} => Adapter<{type}>();");
         }
 
         w.Close();
         return w.ToString();
     }
+
+    /// <summary>
+    /// How this file has to spell an entity type: the bare class name for an entity that shares the
+    /// wrapper's namespace, and a <c>global::</c>-qualified name for one that does not.
+    /// </summary>
+    /// <remarks>
+    /// Only <c>--schema-disambiguation namespace</c> produces the second case, and there the bare
+    /// name is not merely unqualified but ambiguous — two schemas' <c>Animal</c> are two types, and
+    /// naming one of them is the entire point of that strategy. The alias qualifier is what makes
+    /// the reference immune to capture: a generated class named <c>Zoo</c> in namespace
+    /// <c>Zoo.Data</c> captures the leading segment of <c>Zoo.Data.Archive.Animal</c> and the file
+    /// does not compile (CS0426, "the type name 'Data' does not exist in the type 'Zoo'" —
+    /// reproduced, not assumed), while the <c>global::</c> form compiles. Emitted only where it is
+    /// needed, so the ordinary single-namespace output is byte-identical to what it always was.
+    /// </remarks>
+    private static string TypeReference(WrapperEntry entry, string? wrapperNamespace)
+        => string.IsNullOrEmpty(entry.EntityNamespace) ||
+           string.Equals(entry.EntityNamespace, wrapperNamespace, StringComparison.Ordinal)
+            ? entry.EntityClassName
+            : $"global::{entry.EntityTypeName}";
 
     /// <summary>
     /// Escapes a value that will be interpolated into a regular (non-verbatim) C# string

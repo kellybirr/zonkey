@@ -24,6 +24,7 @@ jobs:
       - run: dotnet restore Zonkey.sln
       - run: dotnet build Zonkey.sln -c Release --no-restore
       - run: dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj -c Release --no-build ${{ matrix.run-args }}
+      - run: dotnet test test/Zonkey.Scaffold.Tests/Zonkey.Scaffold.Tests.csproj -c Release --no-build ${{ matrix.run-args }}
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -91,3 +92,4 @@ jobs:
           docker logs zonkey-mysql >&2
           exit 1
       - run: dotnet test test/Zonkey.Tests/Zonkey.Tests.csproj -c Release --no-build -f net10.0
+      - run: dotnet test test/Zonkey.Scaffold.Tests/Zonkey.Scaffold.Tests.csproj -c Release --no-build -f net10.0

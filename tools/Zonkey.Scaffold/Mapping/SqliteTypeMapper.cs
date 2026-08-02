@@ -6,7 +6,7 @@ namespace Zonkey.Scaffold.Mapping;
 public sealed class SqliteTypeMapper : ITypeMapper
 {
     public ColumnMapping Map(TableInfo table, ColumnInfo column, bool nullableRefs,
-        ICollection<ScaffoldWarning> warnings)
+        ICollection<string> warnings)
     {
         string native = column.NativeType.ToUpperInvariant();
 
@@ -62,20 +62,10 @@ public sealed class SqliteTypeMapper : ITypeMapper
     }
 
     private static (string, string, bool, string) Unmappable(
-        TableInfo table, ColumnInfo column, ICollection<ScaffoldWarning> warnings)
+        TableInfo table, ColumnInfo column, ICollection<string> warnings)
     {
-        warnings.Add(ScaffoldWarning.For(
-            WarningCode.UnmappableType,
-            // Names the exact key that changes the outcome. It used to say "set overrides.tables
-            // to correct it", which was advice the tool did not implement: the dbType override
-            // was bound and read by nothing. The key below is honoured (ScaffoldPipeline
-            // .ForcedDbType) and the sentence is scoped to what it actually changes — the DbType,
-            // not the CLR property type.
-            $"Column '{table.Name}.{column.Name}' has unrecognized type '{column.NativeType}'. " +
-            "Mapped to string / DbType.String; set overrides.tables." +
-            $"{table.Name}.columns.{column.Name}.dbType to change the DbType, or declare the " +
-            "column with a type this provider recognizes.",
-            table: table.QualifiedName, column: column.Name));
+        warnings.Add(            $"Column '{table.Name}.{column.Name}' has unrecognized type '{column.NativeType}'. " +
+            "Mapped to string / DbType.String — change it in the generated file if that is wrong.");
 
         return ("String", "string", true,
             $"Unrecognized declared type '{column.NativeType}'; defaulted to DbType.String.");

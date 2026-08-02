@@ -19,7 +19,9 @@ Start with these two for the mental model, then use the rest as reference:
 - [docs/architecture.md](docs/architecture.md) — how a query and a save actually flow through the layers, and why
 - [docs/overview.md](docs/overview.md) — the design philosophy (determinism, no hidden behavior)
 
-Reference: [data classes](docs/data-classes.md) · [adapter/CRUD](docs/data-class-adapter.md) · [querying](docs/querying.md) · [relationships](docs/modeling-relationships.md) · [providers & dialects](docs/database-providers.md) · [transactions](docs/transactions.md) · [EF migration](docs/migrating-from-ef.md) · [full index](docs/README.md)
+Reference: [data classes](docs/data-classes.md) · [adapter/CRUD](docs/data-class-adapter.md) · [querying](docs/querying.md) · [relationships](docs/modeling-relationships.md) · [providers & dialects](docs/database-providers.md) · [transactions](docs/transactions.md) · [code generation](docs/code-generation.md) · [EF migration](docs/migrating-from-ef.md) · [full index](docs/README.md)
+
+**Generating a data layer from an existing database?** Use `zonkey-scaffold` rather than writing data classes by hand — see [docs/code-generation.md](docs/code-generation.md) and the [`zonkey-scaffold` skill](.claude/skills/zonkey-scaffold/SKILL.md). Its output is a starting point: review it and edit it like any other source file.
 
 ## Rules That Prevent the Most Common Agent Mistakes
 
@@ -43,5 +45,7 @@ Reference: [data classes](docs/data-classes.md) · [adapter/CRUD](docs/data-clas
 
 - `src/Zonkey.Data` — core ORM (adapters, dialects, command builders, expression parser)
 - `src/Zonkey.Data.MsSql`, `src/Zonkey.Text`, `src/Zonkey.Mocks` — extensions, text-file mapping, test mocks
+- `tools/Zonkey.Scaffold` — `zonkey-scaffold`, the CLI that generates data classes from a live database
 - `test/Zonkey.Tests` — the test suite (unit + SQLite/MSSQL/PostgreSQL integration)
-- `docs/` — full documentation; `docs/superpowers/` and `docs/todo-*.md` are internal planning records
+- `test/Zonkey.Scaffold.Tests` — scaffold tests (live-database smoke tests, four providers)
+- `docs/` — full documentation; `docs/todo-*.md` are internal planning records

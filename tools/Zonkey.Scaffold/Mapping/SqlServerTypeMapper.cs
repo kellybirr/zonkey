@@ -13,7 +13,7 @@ namespace Zonkey.Scaffold.Mapping;
 public sealed class SqlServerTypeMapper : ITypeMapper
 {
     public ColumnMapping Map(TableInfo table, ColumnInfo column, bool nullableRefs,
-        ICollection<ScaffoldWarning> warnings)
+        ICollection<string> warnings)
     {
         string native = column.NativeType.ToLowerInvariant();
 
@@ -104,15 +104,12 @@ public sealed class SqlServerTypeMapper : ITypeMapper
     }
 
     private static (string, string, bool, string) Unsupported(
-        TableInfo table, ColumnInfo column, ICollection<ScaffoldWarning> warnings, string detail)
+        TableInfo table, ColumnInfo column, ICollection<string> warnings, string detail)
     {
-        warnings.Add(ScaffoldWarning.For(
-            WarningCode.UnmappableType,
+        warnings.Add(
             $"Column '{table.QualifiedName}.{column.Name}' has unrecognized type " +
-            $"'{column.NativeType}'. {detail} Mapped to string / DbType.String; set " +
-            $"overrides.tables.{table.Name}.columns.{column.Name}.dbType to change the DbType, " +
-            "or declare the column with a type this provider recognizes.",
-            table: table.QualifiedName, column: column.Name));
+            $"'{column.NativeType}'. {detail} Mapped to string / DbType.String — " +
+            "change it in the generated file if that is wrong.");
 
         return ("String", "string", true,
             $"Unrecognized SQL Server type '{column.NativeType}'; defaulted to DbType.String.");

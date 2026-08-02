@@ -10,7 +10,7 @@ namespace Zonkey.Scaffold.Mapping;
 public sealed class MySqlTypeMapper : ITypeMapper
 {
     public ColumnMapping Map(TableInfo table, ColumnInfo column, bool nullableRefs,
-        ICollection<ScaffoldWarning> warnings)
+        ICollection<string> warnings)
     {
         string native = column.NativeType.ToLowerInvariant();
 
@@ -98,16 +98,14 @@ public sealed class MySqlTypeMapper : ITypeMapper
     }
 
     private static (string, string, bool, string) BoolFromTinyint(
-        TableInfo table, ColumnInfo column, ICollection<ScaffoldWarning> warnings)
+        TableInfo table, ColumnInfo column, ICollection<string> warnings)
     {
         // MySQL has no boolean type: BOOLEAN is an alias for TINYINT(1), so a genuine one-digit
         // integer is indistinguishable from a flag. Mapping to bool is right far more often than
         // not, but it is a guess, and a guess the caller must be told about.
-        warnings.Add(ScaffoldWarning.For(
-            WarningCode.UnmappableType,
+        warnings.Add(
             $"Column '{table.QualifiedName}.{column.Name}' is TINYINT(1), which MySQL uses for both " +
-            "BOOLEAN and a one-digit integer. Mapped to bool; override it if that is wrong.",
-            table: table.QualifiedName, column: column.Name));
+            "BOOLEAN and a one-digit integer. Mapped to bool; override it if that is wrong.");
 
         return ("Boolean", "bool", false, "TINYINT(1) is MySQL's BOOLEAN alias.");
     }
@@ -162,15 +160,12 @@ public sealed class MySqlTypeMapper : ITypeMapper
     }
 
     private static (string, string, bool, string) Unsupported(
-        TableInfo table, ColumnInfo column, ICollection<ScaffoldWarning> warnings, string detail)
+        TableInfo table, ColumnInfo column, ICollection<string> warnings, string detail)
     {
-        warnings.Add(ScaffoldWarning.For(
-            WarningCode.UnmappableType,
+        warnings.Add(
             $"Column '{table.QualifiedName}.{column.Name}' has unrecognized type " +
-            $"'{column.NativeType}'. {detail} Mapped to string / DbType.String; set " +
-            $"overrides.tables.{table.Name}.columns.{column.Name}.dbType to change the DbType, " +
-            "or declare the column with a type this provider recognizes.",
-            table: table.QualifiedName, column: column.Name));
+            $"'{column.NativeType}'. {detail} Mapped to string / DbType.String — " +
+            "change it in the generated file if that is wrong.");
 
         return ("String", "string", true,
             $"Unrecognized MySQL type '{column.NativeType}'; defaulted to DbType.String.");

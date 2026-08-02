@@ -19,11 +19,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.CommandLine" Version="2.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.*" />
     <PackageReference Include="Humanizer.Core" Version="2.*" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.*" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.*" />
@@ -32,16 +32,11 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.*" />
   </ItemGroup>
 
-  <!--
-    The tool references the library it scaffolds for, for exactly one reason: the set of members
-    an emitted entity inherits from DataClass is read off the type by reflection rather than
-    transcribed into a literal list here. A literal list is a copy of another assembly's public
-    surface that nothing forces anyone to update, so it goes stale silently the first time a member
-    is added to DataClass — and going stale means the tool stops warning, which is the failure mode
-    that does not announce itself. See EmittedSurface.InheritedMemberNames.
-  -->
+  <!-- The agent skill ships inside the tool so the `skill` verb can write it into a consuming
+       project. One copy, at the repo path agents already load it from. -->
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Zonkey.Data\Zonkey.Data.csproj" />
+    <EmbeddedResource Include="..\..\.claude\skills\zonkey-scaffold\SKILL.md"
+                      LogicalName="Zonkey.Scaffold.SKILL.md" />
   </ItemGroup>
 
   <ItemGroup>

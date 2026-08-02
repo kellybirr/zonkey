@@ -7,6 +7,23 @@ public sealed class EntityModel
     public string? SchemaName { get; set; }
     public string? SaveToTable { get; set; }
     public bool IsReadOnly { get; set; }
+
+    /// <summary>
+    /// The namespace this entity is declared in, already escaped — <c>null</c> to fall back to
+    /// <see cref="EntityEmitOptions.Namespace"/>.
+    /// </summary>
+    /// <remarks>
+    /// Per entity rather than per run because <c>--schema-disambiguation namespace</c> puts each
+    /// schema's classes in a namespace of their own: the run has no single answer any more.
+    /// <c>ScaffoldPipeline</c> sets it on every entity it builds — including the ordinary case,
+    /// where it is just the run's namespace — so the value the emitter writes, the value the
+    /// wrapper qualifies its adapters with, and the value <c>EmittedSurface</c> checks type-name
+    /// uniqueness within are one value and not three derivations of it. The fallback exists for
+    /// models built by hand (the emitter tests, and any caller that has only a run-wide namespace
+    /// to give).
+    /// </remarks>
+    public string? Namespace { get; set; }
+
     public List<PropertyModel> Properties { get; set; } = new();
 }
 

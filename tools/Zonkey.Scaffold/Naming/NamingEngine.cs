@@ -8,13 +8,12 @@ namespace Zonkey.Scaffold.Naming;
 public sealed class NamingEngine
 {
     private readonly NamingOptions _naming;
-    private readonly OverrideOptions _overrides;
     private readonly Inflector _inflector;
 
-    /// <summary>The values <c>naming.style</c> / <c>--naming-style</c> may take.</summary>
+    /// <summary>The values <c>naming.style</c> / <c>--Naming:Style</c> may take.</summary>
     private static readonly string[] Styles = ["pascal", "preserve"];
 
-    public NamingEngine(NamingOptions naming, OverrideOptions overrides)
+    public NamingEngine(NamingOptions naming)
     {
         // The style is read as `Equals("preserve") ? … : PascalCase`, so anything that is not
         // "preserve" — including "camel", "snake" or a typo — silently became PascalCase. That is
@@ -30,107 +29,44 @@ public sealed class NamingEngine
         }
 
         _naming = naming;
-        _overrides = overrides;
         _inflector = new Inflector(naming.Irregulars);
     }
 
-    public string ClassNameFor(TableInfo table, ICollection<ScaffoldWarning> warnings)
+    public string ClassNameFor(TableInfo table)
     {
-        if (FindTableOverride(table)?.ClassName is { Length: > 0 } forced)
-            return Identifier(forced, ClassSubject(table));
-
-        string stem = table.Name;
-
-        if (_naming.Singularize)
-        {
-            string singular = _inflector.Singularize(stem);
-
-            if (_inflector.IsUncertain(stem, singular))
-            {
-                warnings.Add(ScaffoldWarning.For(
-                    WarningCode.InflectionUncertain,
-                    $"Table '{table.QualifiedName}' singularized to '{singular}'. " +
-                    $"Set naming.irregulars or overrides.tables.{table.Name}.className if that is wrong.",
-                    table: table.QualifiedName));
-            }
-
-            stem = singular;
-        }
+        string stem = _naming.Singularize ? _inflector.Singularize(table.Name) : table.Name;
 
         string core = _naming.Style.Equals("preserve", StringComparison.OrdinalIgnoreCase)
             ? stem
             : ToPascalCase(stem);
 
-        return Identifier(_naming.ClassPrefix + core + _naming.ClassSuffix, ClassSubject(table));
+        return Identifier(core, ClassSubject(table));
     }
 
-    public string PropertyNameFor(TableInfo table, ColumnInfo column, string className)
+    public string PropertyNameFor(TableInfo table, ColumnInfo column)
     {
-        if (FindTableOverride(table) is { } to &&
-            to.Columns.TryGetValue(column.Name, out ColumnOverride? co) &&
-            co.Property is { Length: > 0 } forced)
-        {
-            return Identifier(forced, PropertySubject(table, column));
-        }
-
         string name = _naming.Style.Equals("preserve", StringComparison.OrdinalIgnoreCase)
             ? column.Name
             : ToPascalCase(column.Name);
-
-        if (_naming.StripClassName)
-            name = Strip(name, className);
 
         return Identifier(name, PropertySubject(table, column));
     }
 
     private static (string Source, string Remedy) ClassSubject(TableInfo table)
-        => ($"Table '{table.QualifiedName}'",
-            $"Set overrides.tables.{table.Name}.className to name the class explicitly.");
+        => ($"Table '{table.QualifiedName}'", "Rename the table, or rename the class afterwards.");
 
     private static (string Source, string Remedy) PropertySubject(TableInfo table, ColumnInfo column)
         => ($"Column '{table.QualifiedName}.{column.Name}'",
-            $"Set overrides.tables.{table.Name}.columns.{column.Name}.property to name the " +
-            "property explicitly.");
-
-    /// <summary>
-    /// Removes a leading or trailing occurrence of the class name, but never returns an empty
-    /// string — a column literally named after its table keeps its own name.
-    /// </summary>
-    private static string Strip(string name, string className)
-    {
-        if (string.Equals(name, className, StringComparison.Ordinal)) return name;
-
-        if (name.Length > className.Length &&
-            name.StartsWith(className, StringComparison.Ordinal))
-            return name[className.Length..];
-
-        if (name.Length > className.Length &&
-            name.EndsWith(className, StringComparison.Ordinal))
-            return name[..^className.Length];
-
-        return name;
-    }
-
-    private TableOverride? FindTableOverride(TableInfo table)
-    {
-        if (_overrides.Tables.TryGetValue(table.QualifiedName, out TableOverride? qualified))
-            return qualified;
-
-        return _overrides.Tables.TryGetValue(table.Name, out TableOverride? bare) ? bare : null;
-    }
+            "Rename the column, or rename the property afterwards.");
 
     /// <summary>
     /// The C# reserved keywords — the words that are never legal as a bare identifier.
     /// </summary>
     /// <remarks>
-    /// A literal set rather than <c>SyntaxFacts.GetKeywordKind</c>, to keep a whole Roslyn
-    /// dependency out of a CLI tool for one lookup. Deliberately excludes contextual keywords
-    /// (<c>value</c>, <c>record</c>, <c>nameof</c>, <c>var</c>, <c>async</c>, <c>await</c>,
-    /// <c>from</c>, <c>where</c>, <c>field</c>, …): those are legal identifiers, and escaping
-    /// them would put an <c>@</c> in front of every <c>value</c> column in every settings and
-    /// audit table for no reason. Ordinal comparison because C# keywords are case-sensitive and
-    /// lower-case, which is also why PascalCasing hides most of this problem — <c>Class</c> is
-    /// simply not a keyword.
+    /// A literal set rather than <c>SyntaxFacts</c>, to keep Roslyn out of a CLI tool for one
+    /// lookup. Excludes contextual keywords (<c>value</c>, <c>record</c>, <c>field</c>, …): those
+    /// are legal identifiers. Ordinal because C# keywords are lower-case, which is also why
+    /// PascalCasing hides most of this — <c>Class</c> is simply not a keyword.
     /// </remarks>
     private static readonly HashSet<string> ReservedKeywords = new(StringComparer.Ordinal)
     {
@@ -150,22 +86,9 @@ public sealed class NamingEngine
     /// <c>event</c> or a column named <c>lock</c> yields source that compiles.
     /// </summary>
     /// <remarks>
-    /// Applied here, at the point identifiers are produced, rather than in each emitter: the
-    /// emitters take an identifier and are entitled to assume it is one, and doing it once here
-    /// means a second emitter cannot forget. Naturally idempotent — <c>@lock</c> is not itself in
-    /// the set — so an override that already spells the escape is left alone. Only reachable in
-    /// practice via <c>--naming-style preserve</c> and via explicit overrides, because
-    /// PascalCasing capitalizes the first letter and no C# keyword is capitalized; that is
-    /// precisely why the gap went unnoticed.
-    /// <para>
-    /// Not every identifier in the output is derived from a table or column, so this is public:
-    /// <c>ScaffoldPipeline</c> routes the wrapper class name (through
-    /// <see cref="Identifier(string, string, string)"/>), the namespace (through
-    /// <see cref="EscapeNamespace"/>) and the wrapper's pluralized adapter property names through
-    /// the same rules. Those three were the sites the first keyword fix missed, and each was a
-    /// reachable compile break: <c>--wrapper-class lock</c>, <c>--namespace Acme.lock.Data</c>,
-    /// and a table named <c>param</c> whose plural is <c>params</c>.
-    /// </para>
+    /// Applied once here rather than in each emitter, so a second emitter cannot forget.
+    /// Idempotent — <c>@lock</c> is not itself in the set. Mostly reachable via
+    /// <c>Naming:Style=preserve</c>, since PascalCasing capitalizes the first letter.
     /// </remarks>
     public static string EscapeKeyword(string identifier)
         => ReservedKeywords.Contains(identifier) ? "@" + identifier : identifier;
@@ -175,14 +98,9 @@ public sealed class NamingEngine
     /// table or column it came from.
     /// </summary>
     /// <remarks>
-    /// <c>--naming-style preserve</c> hands the raw schema name straight through, and a quoted SQL
-    /// identifier can be any text at all: <c>"my col"</c>, <c>"1st"</c>, <c>"total$"</c>,
-    /// <c>"@"</c>. Every one of those used to reach an emitter and produce source that does not
-    /// compile, and <c>"@"</c> additionally crashed the tool while the emitter derived
-    /// <c>"_" + name[0]</c> from it — exit 2, "unexpected error", for an input the tool could have
-    /// named precisely. Refusing here, where the table and column are still in hand, turns all of
-    /// them into one actionable message. Repairing them instead was rejected: any repair is a
-    /// guess at what the caller wanted to call the member, and an override says it exactly.
+    /// <c>Naming:Style=preserve</c> hands the raw schema name through, and a quoted SQL identifier
+    /// can be any text at all (<c>"my col"</c>, <c>"1st"</c>, <c>"@"</c>). Refusing here, where the
+    /// table and column are still in hand, gives one named error instead of a broken emit.
     /// </remarks>
     public static string Identifier(string candidate, string source, string remedy)
     {
@@ -201,11 +119,8 @@ public sealed class NamingEngine
     /// Escapes each dot-separated segment of a namespace.
     /// </summary>
     /// <remarks>
-    /// A namespace is a list of identifiers, not one identifier, so it needs its own entry point:
-    /// <c>--namespace Acme.lock.Data</c> must become <c>Acme.@lock.Data</c> and not
-    /// <c>@Acme.lock.Data</c>. It is computed once (see <c>ScaffoldPlan.Namespace</c>) because
-    /// the entity files and the wrapper must agree on the spelling — the wrapper names the entity
-    /// types, so two spellings do not compile.
+    /// A namespace is a list of identifiers, not one: <c>Acme.lock.Data</c> must become
+    /// <c>Acme.@lock.Data</c>, not <c>@Acme.lock.Data</c>.
     /// </remarks>
     public static string? EscapeNamespace(string? ns)
     {
@@ -228,11 +143,8 @@ public sealed class NamingEngine
     /// True when the text is usable as written in emitted source.
     /// </summary>
     /// <remarks>
-    /// A leading <c>@</c> is the verbatim-identifier escape and is skipped before the check. The
-    /// letter test is <see cref="char.IsLetter(char)"/> rather than an ASCII range because C#
-    /// identifiers are Unicode; the rule is deliberately a little stricter than the language
-    /// (which also admits connector, combining and formatting characters), since anything it
-    /// rejects produces a *named* error rather than a silent miscompile.
+    /// A leading <c>@</c> is skipped first. Slightly stricter than the language, which also admits
+    /// connector and combining characters — anything rejected produces a named error.
     /// </remarks>
     private static bool IsIdentifier(string text)
     {

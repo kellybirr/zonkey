@@ -6,5 +6,5 @@ namespace Zonkey.Scaffold.Mapping;
 public interface ITypeMapper
 {
     ColumnMapping Map(TableInfo table, ColumnInfo column, bool nullableRefs,
-        ICollection<ScaffoldWarning> warnings);
+        ICollection<string> warnings);
 }

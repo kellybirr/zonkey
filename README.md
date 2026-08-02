@@ -153,7 +153,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) folder, written
 - [PostgreSQL Guide](docs/postgresql.md) — timestamps, case folding, and provider-specific types
 - [Testing with Mocks](docs/testing.md) — unit testing with Zonkey.Mocks
 - [Text File Mapping](docs/text-files.md) — CSV and fixed-width files with Zonkey.Text
-- [Code Generation Tools](docs/code-generation.md) — generating data classes from database schemas
+- [Code Generation](docs/code-generation.md) — `zonkey-scaffold`, the CLI that generates data classes from a live database
 - [Migrating from Entity Framework](docs/migrating-from-ef.md) — concept mapping for EF developers
 
 Each source project also has its own README:

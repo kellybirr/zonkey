@@ -1,28 +1,36 @@
 namespace Zonkey.Scaffold.Options;
 
+/// <summary>
+/// Everything the tool can be told, bound straight from IConfiguration (JSON file, then
+/// ZONKEY_SCAFFOLD_* environment variables, then the command line).
+/// </summary>
 public sealed class ScaffoldOptions
 {
     public string? Provider { get; set; }
-    public string Language { get; set; } = "csharp";
     public string? ConnectionString { get; set; }
-    public Dictionary<string, string> ConnectionStrings { get; set; } = new();
     public string? Namespace { get; set; }
+
+    /// <summary>Schemas to read. Empty means every non-system schema.</summary>
     public List<string> Schemas { get; set; } = new();
-    public string SchemaDisambiguation { get; set; } = "none";
+
+    /// <summary>Table names to skip. Supports a trailing <c>*</c>.</summary>
+    public List<string> IgnoreTables { get; set; } = new();
+
+    public bool Views { get; set; }
+    public bool DryRun { get; set; }
 
     public OutputOptions Output { get; set; } = new();
     public WrapperOptions Wrapper { get; set; } = new();
     public NamingOptions Naming { get; set; } = new();
     public EmitOptions Emit { get; set; } = new();
-    public SelectionOptions Include { get; set; } = new();
-    public IgnoreOptions Ignore { get; set; } = new();
-    public OverrideOptions Overrides { get; set; } = new();
 }
 
 public sealed class OutputOptions
 {
     public string Entities { get; set; } = ".";
     public string? Wrapper { get; set; }
+
+    /// <summary>Write <c>.g.cs</c> rather than <c>.cs</c>.</summary>
     public bool GeneratedSuffix { get; set; } = true;
 }
 
@@ -34,53 +42,25 @@ public sealed class WrapperOptions
 
 public sealed class NamingOptions
 {
-    public string Style { get; set; } = "pascal";           // pascal | preserve
+    /// <summary><c>pascal</c> or <c>preserve</c>.</summary>
+    public string Style { get; set; } = "pascal";
+
     public bool Singularize { get; set; } = true;
+
+    /// <summary>Plural-to-singular pairs the inflector gets wrong, e.g. <c>"data": "datum"</c>.</summary>
     public Dictionary<string, string> Irregulars { get; set; } = new();
-    public string ClassPrefix { get; set; } = "";
-    public string ClassSuffix { get; set; } = "";
-    public bool StripClassName { get; set; } = false;
 }
 
 public sealed class EmitOptions
 {
     public bool PartialClasses { get; set; } = true;
-    public string FieldKeyword { get; set; } = "auto";      // TriState text
-    public string NullableRefs { get; set; } = "auto";      // TriState text
-    public bool PrivateFieldsAtTop { get; set; } = false;
-    public bool VirtualProperties { get; set; } = false;
-    public string Collections { get; set; } = "none";       // none|generic|dataclass|bindable
-    public bool TypedAdapters { get; set; } = false;
-    public bool Relations { get; set; } = false;
-    public bool Views { get; set; } = false;
-    public bool SystemTables { get; set; } = false;
-}
+    public bool VirtualProperties { get; set; }
 
-public sealed class SelectionOptions
-{
-    public List<string> Tables { get; set; } = new();
-}
+    /// <summary>Use the C# <c>field</c> keyword instead of declaring backing fields.</summary>
+    public bool FieldKeyword { get; set; } = true;
 
-public sealed class IgnoreOptions
-{
-    public List<string> Tables { get; set; } = new();
-    public List<string> Columns { get; set; } = new();      // "table.column" glob patterns
-}
+    /// <summary>Only meaningful when <see cref="FieldKeyword"/> is off.</summary>
+    public bool PrivateFieldsAtTop { get; set; }
 
-public sealed class OverrideOptions
-{
-    public Dictionary<string, TableOverride> Tables { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-}
-
-public sealed class TableOverride
-{
-    public string? ClassName { get; set; }
-    public string? SaveToTable { get; set; }
-    public Dictionary<string, ColumnOverride> Columns { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-}
-
-public sealed class ColumnOverride
-{
-    public string? Property { get; set; }
-    public string? DbType { get; set; }
+    public bool NullableRefs { get; set; } = true;
 }
