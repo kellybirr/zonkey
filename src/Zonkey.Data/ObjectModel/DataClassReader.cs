@@ -607,7 +607,43 @@ namespace Zonkey.ObjectModel
                         il.Emit(OpCodes.Call, FastBuilderRefs.TimeOnly_Parse);
                     }
                 }
+                else if ((coreType == typeof(DateTime)) && (dbType == typeof(DateOnly)))
+                {
+                    // providers may surface date columns as DateOnly (e.g. Npgsql 10);
+                    // Convert.ChangeType cannot help because DateOnly is not IConvertible
+                    il.Emit(OpCodes.Unbox_Any, typeof(DateOnly));
+                    il.Emit(OpCodes.Call, FastBuilderRefs.DateOnly_ToDateTime);
+                }
+                else if ((coreType == typeof(DateTime)) && (dbType == typeof(TimeOnly)))
+                {
+                    il.Emit(OpCodes.Unbox_Any, typeof(TimeOnly));
+                    il.Emit(OpCodes.Call, FastBuilderRefs.TimeOnly_ToDateTime);
+                }
+                else if ((coreType == typeof(TimeSpan)) && (dbType == typeof(TimeOnly)))
+                {
+                    il.Emit(OpCodes.Unbox_Any, typeof(TimeOnly));
+                    il.Emit(OpCodes.Call, FastBuilderRefs.TimeOnly_ToTimeSpan);
+                }
 #endif
+                else if ((coreType == typeof(TimeSpan)) && (dbType == typeof(string)))
+                {
+                    // text-backed time columns (e.g. SQLite); standard "d.hh:mm:ss" form
+                    il.Emit(OpCodes.Castclass, typeof(string));
+                    il.Emit(OpCodes.Call, FastBuilderRefs.String_ToTimeSpan);
+                }
+                else if ((coreType == typeof(TimeSpan)) && (dbType == typeof(DateTime)))
+                {
+                    il.Emit(OpCodes.Unbox_Any, typeof(DateTime));
+                    il.Emit(OpCodes.Call, FastBuilderRefs.DateTime_ToTimeSpan);
+                }
+                else if ((coreType == typeof(string)) && (FastBuilderRefs.IsoStringMethod(dbType) is MethodInfo isoMethod))
+                {
+                    // date/time-ish sources render as round-trip ISO strings, matching the
+                    // reflection path; Convert.ChangeType would use the current culture
+                    // (DateTime) or throw outright (TimeSpan/DateOnly/TimeOnly)
+                    il.Emit(OpCodes.Unbox_Any, dbType);
+                    il.Emit(OpCodes.Call, isoMethod);
+                }
                 else if (enumType != null)
                 {
                     if (dbType == enumType)
@@ -695,13 +731,41 @@ namespace Zonkey.ObjectModel
         internal static readonly MethodInfo Enum_Parse = typeof(Enum).GetMethod(nameof(Enum.Parse), new[] { typeof(Type), typeof(string), typeof(bool) });
         internal static readonly ConstructorInfo Guid_CtorString = typeof(Guid).GetConstructor(new[] { typeof(string) });
 
+        internal static readonly MethodInfo DateTime_ToIso = IsoHelper(nameof(FieldHandler.DateTimeToIso));
+        internal static readonly MethodInfo TimeSpan_ToIso = IsoHelper(nameof(FieldHandler.TimeSpanToIso));
+        internal static readonly MethodInfo String_ToTimeSpan = IsoHelper(nameof(FieldHandler.StringToTimeSpan));
+        internal static readonly MethodInfo DateTime_ToTimeSpan = IsoHelper(nameof(FieldHandler.DateTimeToTimeSpan));
+
 #if !NETFRAMEWORK
         internal static readonly MethodInfo DateOnly_FromDateTime = typeof(DateOnly).GetMethod(nameof(DateOnly.FromDateTime), new[] { typeof(DateTime) });
         internal static readonly MethodInfo DateOnly_Parse = typeof(DateOnly).GetMethod(nameof(DateOnly.Parse), new[] { typeof(string) });
         internal static readonly MethodInfo TimeOnly_FromTimeSpan = typeof(TimeOnly).GetMethod(nameof(TimeOnly.FromTimeSpan), new[] { typeof(TimeSpan) });
         internal static readonly MethodInfo TimeOnly_FromDateTime = typeof(TimeOnly).GetMethod(nameof(TimeOnly.FromDateTime), new[] { typeof(DateTime) });
         internal static readonly MethodInfo TimeOnly_Parse = typeof(TimeOnly).GetMethod(nameof(TimeOnly.Parse), new[] { typeof(string) });
+        internal static readonly MethodInfo DateOnly_ToDateTime = IsoHelper(nameof(FieldHandler.DateOnlyToDateTime));
+        internal static readonly MethodInfo TimeOnly_ToDateTime = IsoHelper(nameof(FieldHandler.TimeOnlyToDateTime));
+        internal static readonly MethodInfo TimeOnly_ToTimeSpan = IsoHelper(nameof(FieldHandler.TimeOnlyToTimeSpan));
+        internal static readonly MethodInfo DateOnly_ToIso = IsoHelper(nameof(FieldHandler.DateOnlyToIso));
+        internal static readonly MethodInfo TimeOnly_ToIso = IsoHelper(nameof(FieldHandler.TimeOnlyToIso));
 #endif
+
+        private static MethodInfo IsoHelper(string name)
+            => typeof(FieldHandler).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic);
+
+        /// <summary>
+        /// The ISO renderer for a date/time-ish reader field type, or null when the
+        /// source type has no ISO string form (leaving Convert.ChangeType in charge).
+        /// </summary>
+        internal static MethodInfo IsoStringMethod(Type dbType)
+        {
+            if (dbType == typeof(DateTime)) return DateTime_ToIso;
+            if (dbType == typeof(TimeSpan)) return TimeSpan_ToIso;
+#if !NETFRAMEWORK
+            if (dbType == typeof(DateOnly)) return DateOnly_ToIso;
+            if (dbType == typeof(TimeOnly)) return TimeOnly_ToIso;
+#endif
+            return null;
+        }
 
         internal static MethodInfo FuncOfT_Invoke(Type itemType)
             => typeof(Func<>).MakeGenericType(itemType).GetMethod("Invoke");

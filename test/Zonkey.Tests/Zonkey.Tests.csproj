@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0;net48</TargetFrameworks>
+    <TargetFrameworks>net10.0;net8.0;net48</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <RootNamespace>Zonkey.Tests</RootNamespace>
     <AssemblyName>Zonkey.Tests</AssemblyName>
@@ -25,7 +25,11 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.*" />
     <!-- Lifts transitive SQLitePCLRaw above 2.1.10 (GHSA-2m69-gcr7-jv3q) -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.*" />
-    <PackageReference Include="Npgsql" Version="9.*" />
+    <!-- Npgsql majors mirror what real consumers run per runtime: Npgsql 9 surfaces
+         date/time as DateTime/TimeSpan, Npgsql 10 as DateOnly/TimeOnly. Running both
+         legs proves Zonkey's conversions are symmetric across the provider change. -->
+    <PackageReference Include="Npgsql" Version="10.*" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <PackageReference Include="Npgsql" Version="9.*" Condition="'$(TargetFramework)' == 'net8.0'" />
     <PackageReference Include="MySqlConnector" Version="2.*" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.*" />
   </ItemGroup>

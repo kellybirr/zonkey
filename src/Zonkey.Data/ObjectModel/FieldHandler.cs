@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Reflection;
 
 namespace Zonkey.ObjectModel
@@ -51,7 +52,34 @@ namespace Zonkey.ObjectModel
                         else
                             dstInfo.SetValue(obj, TimeOnly.Parse(value.ToString()), null);
                     }
+                    else if (value is DateOnly srcDateOnly && (dstType == typeof(DateTime) || dstType == typeof(DateTime?)))
+                    {
+                        // providers may surface date columns as DateOnly (e.g. Npgsql 10);
+                        // Convert.ChangeType cannot help because DateOnly is not IConvertible
+                        dstInfo.SetValue(obj, ApplyDateTimeKind(DateOnlyToDateTime(srcDateOnly), mapField), null);
+                    }
+                    else if (value is TimeOnly srcTimeOnly && (dstType == typeof(TimeSpan) || dstType == typeof(TimeSpan?)))
+                    {
+                        dstInfo.SetValue(obj, TimeOnlyToTimeSpan(srcTimeOnly), null);
+                    }
+                    else if (value is TimeOnly srcTimeOnly2 && (dstType == typeof(DateTime) || dstType == typeof(DateTime?)))
+                    {
+                        dstInfo.SetValue(obj, ApplyDateTimeKind(TimeOnlyToDateTime(srcTimeOnly2), mapField), null);
+                    }
 #endif
+                    else if (value is string timeSpanText && (dstType == typeof(TimeSpan) || dstType == typeof(TimeSpan?)))
+                    {
+                        // text-backed time columns (e.g. SQLite); standard "d.hh:mm:ss" form
+                        dstInfo.SetValue(obj, StringToTimeSpan(timeSpanText), null);
+                    }
+                    else if (value is DateTime srcDateTime && (dstType == typeof(TimeSpan) || dstType == typeof(TimeSpan?)))
+                    {
+                        dstInfo.SetValue(obj, DateTimeToTimeSpan(srcDateTime), null);
+                    }
+                    else if (dstType == typeof(string) && ToIsoString(value) is string isoText)
+                    {
+                        dstInfo.SetValue(obj, isoText, null);
+                    }
                     else if (value is string enumText && GetEnumType(dstInfo.PropertyType) is Type textEnumType)
                     {
                         // string-sourced enums accept names or numeric strings, case-insensitively
@@ -95,6 +123,40 @@ namespace Zonkey.ObjectModel
             return (converted is DateTime dt) && (mapField.DateTimeKind != DateTimeKind.Unspecified)
                 ? DateTime.SpecifyKind(dt, mapField.DateTimeKind)
                 : converted;
+        }
+
+        // Conversions shared by this reflection path and the fast builder's emitted IL.
+        // String renderings are round-trip ISO formats, never the current culture's
+        // short patterns (which drop precision and vary by machine).
+
+        internal static string DateTimeToIso(DateTime value) => value.ToString("O", CultureInfo.InvariantCulture);
+        internal static string TimeSpanToIso(TimeSpan value) => value.ToString("c", CultureInfo.InvariantCulture);
+        internal static TimeSpan StringToTimeSpan(string value) => TimeSpan.Parse(value, CultureInfo.InvariantCulture);
+        internal static TimeSpan DateTimeToTimeSpan(DateTime value) => value.TimeOfDay;
+
+#if !NETFRAMEWORK
+        internal static string DateOnlyToIso(DateOnly value) => value.ToString("O", CultureInfo.InvariantCulture);
+        internal static string TimeOnlyToIso(TimeOnly value) => value.ToString("O", CultureInfo.InvariantCulture);
+        internal static DateTime DateOnlyToDateTime(DateOnly value) => value.ToDateTime(TimeOnly.MinValue);
+        internal static TimeSpan TimeOnlyToTimeSpan(TimeOnly value) => value.ToTimeSpan();
+
+        // baseline date 0001-01-01 mirrors TimeOnly.FromDateTime (which strips the date
+        // part), so the round-trip through either representation is lossless
+        internal static DateTime TimeOnlyToDateTime(TimeOnly value) => default(DateTime).Add(value.ToTimeSpan());
+#endif
+
+        private static string ToIsoString(object value)
+        {
+            switch (value)
+            {
+                case DateTime dt: return DateTimeToIso(dt);
+                case TimeSpan ts: return TimeSpanToIso(ts);
+#if !NETFRAMEWORK
+                case DateOnly d: return DateOnlyToIso(d);
+                case TimeOnly t: return TimeOnlyToIso(t);
+#endif
+                default: return null;
+            }
         }
 
         private static Type GetEnumType(Type propertyType)
