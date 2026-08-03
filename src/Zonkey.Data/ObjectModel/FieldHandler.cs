@@ -67,6 +67,15 @@ namespace Zonkey.ObjectModel
                         dstInfo.SetValue(obj, ApplyDateTimeKind(TimeOnlyToDateTime(srcTimeOnly2), mapField), null);
                     }
 #endif
+                    else if (value is string timeSpanText && (dstType == typeof(TimeSpan) || dstType == typeof(TimeSpan?)))
+                    {
+                        // text-backed time columns (e.g. SQLite); standard "d.hh:mm:ss" form
+                        dstInfo.SetValue(obj, StringToTimeSpan(timeSpanText), null);
+                    }
+                    else if (value is DateTime srcDateTime && (dstType == typeof(TimeSpan) || dstType == typeof(TimeSpan?)))
+                    {
+                        dstInfo.SetValue(obj, DateTimeToTimeSpan(srcDateTime), null);
+                    }
                     else if (dstType == typeof(string) && ToIsoString(value) is string isoText)
                     {
                         dstInfo.SetValue(obj, isoText, null);
@@ -122,6 +131,8 @@ namespace Zonkey.ObjectModel
 
         internal static string DateTimeToIso(DateTime value) => value.ToString("O", CultureInfo.InvariantCulture);
         internal static string TimeSpanToIso(TimeSpan value) => value.ToString("c", CultureInfo.InvariantCulture);
+        internal static TimeSpan StringToTimeSpan(string value) => TimeSpan.Parse(value, CultureInfo.InvariantCulture);
+        internal static TimeSpan DateTimeToTimeSpan(DateTime value) => value.TimeOfDay;
 
 #if !NETFRAMEWORK
         internal static string DateOnlyToIso(DateOnly value) => value.ToString("O", CultureInfo.InvariantCulture);

@@ -105,6 +105,43 @@ namespace Zonkey.Tests.Unit
             Assert.Equal("14:30:15", item.V);
         }
 
+        // string and DateTime sources into TimeSpan destinations: SQLite surfaces time
+        // columns as text, and Access/ODBC-era drivers surface them as DateTime
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void StringSource_ToTimeSpan_ParsesInvariant(bool fast)
+        {
+            Assert.Equal(new TimeSpan(14, 30, 15), ReadOne<TimeSpanDest>(typeof(string), "14:30:15", fast).V);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void StringSource_ToNullableTimeSpan_KeepsFractionalSeconds(bool fast)
+        {
+            Assert.Equal(new TimeSpan(0, 14, 30, 15, 500), ReadOne<TimeSpanNDest>(typeof(string), "14:30:15.5000000", fast).V);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void StringSource_ToTimeSpan_ParsesStandardDayFormat(bool fast)
+        {
+            // the standard .NET "d.hh:mm:ss" form understood by TimeSpan.Parse/TryParse
+            Assert.Equal(new TimeSpan(2, 8, 15, 42), ReadOne<TimeSpanDest>(typeof(string), "2.08:15:42", fast).V);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void DateTimeSource_ToTimeSpan_UsesTimeOfDay(bool fast)
+        {
+            var item = ReadOne<TimeSpanDest>(typeof(DateTime), new DateTime(2023, 11, 5, 8, 15, 42), fast);
+            Assert.Equal(new TimeSpan(8, 15, 42), item.V);
+        }
+
 #if !NETFRAMEWORK
         // ---- DateOnly/TimeOnly destinations (sanity: the already-working happy paths) ----
 

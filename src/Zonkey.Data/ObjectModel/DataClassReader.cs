@@ -625,6 +625,17 @@ namespace Zonkey.ObjectModel
                     il.Emit(OpCodes.Call, FastBuilderRefs.TimeOnly_ToTimeSpan);
                 }
 #endif
+                else if ((coreType == typeof(TimeSpan)) && (dbType == typeof(string)))
+                {
+                    // text-backed time columns (e.g. SQLite); standard "d.hh:mm:ss" form
+                    il.Emit(OpCodes.Castclass, typeof(string));
+                    il.Emit(OpCodes.Call, FastBuilderRefs.String_ToTimeSpan);
+                }
+                else if ((coreType == typeof(TimeSpan)) && (dbType == typeof(DateTime)))
+                {
+                    il.Emit(OpCodes.Unbox_Any, typeof(DateTime));
+                    il.Emit(OpCodes.Call, FastBuilderRefs.DateTime_ToTimeSpan);
+                }
                 else if ((coreType == typeof(string)) && (FastBuilderRefs.IsoStringMethod(dbType) is MethodInfo isoMethod))
                 {
                     // date/time-ish sources render as round-trip ISO strings, matching the
@@ -722,6 +733,8 @@ namespace Zonkey.ObjectModel
 
         internal static readonly MethodInfo DateTime_ToIso = IsoHelper(nameof(FieldHandler.DateTimeToIso));
         internal static readonly MethodInfo TimeSpan_ToIso = IsoHelper(nameof(FieldHandler.TimeSpanToIso));
+        internal static readonly MethodInfo String_ToTimeSpan = IsoHelper(nameof(FieldHandler.StringToTimeSpan));
+        internal static readonly MethodInfo DateTime_ToTimeSpan = IsoHelper(nameof(FieldHandler.DateTimeToTimeSpan));
 
 #if !NETFRAMEWORK
         internal static readonly MethodInfo DateOnly_FromDateTime = typeof(DateOnly).GetMethod(nameof(DateOnly.FromDateTime), new[] { typeof(DateTime) });

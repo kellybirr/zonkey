@@ -13,10 +13,8 @@ namespace Zonkey.Tests.Integration.Sqlite
     /// <summary>
     /// SQLite date/time round-trips. Microsoft.Data.Sqlite stores DateOnly/TimeOnly as
     /// ISO text and surfaces every date/time-ish column as a string, so DateOnly/TimeOnly
-    /// destinations exercise Zonkey's string-parse fallback on both materialization paths.
-    /// (TimeSpan destinations from string sources are a pre-existing, unrelated gap --
-    /// Convert.ChangeType cannot parse strings into TimeSpan -- so the legacy entity here
-    /// covers the DateTime destination only.)
+    /// destinations exercise Zonkey's string-parse fallback, and TimeSpan destinations
+    /// exercise the standard "d.hh:mm:ss" TimeSpan parse, on both materialization paths.
     /// </summary>
     public class SqliteDateOnlyTests : IClassFixture<SqliteFixture>
     {
@@ -51,6 +49,9 @@ namespace Zonkey.Tests.Integration.Sqlite
 
             [DataField("d", DbType.Date, true)]
             public DateTime? D { get => field; set => SetFieldValue(ref field, value); }
+
+            [DataField("t", DbType.Time, true)]
+            public TimeSpan? T { get => field; set => SetFieldValue(ref field, value); }
         }
 
         [DataItem("date_probe")]
@@ -98,13 +99,13 @@ namespace Zonkey.Tests.Integration.Sqlite
         }
 
         [Fact]
-        public async Task Legacy_DateTime_RoundTrips_BothModes()
+        public async Task Legacy_DateTimeAndTimeSpan_RoundTrips_BothModes()
         {
             using var conn = _db.CreateConnection();
             await EnsureTable(conn);
             var adapter = new DataClassAdapter<LegacyRow>(conn);
 
-            var row = new LegacyRow(addingNew: true) { D = new DateTime(2023, 11, 5) };
+            var row = new LegacyRow(addingNew: true) { D = new DateTime(2023, 11, 5), T = new TimeSpan(8, 15, 42) };
             Assert.True(await adapter.Save(row));
 
             foreach (bool fast in new[] { true, false })
@@ -113,6 +114,7 @@ namespace Zonkey.Tests.Integration.Sqlite
                 reader.UseFastBuilder = fast;
                 var back = await reader.ReadAsync();
                 Assert.Equal(new DateTime(2023, 11, 5), back.D);
+                Assert.Equal(new TimeSpan(8, 15, 42), back.T);
             }
         }
 
