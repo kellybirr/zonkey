@@ -81,10 +81,18 @@ public sealed class CSharpRelationsEmitter
         string method = $"Fill{r.MemberName.TrimStart('@')}For";
         string q = options.NullableRefs ? "?" : "";
 
-        // The key array's element type follows the field being filtered, so the nullable overload
-        // of SqlInInt is matched when the queried column is nullable.
-        bool boxKey = r.ForeignKeyIsNullable && IsValueType(r.KeyClrType);
+        // The key array's element type follows the field being filtered, so a nullable queried
+        // column yields a nullable element type — but only for value types. `string?` is the same
+        // runtime type as `string`, and nulls are filtered out below either way.
+        bool keyIsValueType = IsValueType(r.KeyClrType);
+        bool boxKey = r.ForeignKeyIsNullable && keyIsValueType;
         string keyType = r.KeyClrType + (boxKey ? "?" : "");
+
+        // Nullable value types and nullable reference types are unwrapped differently: `.HasValue`
+        // and `.Value` exist only on Nullable<T>. Emitting them for a nullable string key — a
+        // country code, a SKU — produced source that would not compile.
+        string NotNull(string expr) => keyIsValueType ? $"{expr}.HasValue" : $"{expr} != null";
+        string Unwrap(string expr) => keyIsValueType ? $"{expr}!.Value" : $"{expr}!";
 
         w.Line($"/// <summary>Fills <see cref=\"{owner}.{r.MemberName}\"/> for every owner, in one query.</summary>");
         w.Line($"/// <remarks>{r.Origin}</remarks>");
@@ -98,7 +106,7 @@ public sealed class CSharpRelationsEmitter
         // Assigned to a local: the expression parser folds a variable to a value, but rejects an
         // inline expression in the SqlIn argument.
         string select = r.LocalKeyIsNullable
-            ? $"list.Where(o => o.{r.LocalKey}.HasValue).Select(o => ({keyType})o.{r.LocalKey}!.Value)"
+            ? $"list.Where(o => {NotNull($"o.{r.LocalKey}")}).Select(o => ({keyType}){Unwrap($"o.{r.LocalKey}")})"
             : $"list.Select(o => ({keyType})o.{r.LocalKey})";
 
         w.Line($"{keyType}[] keys = {select}.Distinct().ToArray();");
@@ -115,7 +123,7 @@ public sealed class CSharpRelationsEmitter
             w.Open($"foreach ({owner} item in list)");
             w.Line($"item.{r.MemberName}.Clear();");
             w.Line(r.LocalKeyIsNullable
-                ? $"if (item.{r.LocalKey}.HasValue) item.{r.MemberName}.AddRange(byKey[({keyType})item.{r.LocalKey}!.Value]);"
+                ? $"if ({NotNull($"item.{r.LocalKey}")}) item.{r.MemberName}.AddRange(byKey[({keyType}){Unwrap($"item.{r.LocalKey}")}]);"
                 : $"item.{r.MemberName}.AddRange(byKey[({keyType})item.{r.LocalKey}]);");
             w.Close();
         }
@@ -126,15 +134,15 @@ public sealed class CSharpRelationsEmitter
             w.Line($"var byKey = new Dictionary<{r.KeyClrType}, {typeName}>();");
             w.Open($"foreach ({typeName} row in loaded)");
             w.Line(r.ForeignKeyIsNullable
-                ? $"if (row.{r.ForeignKey}.HasValue) byKey[row.{r.ForeignKey}!.Value] = row;"
+                ? $"if ({NotNull($"row.{r.ForeignKey}")}) byKey[{Unwrap($"row.{r.ForeignKey}")}] = row;"
                 : $"byKey[row.{r.ForeignKey}] = row;");
             w.Close();
             w.Blank();
 
             w.Open($"foreach ({owner} item in list)");
             w.Line(r.LocalKeyIsNullable
-                ? $"item.{r.MemberName} = item.{r.LocalKey}.HasValue && " +
-                  $"byKey.TryGetValue(item.{r.LocalKey}!.Value, out {typeName}{q} found) ? found : null;"
+                ? $"item.{r.MemberName} = {NotNull($"item.{r.LocalKey}")} && " +
+                  $"byKey.TryGetValue({Unwrap($"item.{r.LocalKey}")}, out {typeName}{q} found) ? found : null;"
                 : $"item.{r.MemberName} = byKey.TryGetValue(item.{r.LocalKey}, " +
                   $"out {typeName}{q} found) ? found : null;");
             w.Close();

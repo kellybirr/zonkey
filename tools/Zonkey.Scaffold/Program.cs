@@ -32,7 +32,8 @@ public static class Program
         Settings also load from zonkey.scaffold.json and ZONKEY_SCAFFOLD_* environment variables.
 
           zonkey-scaffold skill --install [--out <dir>]
-                                installs the agent skill into .claude/skills/zonkey-scaffold/
+                                writes the agent skill to .claude/skills/zonkey-scaffold/SKILL.md,
+                                or to <dir>/SKILL.md when --out is given
 
         The output is a starting point: review it, rename what you like, and edit it in place.
         """;
