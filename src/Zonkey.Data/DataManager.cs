@@ -473,8 +473,14 @@ namespace Zonkey
                 return DbType.Double;
             if ( (type == typeof(Decimal)) || (type == typeof(Decimal?)) ) 
                 return DbType.Decimal;
-            if ( (type == typeof(DateTime)) || (type == typeof(DateTime?)) ) 
+            if ( (type == typeof(DateTime)) || (type == typeof(DateTime?)) )
                 return DbType.DateTime;
+#if !NETFRAMEWORK
+            if ( (type == typeof(DateOnly)) || (type == typeof(DateOnly?)) )
+                return DbType.Date;
+            if ( (type == typeof(TimeOnly)) || (type == typeof(TimeOnly?)) )
+                return DbType.Time;
+#endif
             if ( (type == typeof(Boolean)) || (type == typeof(Boolean?)) ) 
                 return DbType.Boolean;
             if ( (type == typeof(Guid)) || (type == typeof(Guid?)) ) 
