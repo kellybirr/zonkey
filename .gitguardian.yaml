@@ -1,0 +1,21 @@
+# GitGuardian / ggshield configuration.
+#
+# Read by the ggshield CLI and pre-commit hook. The "GitGuardian Security Checks"
+# status on pull requests comes from the GitGuardian GitHub App, which may take its
+# ignore rules from the dashboard rather than from this file — if a flagged
+# occurrence persists after this config lands, resolve it in the dashboard instead.
+
+version: 2
+
+secret:
+  ignored-paths:
+    # Connection strings for the throwaway Docker containers in docker-compose.yml,
+    # not credentials to anything real: localhost, non-default ports, and values the
+    # compose file itself publishes. Every one is overridable at run time by the
+    # ZONKEY_TEST_MSSQL / ZONKEY_TEST_PGSQL / ZONKEY_TEST_MYSQL environment variables,
+    # which is how CI supplies its own.
+    #
+    # Scoped to this one file deliberately. test/Zonkey.Tests/Infrastructure/
+    # TestConfiguration.cs holds the same values and is already accepted upstream; if it
+    # is ever re-flagged, add it here rather than widening this to a directory glob.
+    - test/Zonkey.Scaffold.Tests/Infrastructure/TestConfiguration.cs
