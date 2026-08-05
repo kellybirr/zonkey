@@ -23,7 +23,8 @@
 
   <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.*" />
-    <!-- Lifts transitive SQLitePCLRaw above 2.1.10 (GHSA-2m69-gcr7-jv3q) -->
+    <!-- Load-bearing, not redundant: Microsoft.Data.Sqlite pins SQLitePCLRaw to 2.1.10, which
+         carries CVE-2025-6965 (GHSA-2m69-gcr7-jv3q). This floating reference lifts it above 2.1.11. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.*" />
     <PackageReference Include="Npgsql" Version="9.*" />
     <PackageReference Include="MySqlConnector" Version="2.*" />

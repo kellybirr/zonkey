@@ -83,7 +83,7 @@ namespace Zonkey.ObjectModel.QueryTranslation
             // static Enumerable.Contains<T>(source, value)
             MethodInfo enumerableContains = typeof(System.Linq.Enumerable).GetMethods()
                 .First(m => m.Name == "Contains" && m.GetParameters().Length == 2);
-            Register(enumerableContains, (t, c) => t.TranslateInList(c.Arguments[1], c.Arguments[0], emptyThrows: false));
+            Register(enumerableContains, (t, c) => t.TranslateInList(c.Arguments[1], c.Arguments[0], legacySurface: false));
 
 #if !NETFRAMEWORK
             // C# 14 first-class spans: array.Contains binds to MemoryExtensions.Contains(ReadOnlySpan<T>, T).
@@ -106,7 +106,7 @@ namespace Zonkey.ObjectModel.QueryTranslation
                     if (!p2.IsGenericType || p2.GetGenericTypeDefinition() != typeof(IEqualityComparer<>)) continue;
                 }
 
-                Register(m, (t, c) => t.TranslateInList(c.Arguments[1], UnwrapSpanConversion(c.Arguments[0]), emptyThrows: false));
+                Register(m, (t, c) => t.TranslateInList(c.Arguments[1], UnwrapSpanConversion(c.Arguments[0]), legacySurface: false));
             }
 #endif
 
@@ -116,11 +116,11 @@ namespace Zonkey.ObjectModel.QueryTranslation
                 if (m.Name == "SqlIn" && m.GetParameters().Length == 2
                     && typeof(System.Collections.IEnumerable).IsAssignableFrom(m.GetParameters()[1].ParameterType))
                 {
-                    Register(m, (t, c) => t.TranslateInList(c.Arguments[0], c.Arguments[1], emptyThrows: true));
+                    Register(m, (t, c) => t.TranslateInList(c.Arguments[0], c.Arguments[1], legacySurface: true));
                 }
                 if (m.Name == "SqlInInt" || m.Name == "SqlInGuid")
                 {
-                    Register(m, (t, c) => ForceInline(t.TranslateInList(c.Arguments[0], c.Arguments[1], emptyThrows: true)));
+                    Register(m, (t, c) => ForceInline(t.TranslateInList(c.Arguments[0], c.Arguments[1], legacySurface: true)));
                 }
                 if (m.Name == "SqlIn" && m.GetParameters().Length == 3)
                     Register(m, TranslateSqlInSubquery);

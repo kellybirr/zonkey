@@ -40,7 +40,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
-          path: src/**/bin/Release/*.nupkg
+          path: |
+            src/**/bin/Release/*.nupkg
+            tools/**/bin/Release/*.nupkg
 
       # Trusted Publishing: exchanges the GitHub OIDC token for a one-time,
       # 1-hour API key minted by nuget.org — no stored secrets involved.
@@ -53,6 +55,6 @@ jobs:
       - name: Publish to NuGet.org
         shell: pwsh
         run: |
-          Get-ChildItem -Path src -Recurse -Filter *.nupkg | Where-Object FullName -like '*\bin\Release\*' | ForEach-Object {
+          Get-ChildItem -Path src,tools -Recurse -Filter *.nupkg | Where-Object FullName -like '*\bin\Release\*' | ForEach-Object {
             dotnet nuget push $_.FullName --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
           }

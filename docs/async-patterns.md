@@ -85,8 +85,6 @@ For transactional operations across multiple adapters, see [Transactions](transa
 A common async pattern is to load primary data, extract IDs, then load related data:
 
 ```csharp
-using Zonkey.Extensions;
-
 await using var db = await StoreDb.OpenAsync(connectionString);
 
 // Load orders
@@ -97,9 +95,9 @@ await db.Adapter<Order>().Fill(orders, o => o.Status == "pending");
 var orderIds = orders.Select(o => o.Id).ToArray();
 var lines = new List<OrderLine>();
 
-foreach (var chunk in orderIds.SplitList(2000))
+foreach (int[] batch in orderIds.Chunk(2000))
 {
-    await db.Adapter<OrderLine>().Fill(lines, l => l.OrderId.SqlInInt(chunk));
+    await db.Adapter<OrderLine>().Fill(lines, l => batch.Contains(l.OrderId));
 }
 
 // Join in memory
@@ -110,7 +108,7 @@ var orderDetails = orders.Select(o => new
 });
 ```
 
-`SplitList` (from `Zonkey.Extensions`) breaks large ID lists into chunks to stay within SQL parameter limits. `SqlInInt` translates to a SQL `IN (...)` clause in the generated query.
+`list.Contains(field)` translates to a SQL `IN (...)` clause. `Chunk` (from `System.Linq`) breaks large ID lists into batches to stay within SQL parameter limits. Whether you need it depends on the dialect and the key type: PostgreSQL binds any list as a single array parameter and has no ceiling, and on the other dialects integer and `Guid` lists inline as literals past 64 values, so neither needs batching. It is strings, dates and decimals on SQL Server, SQLite and MySQL that stay parameterized and can hit the cap -- so the loop above is illustrative rather than required for `int` ids. See [Translation policy](querying.md#translation-policy).
 
 ## Cancellation
 

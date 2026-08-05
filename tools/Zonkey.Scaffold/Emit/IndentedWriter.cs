@@ -32,5 +32,19 @@ public sealed class IndentedWriter(string indent = "    ")
         Line("}" + suffix);
     }
 
+    /// <summary>Writes a line and indents, with no brace — for VB, which closes with a keyword.</summary>
+    public void Push(string text)
+    {
+        Line(text);
+        _level++;
+    }
+
+    /// <summary>Outdents, then writes the closing keyword line.</summary>
+    public void Pop(string text)
+    {
+        _level--;
+        Line(text);
+    }
+
     public override string ToString() => _sb.ToString();
 }

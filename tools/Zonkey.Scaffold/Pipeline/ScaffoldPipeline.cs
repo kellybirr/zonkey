@@ -47,6 +47,7 @@ public static class ScaffoldPipeline
         };
 
         bool multiSchema = scope.Count > 1;
+        var built = new List<(TableInfo Table, EntityModel Entity)>();
 
         foreach (TableInfo table in schema.Tables)
         {
@@ -85,9 +86,13 @@ public static class ScaffoldPipeline
             }
 
             plan.Entities.Add(entity);
+            built.Add((table, entity));
         }
 
         var inflector = new Inflector(options.Naming.Irregulars);
+
+        if (options.Emit.Relations)
+            RelationBuilder.Apply(built, inflector, plan.Warnings);
 
         plan.Wrapper = new WrapperModel
         {

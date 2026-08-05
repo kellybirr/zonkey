@@ -46,7 +46,7 @@ if (product.DataRowState == DataRowState.Modified)
 
 EF resolves related data through navigation properties, either eagerly (via `.Include()`) or lazily (via proxies). This is convenient but can produce unexpected queries, especially with lazy loading in loops.
 
-In Zonkey, you load related data with separate, explicit queries. This is more verbose, but it means you never accidentally trigger N+1 queries by iterating a collection and accessing a navigation property. [Modeling Relationships](modeling-relationships.md) shows the canonical replacement patterns -- batched child loading with `SqlInInt`, in-memory stitching, view-backed read models, and dependency-ordered graph saves.
+In Zonkey, you load related data with separate, explicit queries. This is more verbose, but it means you never accidentally trigger N+1 queries by iterating a collection and accessing a navigation property. [Modeling Relationships](modeling-relationships.md) shows the canonical replacement patterns -- batched child loading with `Contains`, in-memory stitching, view-backed read models, and dependency-ordered graph saves.
 
 ### 4. "IQueryable builds server-side queries" becomes "Expressions build WHERE clauses"
 

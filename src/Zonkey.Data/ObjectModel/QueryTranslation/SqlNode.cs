@@ -93,7 +93,8 @@ namespace Zonkey.ObjectModel.QueryTranslation
         public IReadOnlyList<object> Values;  // non-null, non-empty; enum values pass through untouched (PG native enums)
     }
 
-    // legacy SqlInInt/SqlInGuid contract: always inline literals, never parameterize
+    // An IN list rendered as literals, never parameterized. Two users: the legacy
+    // SqlInInt/SqlInGuid contract, and the matches-nothing form `col IN (NULL)`.
     internal sealed class SqlInValuesInline : SqlNode
     {
         public SqlNode Operand;

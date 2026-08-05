@@ -201,14 +201,14 @@ namespace Zonkey.ObjectModel.QueryTranslation
                 && call.Method.DeclaringType != typeof(string)
                 && typeof(IEnumerable).IsAssignableFrom(call.Method.DeclaringType))
             {
-                return TranslateInList(call.Arguments[0], call.Object, emptyThrows: false);
+                return TranslateInList(call.Arguments[0], call.Object, legacySurface: false);
             }
 
             throw SqlExpressionException.ForNode(call,
                 $"method '{call.Method.DeclaringType?.Name}.{call.Method.Name}' has no SQL translation");
         }
 
-        internal SqlNode TranslateInList(Expression operandExpr, Expression listExpr, bool emptyThrows)
+        internal SqlNode TranslateInList(Expression operandExpr, Expression listExpr, bool legacySurface)
         {
             SqlNode operand = Translate(operandExpr);
 
@@ -216,33 +216,43 @@ namespace Zonkey.ObjectModel.QueryTranslation
             if (!(listNode is SqlValue lv) || lv.Value is string || !(lv.Value is IEnumerable seq))
                 throw SqlExpressionException.ForNode(listExpr, "the IN list must be a client-side sequence of values");
 
+            // Nulls are dropped from the list, on every surface. A null never matches: SQL's own IN
+            // semantics, where `col IN (1, NULL)` evaluates `col = NULL` to UNKNOWN and so never
+            // returns a NULL row. C#'s Contains would match null against null, but the translation
+            // is to SQL and follows SQL. Use `x == null` explicitly when you want NULL rows.
             var values = new List<object>();
-            bool sawNull = false;
             foreach (object v in seq)
             {
-                if (v == null) { sawNull = true; continue; }
-                values.Add(v);
+                if (v != null) values.Add(v);
             }
 
             if (values.Count == 0)
             {
-                if (emptyThrows)
+                if (legacySurface)
                     throw new ArgumentException("Attempted to translate an IN over a sequence that contained zero values");
 
-                // new surface: a list containing only null(s) matches NULL rows (C#/EF Contains semantics)
-                if (sawNull)
-                    return new SqlIsNull { Operand = operand };
-
-                return new SqlLiteral { Text = "1 = 0" };
+                // Nothing can match. Carries a comment because a bare `1 = 0` in a profiler or a
+                // BeforeExecuteCommand hook gives no hint where it came from.
+                //
+                // It is deliberately NOT rendered as `col IN (NULL)`, which reads better but is
+                // wrong: `col = NULL` is UNKNOWN, not FALSE, so a wrapping NOT yields UNKNOWN and
+                // `!list.Contains(x)` over an empty list would return no rows where it must return
+                // all of them. This node is emitted before any enclosing NOT is known, so the form
+                // has to be one that negates correctly on its own.
+                return new SqlLiteral { Text = "1 = 0 /* IN (): empty or all-null list */" };
             }
 
-            SqlNode inValues = new SqlInValues { Operand = operand, Values = values };
+            // A one-value IN is an equality. Collapsing it means a dynamically built filter that
+            // happens to select one item shares a cached plan with the hand-written `x.Id == id`
+            // instead of compiling its own, and on PostgreSQL it keeps the value visible to the
+            // planner — `= ANY($1)` hides the array contents at plan time, so a single value would
+            // otherwise get a default selectivity guess instead of an MCV/histogram lookup.
+            // EF Core does the same. Not applied to the legacy surface, whose SqlInInt/SqlInGuid
+            // contract is to render an inlined IN list and is left exactly as it was.
+            if (!legacySurface && values.Count == 1)
+                return new SqlBinary { Op = SqlBinaryOp.Equal, Left = operand, Right = new SqlValue { Value = values[0] } };
 
-            // new surface: a null in the list also matches NULL rows; legacy SqlIn/SqlInInt/SqlInGuid keep skip-nulls behavior
-            if (!emptyThrows && sawNull)
-                return new SqlBinary { Op = SqlBinaryOp.Or, Left = inValues, Right = new SqlIsNull { Operand = operand } };
-
-            return inValues;
+            return new SqlInValues { Operand = operand, Values = values };
         }
     }
 }

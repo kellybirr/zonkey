@@ -33,8 +33,22 @@ Settings bind through `IConfiguration`, so any option is `--Section:Key value`:
 --Naming:Singularize false       # keep table names plural
 --Emit:FieldKeyword false        # explicit backing fields instead of `field`
 --Emit:NullableRefs false
+--Emit:Relations true            # in-memory graph members from foreign keys
+--Language VB                    # CSharp (default) or VB
 --wrapper-class ZooDb
 ```
+
+**`--Emit:Relations true`** adds a parent reference on the child and a child list on the parent, plus a `{Entity}Extensions` class with an explicit loader per relation. The members carry no `[DataField]`, so the adapter ignores them and nothing loads implicitly. Do not add lazy loading; Zonkey deliberately has none.
+
+```csharp
+await db.Orders.Fill(orders, o => o.PlacedOn >= since);
+await db.OrderDetails.FillOrderDetailsFor(orders);   // ONE query for all orders
+await db.Customers.FillCustomerFor(orders);
+```
+
+The class is named for the entity being **queried**, not the one being filled — `Order.OrderDetails` loads from `db.OrderDetails`. Every method is overloaded for a single owner and for `IEnumerable<T>`. Never call these in a loop; pass the whole collection, which is the entire point.
+
+**`--Language VB`** emits `.vb`. Note that VB prepends the project's `RootNamespace` to declared namespaces, so `--namespace Zoo.Data` in a project rooted at `MyApp` yields `MyApp.Zoo.Data`. Clear `<RootNamespace></RootNamespace>` or adjust what you pass. VB has no `field` keyword and no nullable reference types, so those two options do nothing there.
 
 They also load from `zonkey.scaffold.json` and `ZONKEY_SCAFFOLD_*`. **Never write a connection string into the JSON file** — pass it on the command line or via the environment.
 

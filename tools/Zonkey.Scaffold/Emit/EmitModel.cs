@@ -25,6 +25,48 @@ public sealed class EntityModel
     public string? Namespace { get; set; }
 
     public List<PropertyModel> Properties { get; set; } = new();
+
+    /// <summary>
+    /// In-memory graph members derived from foreign keys, emitted only with <c>Emit:Relations</c>.
+    /// </summary>
+    public List<RelationModel> Relations { get; set; } = new();
+}
+
+/// <summary>
+/// A navigation member the adapter never sees. Zonkey has no navigation properties: a member
+/// without <c>[DataField]</c> is invisible to the adapter, so these are somewhere to put related
+/// rows you loaded yourself, not something that loads them.
+/// </summary>
+public sealed class RelationModel
+{
+    public string MemberName { get; set; } = "";
+
+    /// <summary>The related entity's class name.</summary>
+    public string TypeName { get; set; } = "";
+
+    /// <summary>A list of children, rather than a single parent.</summary>
+    public bool IsCollection { get; set; }
+
+    /// <summary>The foreign key this came from, for the emitted comment.</summary>
+    public string Origin { get; set; } = "";
+
+    /// <summary>The property on the owning class whose value identifies the related rows.</summary>
+    public string LocalKey { get; set; } = "";
+
+    /// <summary>The property on <see cref="TypeName"/> that the query filters on.</summary>
+    public string ForeignKey { get; set; } = "";
+
+    /// <summary>The key's CLR type with any <c>?</c> removed — picks the SqlIn helper.</summary>
+    public string KeyClrType { get; set; } = "";
+
+    public bool LocalKeyIsNullable { get; set; }
+    public bool ForeignKeyIsNullable { get; set; }
+
+    /// <summary>
+    /// False for a composite foreign key, which cannot be expressed as a single <c>IN</c>. The
+    /// member is still emitted — it is only the generated loader that has to be left out.
+    /// </summary>
+    public bool CanLoad { get; set; }
 }
 
 public sealed class PropertyModel

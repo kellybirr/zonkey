@@ -22,10 +22,12 @@ public static class Program
               --schema          schema to read; repeat with --Schemas:1, or use a ;-list
               --wrapper-class   wrapper class name (default: AppDatabase)
               --dry-run         report what would be written, write nothing
+              --Language        CSharp (default) | VB
               --IgnoreTables    ;-separated names, trailing * allowed
               --Views true      include views
               --Naming:Singularize false
               --Emit:FieldKeyword false
+              --Emit:Relations true   in-memory graph members for foreign keys
 
         Settings also load from zonkey.scaffold.json and ZONKEY_SCAFFOLD_* environment variables.
 
@@ -77,6 +79,9 @@ public static class Program
         return SkillInstaller.Install(Directory.GetCurrentDirectory(), target);
     }
 
+    private static bool Is(string value, params string[] candidates)
+        => candidates.Any(c => value.Equals(c, StringComparison.OrdinalIgnoreCase));
+
     private static void Write(ScaffoldPlan plan, ScaffoldOptions options)
     {
         string root = Path.GetFullPath(options.Output.Entities, Directory.GetCurrentDirectory());
@@ -84,9 +89,15 @@ public static class Program
             ? root
             : Path.GetFullPath(options.Output.Wrapper, Directory.GetCurrentDirectory());
 
-        string suffix = options.Output.GeneratedSuffix ? ".g.cs" : ".cs";
+        string language = options.Language.Trim();
+
+        bool vb = Is(language, "vb", "visualbasic");
+        if (!vb && !Is(language, "csharp", "cs"))
+            throw new ScaffoldException($"Language = '{language}' is not a language. Use CSharp or VB.");
+
+        string ext = vb ? ".vb" : ".cs";
+        string suffix = options.Output.GeneratedSuffix ? ".g" + ext : ext;
         var writer = new GeneratedFileWriter(options.DryRun);
-        var entityEmitter = new CSharpEntityEmitter();
         var emitOptions = new EntityEmitOptions
         {
             Namespace = plan.Namespace,
@@ -97,22 +108,51 @@ public static class Program
             NullableRefs = options.Emit.NullableRefs,
         };
 
+        var csharp = new CSharpEntityEmitter();
+        var basic = new VbEntityEmitter();
+
         foreach (EntityModel entity in plan.Entities)
         {
             writer.Write(
                 Path.Combine(root, entity.ClassName + suffix),
-                entityEmitter.Emit(entity, emitOptions));
+                vb ? basic.Emit(entity, emitOptions) : csharp.Emit(entity, emitOptions));
+        }
+
+        int extensions = 0;
+
+        if (options.Emit.Relations && !vb)
+        {
+            var relations = new CSharpRelationsEmitter();
+
+            foreach ((string typeName, List<RelationLoader> loaders)
+                     in CSharpRelationsEmitter.Group(plan.Entities))
+            {
+                writer.Write(
+                    Path.Combine(root, typeName + "Extensions" + suffix),
+                    relations.Emit(typeName, loaders, emitOptions));
+
+                extensions++;
+            }
+        }
+        else if (options.Emit.Relations && vb)
+        {
+            Console.Error.WriteLine(
+                "warning: Fill extensions are emitted for C# only; the VB relation members were " +
+                "written without them.");
         }
 
         writer.Write(
             Path.Combine(wrapperDir, plan.Wrapper.ClassName + suffix),
-            new CSharpWrapperEmitter().Emit(plan.Wrapper));
+            vb ? new VbWrapperEmitter().Emit(plan.Wrapper)
+               : new CSharpWrapperEmitter().Emit(plan.Wrapper));
 
         foreach (string warning in plan.Warnings.Distinct())
             Console.Error.WriteLine($"warning: {warning}");
 
+        string extra = extensions > 0 ? $" + {extensions} relation extension classes" : "";
+
         Console.WriteLine(options.DryRun
-            ? $"{plan.Entities.Count} entities + wrapper (dry run, nothing written)."
-            : $"Wrote {plan.Entities.Count} entities + {plan.Wrapper.ClassName} to {root}.");
+            ? $"{plan.Entities.Count} entities{extra} + wrapper (dry run, nothing written)."
+            : $"Wrote {plan.Entities.Count} entities{extra} + {plan.Wrapper.ClassName} to {root}.");
     }
 }

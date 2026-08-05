@@ -4,8 +4,10 @@
 
 ## Problem
 
-`list.Contains(field)` translation sends one parameter per element (≤64 items), inlines literals for
-safe types (>64), or throws past the dialect's `MaxParameters`. Large, *varying* lists cause:
+On dialects with no collection parameter, `list.Contains(field)` translation sends one parameter per
+element (2-64 items), inlines literals for safe types (>64), or throws past the dialect's
+`MaxParameters`. (A single value collapses to `=`, and PostgreSQL — which has the collection path —
+uses it from two values up.) Large, *varying* lists on the remaining dialects cause:
 
 1. **Plan-cache pollution** — each distinct parameter count is distinct query text (one cached plan per
    count); inlined literals are one plan per distinct value set. On hot paths this bloats the cache and
@@ -35,8 +37,13 @@ A single *collection-valued* parameter fixes all three: one stable query text, o
   `string[]→text[]`, `Guid[]→uuid[]` — with one caveat: `DateTime` arrays require a consistent
   `DateTimeKind` across all elements (the same rule Npgsql applies to scalar `DateTime` parameters,
   enforced array-wide here since one bad element fails the whole bind).
-- Policy: ≤64 elements keep individual parameters everywhere (exact values give the optimizer the best
-  cardinality estimates, and small counts don't meaningfully pollute the cache). Legacy
+- Policy (revised 2026-08-03): a single value collapses to `=` everywhere. Above that, a dialect WITH a
+  collection parameter uses it from 2 elements up — one plan at any size, so there is no threshold to
+  tune. Dialects WITHOUT one keep individual parameters to 64, then inline safe literals; the 64 bound
+  exists there to cap plan-cache churn (one plan per arity, reused) before trading it for the ability
+  to exceed the parameter cap. When implementing OPENJSON/json_each/JSON_TABLE below, those dialects
+  should move to the ">1 uses the collection parameter" rule too, and `InlineThreshold` becomes dead.
+  Legacy
   `SqlInInt`/`SqlInGuid` (`SqlInValuesInline`) are untouched — always literal-inlined.
 - Null semantics unaffected: nulls are stripped and `OR field IS NULL` is added by the translator
   *before* the generator chooses a strategy, so the array never contains nulls.
@@ -158,7 +165,8 @@ OPENJSON/json_each/JSON_TABLE (and TVPs) have **weak cardinality estimates** —
 fixed row count instead of seeing values. Harmless for simple IN filters; can regress plans for selective
 joins. EF Core 9 added an escape hatch back to constants for exactly this reason. Therefore:
 
-- Keep the ≤64 → individual-parameters rule.
+- Reconsider the ">1 → collection parameter" rule per dialect if estimates regress; the fallback is the
+  individual-parameter form, which is what PostgreSQL used below 64 before 2026-08-03.
 - `CollectionParameterMode` (`Auto | Never | Always`) needs two levels, not just adapter-level: an
   adapter/dialect-level default plus a **query-level override** (e.g. a parameter on the relevant
   `Fill`/adapter-call overload, or a fluent option on the expression-filter API) so a single regressed

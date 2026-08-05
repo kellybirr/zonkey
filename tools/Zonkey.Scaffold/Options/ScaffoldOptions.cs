@@ -10,6 +10,9 @@ public sealed class ScaffoldOptions
     public string? ConnectionString { get; set; }
     public string? Namespace { get; set; }
 
+    /// <summary><c>CSharp</c> or <c>VB</c>.</summary>
+    public string Language { get; set; } = "CSharp";
+
     /// <summary>Schemas to read. Empty means every non-system schema.</summary>
     public List<string> Schemas { get; set; } = new();
 
@@ -62,5 +65,12 @@ public sealed class EmitOptions
     /// <summary>Only meaningful when <see cref="FieldKeyword"/> is off.</summary>
     public bool PrivateFieldsAtTop { get; set; }
 
+    /// <summary>Ignored for VB, which has no nullable reference types.</summary>
     public bool NullableRefs { get; set; } = true;
+
+    /// <summary>
+    /// Emit in-memory graph members for foreign keys. Opt-in, and they load nothing by themselves —
+    /// see docs/modeling-relationships.md.
+    /// </summary>
+    public bool Relations { get; set; }
 }

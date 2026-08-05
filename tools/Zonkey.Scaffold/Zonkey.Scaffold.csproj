@@ -16,6 +16,14 @@
     <PackageId>zonkey.scaffold</PackageId>
     <Description>Scaffolds Zonkey data classes and a DatabaseWrapper from a live database schema.</Description>
     <PackageTags>zonkey;orm;scaffolding;codegen;cli</PackageTags>
+    <Authors>Kelly Birr</Authors>
+    <PackageProjectUrl>https://github.com/kellybirr/zonkey</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/kellybirr/zonkey</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <!-- Overrides the shared ORM release notes from Directory.Build.props: this is a CLI with its
+         own story, and the library's translation-layer changes mean nothing to someone installing it. -->
+    <PackageReleaseNotes>First release. Generates Zonkey data classes and a DatabaseWrapper from a live SQLite, PostgreSQL, MySQL/MariaDB, or SQL Server database, replacing the legacy Zonkey.CodeGen (WinForms/SMO) and NpgCodeGen tools with one cross-platform CLI. Emits C# or VB.NET, optional foreign-key relation members with batched Fill extensions, and ships an installable agent skill via "zonkey-scaffold skill --install". Settings bind through IConfiguration: command line, ZONKEY_SCAFFOLD_* environment variables, or zonkey.scaffold.json.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,6 +34,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.*" />
     <PackageReference Include="Humanizer.Core" Version="2.*" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.*" />
+    <!-- Load-bearing, not redundant: Microsoft.Data.Sqlite pins SQLitePCLRaw to 2.1.10, which
+         carries CVE-2025-6965 (GHSA-2m69-gcr7-jv3q). This floating reference lifts it above 2.1.11. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.*" />
     <PackageReference Include="Npgsql" Version="9.*" />
     <PackageReference Include="MySqlConnector" Version="2.*" />

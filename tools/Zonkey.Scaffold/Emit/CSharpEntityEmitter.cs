@@ -29,6 +29,11 @@ public sealed class CSharpEntityEmitter
         EmitLowerCaseNameSuppression(w, model.ClassName);
 
         w.Line("using System;");
+
+        // Not assumed from ImplicitUsings: the generated file may land in a project without it.
+        if (model.Relations.Any(r => r.IsCollection))
+            w.Line("using System.Collections.Generic;");
+
         w.Line("using System.Data;");
         w.Line("using Zonkey.ObjectModel;");
         w.Blank();
@@ -58,8 +63,34 @@ public sealed class CSharpEntityEmitter
             EmitProperties(w, model, options);
         }
 
+        EmitRelations(w, model, options);
+
         w.Close();
         return w.ToString();
+    }
+
+    /// <summary>
+    /// Emits the graph members, which carry no <c>[DataField]</c> and so are invisible to the
+    /// adapter. Nothing here loads anything — that is the caller's second query.
+    /// </summary>
+    private static void EmitRelations(IndentedWriter w, EntityModel model, EntityEmitOptions options)
+    {
+        if (model.Relations.Count == 0) return;
+
+        w.Blank();
+        w.Line("// Related data. These have no [DataField], so the adapter never reads or writes");
+        w.Line("// them — nothing is loaded until you fill them yourself. See");
+        w.Line("// docs/modeling-relationships.md.");
+
+        foreach (RelationModel r in model.Relations)
+        {
+            w.Line($"// {r.Origin}");
+
+            if (r.IsCollection)
+                w.Line($"public List<{r.TypeName}> {r.MemberName} {{ get; }} = new();");
+            else
+                w.Line($"public {r.TypeName}{(options.NullableRefs ? "?" : "")} {r.MemberName} {{ get; set; }}");
+        }
     }
 
     /// <summary>
@@ -224,7 +255,7 @@ public sealed class CSharpEntityEmitter
         return sb.Append(")]").ToString();
     }
 
-    private static bool IsSized(string dbType)
+    internal static bool IsSized(string dbType)
         => dbType is "String" or "StringFixedLength" or "AnsiString"
                   or "AnsiStringFixedLength" or "Binary";
 

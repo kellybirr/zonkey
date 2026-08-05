@@ -37,6 +37,7 @@ Providers: `sqlite`, `pgsql` (also `postgres`, `postgresql`), `mysql` (also `mar
 | `-o`, `--out` | Output directory (default: current) |
 | `--schema` | Schema to read; omit for all non-system schemas |
 | `--wrapper-class` | Wrapper class name (default: `AppDatabase`) |
+| `--Language` | `CSharp` (default) or `VB` |
 | `--dry-run` | Report what would be written, write nothing |
 
 Settings are bound with `IConfiguration`, so **any** member of `ScaffoldOptions` is settable as `--Section:Key value`:
@@ -89,6 +90,47 @@ Classes are `partial`, so put your own members in a separate file rather than ed
 The parameterless constructor is marked `[Obsolete(…, true)]` deliberately: `DataClassAdapter` needs it to materialize rows, but your code should always use `new Animal(true)` for a new row. See [Data Classes](data-classes.md).
 
 Tables without a primary key, and views, are emitted read-only (`{ get; set; }` auto-properties, no change tracking).
+
+## Relations
+
+`--Emit:Relations true` adds in-memory graph members derived from foreign keys — a `Species` reference on the child, an `Animals` list on the parent:
+
+```csharp
+// Related data. These have no [DataField], so the adapter never reads or writes
+// them — nothing is loaded until you fill them yourself.
+// public.animals.species_id -> public.species
+public Species? Species { get; set; }
+```
+
+They carry **no `[DataField]`**, so the adapter never selects, inserts, or updates them. Nothing loads them implicitly — Zonkey has no navigation properties and no lazy loading, and the scaffolder does not invent any.
+
+What it does emit is an explicit loader per relation, in a `{Entity}Extensions` class keyed by the entity being *queried*:
+
+```csharp
+var orders = new List<Order>();
+await db.Orders.Fill(orders, o => o.PlacedOn >= since);
+
+await db.OrderDetails.FillOrderDetailsFor(orders);   // one query, not one per order
+await db.Customers.FillCustomerFor(orders);
+await db.Addresses.FillShipToFor(orders);            // two FKs into one table stay distinct
+await db.Addresses.FillBillToFor(orders);
+```
+
+Each method is overloaded for a single owner and for `IEnumerable<T>`, and **you supply the adapter** — so the query runs on your transaction, your timeout, and the wrapper's cached adapter. Nothing constructs a connection or an adapter behind your back.
+
+The batched form is one query for any number of owners: distinct keys into a `Contains`, then an in-memory `ToLookup`/dictionary join. Keys are de-duplicated, and owners with a null foreign key are skipped. Scaling is the translator's job — see [Translation policy](querying.md#translation-policy). On PostgreSQL the whole key list binds as one array parameter at any size; on the other dialects integer and `Guid` keys inline as literals past 64 values, while string keys stay parameterized and throw past the dialect's cap with a hint to batch with `Chunk`.
+
+Composite foreign keys can't be expressed as one `IN`, so they get the members but no loader, with a warning.
+
+The parent reference is named from the FK column with its `Id` suffix removed (`species_id` → `Species`), which keeps two keys into the same table distinguishable (`ShipToAddress`, `BillToAddress`). A member whose name collides with a mapped column is skipped with a warning — the column wins.
+
+Foreign keys pointing at tables outside the current run are ignored.
+
+## VB.NET
+
+`--Language VB` emits `.vb` files with the same structure. VB has no `field` keyword, so properties always declare an explicit backing field (`Emit:FieldKeyword` is not reachable), and it has no nullable reference types, so `Emit:NullableRefs` affects value types only.
+
+**One thing that will catch you:** VB prepends the project's `RootNamespace` to every declared namespace. Scaffolding with `--namespace Zoo.Data` into a project whose root namespace is `MyApp` gives you `MyApp.Zoo.Data`. Either clear `<RootNamespace></RootNamespace>` in the vbproj, or pass the namespace you want appended. C# has no such behavior.
 
 ## For coding agents
 

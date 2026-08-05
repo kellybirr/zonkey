@@ -40,11 +40,11 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         }
 
         [Fact]
-        public void Contains_EmptyList_RendersConstantFalse()
+        public void Contains_EmptyList_RendersSelfDescribingConstantFalse()
         {
             var ids = new int[0];
             var r = T(a => ids.Contains(a.SpeciesId));
-            Assert.Equal("1 = 0", r.SqlText);
+            Assert.Equal("1 = 0 /* IN (): empty or all-null list */", r.SqlText);
             Assert.Empty(r.Parameters);
         }
 
@@ -98,7 +98,7 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         {
             var names = Enumerable.Range(1, 2101).Select(i => "n" + i).ToArray();
             var ex = Assert.Throws<SqlExpressionException>(() => T(a => names.Contains(a.Name)));
-            Assert.Contains("SplitList", ex.Message);
+            Assert.Contains("Chunk", ex.Message);
         }
 
         [Fact]
@@ -120,20 +120,20 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         }
 
         [Fact]
-        public void Contains_NullsInList_AddsIsNullCheck()
+        public void Contains_NullsInList_DropsThemAndNeverMatchesNull()
         {
             var ids = new int?[] { 1, null, 3 };
             var r = T(a => ids.Contains(a.ExhibitId));
-            Assert.Equal("((ExhibitId IN ($0,$1)) OR (ExhibitId IS NULL))", r.SqlText);
+            Assert.Equal("(ExhibitId IN ($0,$1))", r.SqlText);
             Assert.Equal(new object[] { 1, 3 }, r.Parameters);
         }
 
         [Fact]
-        public void Contains_OnlyNullInList_RendersIsNull()
+        public void Contains_OnlyNullInList_MatchesNothing()
         {
             var ids = new int?[] { null };
             var r = T(a => ids.Contains(a.ExhibitId));
-            Assert.Equal("(ExhibitId IS NULL)", r.SqlText);
+            Assert.Equal("1 = 0 /* IN (): empty or all-null list */", r.SqlText);
             Assert.Empty(r.Parameters);
         }
 
@@ -146,7 +146,7 @@ namespace Zonkey.Tests.Unit.QueryTranslation
             Assert.Equal(2100, ok.Parameters.Length);
             // one prior parameter pushes the same list over the cap
             var ex = Assert.Throws<SqlExpressionException>(() => T(a => a.SpeciesId == 1 && names.Contains(a.Name)));
-            Assert.Contains("SplitList", ex.Message);
+            Assert.Contains("Chunk", ex.Message);
         }
 
         [Fact]
@@ -162,12 +162,47 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         }
 
         [Fact]
-        public void Contains_SmallList_OnPostgres_KeepsIndividualParameters()
+        public void Contains_SmallList_OnPostgres_UsesArrayFromTwoValuesUp()
         {
+            // A dialect with a collection parameter uses it for anything above a single value:
+            // one command text and one cached plan whatever the list length.
             var ids = Enumerable.Range(1, 64).ToArray();
             var r = TranslationTestHelper.Translate<Animal>(a => ids.Contains(a.SpeciesId), new PostgreSqlDialect());
-            Assert.Equal(64, r.Parameters.Length);
-            Assert.Contains("IN (", r.SqlText);
+            Assert.Equal("(SpeciesId = ANY($0))", r.SqlText);
+            Assert.Single(r.Parameters);
+
+            var two = new[] { 1, 2 };
+            var r2 = TranslationTestHelper.Translate<Animal>(a => two.Contains(a.SpeciesId), new PostgreSqlDialect());
+            Assert.Equal("(SpeciesId = ANY($0))", r2.SqlText);
+            Assert.Single(r2.Parameters);
+        }
+
+        [Fact]
+        public void Contains_SingleValue_CollapsesToEquality()
+        {
+            var one = new[] { 42 };
+
+            var generic = T(a => one.Contains(a.SpeciesId));
+            Assert.Equal("(SpeciesId = $0)", generic.SqlText);
+            Assert.Equal(new object[] { 42 }, generic.Parameters);
+
+            // Including on a dialect that has a collection parameter: a lone value stays visible to
+            // the planner rather than hiding inside an array it cannot see at plan time.
+            var pg = TranslationTestHelper.Translate<Animal>(a => one.Contains(a.SpeciesId), new PostgreSqlDialect());
+            Assert.Equal("(SpeciesId = $0)", pg.SqlText);
+            Assert.Single(pg.Parameters);
+        }
+
+        [Fact]
+        public void SqlInInt_SingleValue_KeepsLegacyInlinedInList()
+        {
+            // The legacy contract is an inlined IN list; it is deliberately not collapsed.
+            var ids = new[] { 42 };
+#pragma warning disable 618
+            var r = T(a => a.SpeciesId.SqlInInt(ids));
+#pragma warning restore 618
+            Assert.Equal("(SpeciesId IN (42))", r.SqlText);
+            Assert.Empty(r.Parameters);
         }
 
         [Fact]
@@ -180,11 +215,11 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         }
 
         [Fact]
-        public void Contains_NullInLargeList_OnPostgres_ArrayPlusIsNull()
+        public void Contains_NullInLargeList_OnPostgres_DropsNullFromArray()
         {
             var ids = Enumerable.Range(1, 65).Select(i => (int?)i).Concat(new int?[] { null }).ToArray();
             var r = TranslationTestHelper.Translate<Animal>(a => ids.Contains(a.ExhibitId), new PostgreSqlDialect());
-            Assert.Equal("((ExhibitId = ANY($0)) OR (ExhibitId IS NULL))", r.SqlText);
+            Assert.Equal("(ExhibitId = ANY($0))", r.SqlText);
         }
 
         [Fact]
@@ -262,7 +297,7 @@ namespace Zonkey.Tests.Unit.QueryTranslation
             // cap. Only the post-generation check in SqlTextGenerator.Generate catches this ordering.
             var names = Enumerable.Range(1, 2100).Select(i => "n" + i).ToArray();
             var ex = Assert.Throws<SqlExpressionException>(() => T(a => names.Contains(a.Name) && a.SpeciesId == 1));
-            Assert.Contains("SplitList", ex.Message);
+            Assert.Contains("Chunk", ex.Message);
         }
 
         [Fact]
@@ -327,7 +362,7 @@ namespace Zonkey.Tests.Unit.QueryTranslation
         {
             var ids = new int[0];
             var r = T(a => !ids.Contains(a.SpeciesId));
-            Assert.Equal("(NOT 1 = 0)", r.SqlText);
+            Assert.Equal("(NOT 1 = 0 /* IN (): empty or all-null list */)", r.SqlText);
             Assert.Empty(r.Parameters);
         }
 
