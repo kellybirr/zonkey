@@ -52,6 +52,27 @@ jobs:
         with:
           user: KellyBirr
 
+      # Every package is produced by GeneratePackageOnBuild, so a project missing that property
+      # yields no .nupkg — and the push loop below would simply iterate over nothing and report
+      # success. That is exactly how 7.0.1 shipped four packages instead of five. Assert the set
+      # before pushing, so a silently-missing package fails the release instead of passing it.
+      - name: Verify expected packages were produced
+        shell: pwsh
+        run: |
+          $expected = @(
+            'Zonkey.Data', 'Zonkey.Data.MsSql', 'Zonkey.Text', 'Zonkey.Mocks', 'zonkey.scaffold'
+          )
+          $found = Get-ChildItem -Path src,tools -Recurse -Filter *.nupkg |
+                   Where-Object FullName -like '*\bin\Release\*'
+          Write-Host "Found $($found.Count) package(s):"
+          $found | ForEach-Object { Write-Host "  $($_.Name)" }
+
+          $missing = $expected | Where-Object { $id = $_; -not ($found | Where-Object Name -like "$id.*.nupkg") }
+          if ($missing) {
+            Write-Error "Missing expected package(s): $($missing -join ', '). A project is probably missing <GeneratePackageOnBuild>."
+            exit 1
+          }
+
       - name: Publish to NuGet.org
         shell: pwsh
         run: |
