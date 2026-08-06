@@ -16,6 +16,11 @@
     <PackageId>zonkey.scaffold</PackageId>
     <Description>Scaffolds Zonkey data classes and a DatabaseWrapper from a live database schema.</Description>
     <PackageTags>zonkey;orm;scaffolding;codegen;cli</PackageTags>
+
+    <!-- Matches the four src/ projects. The release workflow only runs `dotnet build`, never
+         `dotnet pack`, so a project without this produces no .nupkg and is silently skipped by the
+         publish step's glob — which is exactly what happened to 7.0.1. -->
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Kelly Birr</Authors>
     <PackageProjectUrl>https://github.com/kellybirr/zonkey</PackageProjectUrl>
     <RepositoryUrl>https://github.com/kellybirr/zonkey</RepositoryUrl>
