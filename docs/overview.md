@@ -75,7 +75,7 @@ See [Database Providers & Dialects](database-providers.md) for details.
 
 ## What Zonkey Is Not
 
-- **Not a migration framework.** Zonkey does not manage your database schema. It does not create tables, generate migration scripts, or track schema versions. Use your database tools, a migration library, or the [code generation tools](code-generation.md) to keep classes and tables in sync.
+- **Not a migration framework.** Zonkey does not manage your database schema. It does not create tables, generate migration scripts, or track schema versions. Use your database tools, a migration library, or the [code generation tools](scaffolding.md) to keep classes and tables in sync.
 - **Not a LINQ-to-SQL query provider.** Zonkey does not implement `IQueryable`. Lambda expressions are supported for WHERE clause generation only. There is no query composition pipeline, no projection, and no server-side grouping through LINQ syntax.
 - **Not an application framework.** Zonkey does not dictate your application architecture. It does not provide dependency injection integration, repository base classes, or unit-of-work abstractions. It is a library you call from your own code.
 - **Not a replacement for understanding SQL.** Zonkey generates straightforward SELECT, INSERT, UPDATE, and DELETE statements. It expects you to understand your database, your indexes, and your query patterns.

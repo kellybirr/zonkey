@@ -23,7 +23,7 @@ For a high-level introduction, see the [Overview & Philosophy](overview.md).
 - [PostgreSQL Guide](postgresql.md) -- timestamp/timestamptz mapping, case folding, NativeType and provider-specific types
 - [Testing with Zonkey.Mocks](testing.md) -- Mocking adapters and connections for unit tests
 - [Text File Mapping (Zonkey.Text)](text-files.md) -- CSV and fixed-width text file mapping
-- [Code Generation](code-generation.md) -- `zonkey-scaffold`, generating data classes from a live database
+- [Scaffolding / Code Generation](scaffolding.md) -- `zonkey-scaffold`, generating data classes from a live database
 - [Upgrading from Zonkey 4.x](upgrading-from-v4.md) -- the sync-to-async port from the frozen `zonkey42` package
 - [Migrating from Entity Framework](migrating-from-ef.md) -- Concept mapping and migration guide
 
@@ -35,7 +35,7 @@ For a high-level introduction, see the [Overview & Philosophy](overview.md).
 | **Zonkey.Data.MsSql** | SQL Server-specific extensions, including `SqlXmlAdapter` for XML column support and SQL Server-optimized operations. |
 | **Zonkey.Text** | Text file mapping. Provides `TextClassReader`, `TextClassWriter`, and `CsvReader` for reading and writing CSV and fixed-width text files using the same attribute-based mapping approach as the database layer. |
 | **Zonkey.Mocks** | Testing support. Provides mock implementations of adapters and connections for unit testing without a database. |
-| **zonkey.scaffold** | A `dotnet tool`, not a library reference: `zonkey-scaffold` generates data classes and a `DatabaseWrapper` from a live SQLite, PostgreSQL, MySQL or SQL Server database. See [Code Generation](code-generation.md). |
+| **zonkey.scaffold** | A `dotnet tool`, not a library reference: `zonkey-scaffold` generates data classes and a `DatabaseWrapper` from a live SQLite, PostgreSQL, MySQL or SQL Server database. See [Code Generation](scaffolding.md). |
 
 ## Project README
 

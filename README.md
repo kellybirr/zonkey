@@ -120,6 +120,45 @@ var order = new Order(addingNew: true) { CustomerId = customer.Id, Status = "pen
 await db.Save(order);
 ```
 
+## Scaffolding an Existing Database
+
+Don't hand-write data classes for a database you already have. `zonkey-scaffold` is a cross-platform `dotnet tool` that reads a live schema and writes them for you — it replaces the old Windows-only `Zonkey.CodeGen` (WinForms/SMO) and `NpgCodeGen` utilities with a single CLI.
+
+```shell
+dotnet tool install -g zonkey.scaffold
+
+zonkey-scaffold --provider mssql \
+                --connection "Server=localhost;Database=Store;Trusted_Connection=True" \
+                --namespace MyApp.Data \
+                --out ./Data
+```
+
+Reads **SQL Server, PostgreSQL, MySQL/MariaDB, and SQLite**. Emits one `partial` class per table plus a `DatabaseWrapper`, in **C# or VB.NET** (`--Language VB`), with keys, identity columns, sequences, row versions, lengths, and per-provider `DbType` mapping already filled in.
+
+```csharp
+[DataItem("animals")]
+public partial class Animal : DataClass
+{
+    public Animal(bool addingNew) : base(addingNew) { }
+
+    [DataField("animal_id", DbType.Int32, false, IsKeyField = true, IsAutoIncrement = true)]
+    public int AnimalId { get => field; set => SetFieldValue(ref field, value); }
+}
+```
+
+Optionally, `--Emit:Relations true` derives in-memory graph members from your foreign keys and generates batched loaders that fetch children for a whole set of parents in **one query**, not one per parent:
+
+```csharp
+await db.Orders.Fill(orders, o => o.PlacedOn >= since);
+await db.OrderDetails.FillOrderDetailsFor(orders);   // one query for every order
+```
+
+Nothing loads implicitly — Zonkey still has no navigation properties or lazy loading, and the generated code adds none.
+
+**The output is a starting point, not a build step.** Read it, rename what you like, and edit it. Add your own members in a separate partial class file so regenerating doesn't overwrite them.
+
+Full options, provider notes, and the agent skill it ships: **[Scaffolding](docs/scaffolding.md)**.
+
 ## Packages
 
 | Package | Description |
@@ -155,7 +194,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) folder, written
 - [PostgreSQL Guide](docs/postgresql.md) — timestamps, case folding, and provider-specific types
 - [Testing with Mocks](docs/testing.md) — unit testing with Zonkey.Mocks
 - [Text File Mapping](docs/text-files.md) — CSV and fixed-width files with Zonkey.Text
-- [Code Generation](docs/code-generation.md) — `zonkey-scaffold`, the CLI that generates data classes from a live database
+- [Scaffolding / Code Generation](docs/scaffolding.md) — `zonkey-scaffold`, the CLI that generates data classes from a live database
 - [Migrating from Entity Framework](docs/migrating-from-ef.md) — concept mapping for EF developers
 - [Upgrading from Zonkey 4.x](docs/upgrading-from-v4.md) — the sync-to-async port, and what stays the same
 

@@ -129,7 +129,7 @@ dotnet tool install -g zonkey.scaffold
 zonkey-scaffold --provider mssql --connection "..." --namespace MyApp.Data --out ./Data
 ```
 
-It emits C# or VB.NET in the current constructor and `SetFieldValue` shape. See [Code Generation](code-generation.md).
+It emits C# or VB.NET in the current constructor and `SetFieldValue` shape. See [Code Generation](scaffolding.md).
 
 ## Also read
 

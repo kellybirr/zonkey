@@ -45,4 +45,4 @@ Writes a skill to `.claude/skills/zonkey-scaffold/SKILL.md` covering the workflo
 
 ## Documentation
 
-[Code generation](https://github.com/kellybirr/zonkey/blob/master/docs/code-generation.md) · [Data classes](https://github.com/kellybirr/zonkey/blob/master/docs/data-classes.md) · [Full docs](https://github.com/kellybirr/zonkey)
+[Code generation](https://github.com/kellybirr/zonkey/blob/master/docs/scaffolding.md) · [Data classes](https://github.com/kellybirr/zonkey/blob/master/docs/data-classes.md) · [Full docs](https://github.com/kellybirr/zonkey)

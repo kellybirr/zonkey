@@ -1,4 +1,4 @@
-# Code Generation
+# Scaffolding — Generating Data Classes from a Database
 
 `zonkey-scaffold` generates Zonkey data classes and a `DatabaseWrapper` from a live database. It replaces the two legacy generators (`Zonkey.CodeGen`, a WinForms/SMO tool, and `NpgCodeGen`) with one cross-platform CLI.
 

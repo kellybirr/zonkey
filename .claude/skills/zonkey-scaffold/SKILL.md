@@ -91,4 +91,4 @@ await using var db = new AppDatabase();
 var animals = await db.Animals.Fill(a => a.SpeciesId == id);
 ```
 
-See [docs/code-generation.md](../../../docs/code-generation.md) for the full option list and [docs/data-classes.md](../../../docs/data-classes.md) for the data-class contract.
+See [docs/scaffolding.md](../../../docs/scaffolding.md) for the full option list and [docs/data-classes.md](../../../docs/data-classes.md) for the data-class contract.

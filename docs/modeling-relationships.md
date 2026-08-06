@@ -130,7 +130,7 @@ The translator decides the form. On PostgreSQL the ids bind as a single array pa
 await db.OrderDetails.FillOrderDetailsFor(orders);   // one query, keys de-duplicated, stitched
 ```
 
-See [Code Generation](code-generation.md#relations). The generated methods do nothing you could not write by hand -- they still require you to call them, and they still load nothing implicitly.
+See [Scaffolding](scaffolding.md#relations). The generated methods do nothing you could not write by hand -- they still require you to call them, and they still load nothing implicitly.
 
 ---
 
