@@ -45,8 +45,9 @@ A single *collection-valued* parameter fixes all three: one stable query text, o
   should move to the ">1 uses the collection parameter" rule too, and `InlineThreshold` becomes dead.
   Legacy
   `SqlInInt`/`SqlInGuid` (`SqlInValuesInline`) are untouched — always literal-inlined.
-- Null semantics unaffected: nulls are stripped and `OR field IS NULL` is added by the translator
-  *before* the generator chooses a strategy, so the array never contains nulls.
+- Null semantics unaffected: the translator strips nulls *before* the generator chooses a strategy,
+  so the array never contains nulls. (As of 7.0.1 a null in the list matches nothing — SQL `IN`
+  semantics. An earlier draft added `OR field IS NULL`; that was reverted.)
 
 ## Design for the remaining providers
 

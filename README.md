@@ -6,6 +6,7 @@
 [![NuGet: Zonkey.Data.MsSql](https://img.shields.io/nuget/v/zonkey.data.mssql?label=NuGet%3A%20Zonkey.Data.MsSql)](https://www.nuget.org/packages/Zonkey.Data.MsSql/)
 [![NuGet: Zonkey.Text](https://img.shields.io/nuget/v/zonkey.text?label=NuGet%3A%20Zonkey.Text)](https://www.nuget.org/packages/Zonkey.Text/)
 [![NuGet: Zonkey.Mocks](https://img.shields.io/nuget/v/zonkey.mocks?label=NuGet%3A%20Zonkey.Mocks)](https://www.nuget.org/packages/Zonkey.Mocks/)
+[![NuGet: zonkey.scaffold](https://img.shields.io/nuget/v/zonkey.scaffold?label=NuGet%3A%20zonkey.scaffold)](https://www.nuget.org/packages/zonkey.scaffold/)
 
 > [!IMPORTANT]
 > **Zonkey 7.0 is a major release with breaking changes.** The 7.0 packages target .NET 8, .NET 10, and .NET Framework 4.8, and assemblies are no longer strong-name signed. If your application runs on .NET 7 or earlier (including .NET 5/6 and .NET Core), on a .NET Framework version before 4.8, or requires strong-named assemblies, stay on the latest v6.x release.
@@ -127,6 +128,7 @@ await db.Save(order);
 | [Zonkey.Data.MsSql](https://www.nuget.org/packages/Zonkey.Data.MsSql/) | SQL Server extensions (XML support, type handling) |
 | [Zonkey.Text](https://www.nuget.org/packages/Zonkey.Text/) | CSV and fixed-width text file mapping |
 | [Zonkey.Mocks](https://www.nuget.org/packages/Zonkey.Mocks/) | Mock ADO.NET objects for unit testing |
+| [zonkey.scaffold](https://www.nuget.org/packages/zonkey.scaffold/) | `dotnet tool` that generates data classes from a live database |
 
 ## Source Navigation & Debugging
 
@@ -155,6 +157,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) folder, written
 - [Text File Mapping](docs/text-files.md) — CSV and fixed-width files with Zonkey.Text
 - [Code Generation](docs/code-generation.md) — `zonkey-scaffold`, the CLI that generates data classes from a live database
 - [Migrating from Entity Framework](docs/migrating-from-ef.md) — concept mapping for EF developers
+- [Upgrading from Zonkey 4.x](docs/upgrading-from-v4.md) — the sync-to-async port, and what stays the same
 
 Each source project also has its own README:
 
@@ -180,7 +183,6 @@ Zonkey 7.0 is a major release. Beyond the target-framework and strong-naming cha
 - **WHERE-expression translation fixes**, several of which change query results silently if you don't recompile against v7.0:
   - `Nullable<T>.HasValue` now correctly emits `IS NOT NULL` (v6 emitted the inverted SQL).
   - Wildcard characters (`%`, `_`, `\`, `[`) in `StartsWith`/`EndsWith`/`Contains` arguments now match literally (v6 treated them as SQL wildcards).
-  - `list.Contains(x)` where the list contains a `null` now also matches NULL rows (`OR IS NULL`), matching C#/EF `Contains` semantics.
   - Untranslatable expressions throw `SqlExpressionException` (derives from `NotSupportedException`) instead of silently mistranslating or falling back to client-side evaluation.
 - **SQLite paging (`FillRange`) fixed.** v6 had the `LIMIT`/`OFFSET` operands swapped and returned the wrong page of rows.
 - **SQL Server paging (`FillRange`) now emits `OFFSET ... FETCH NEXT ... ROWS ONLY`** and requires **SQL Server 2012 or later**. v6 used a `ROW_NUMBER() OVER(...)` wrapper compatible with SQL Server 2005/2008; that wrapper has been removed. Oracle and DB2 now also support `FillRange` via the same ANSI SQL:2008 offset-fetch form (previously unsupported and threw `NotSupportedException`).
@@ -193,10 +195,9 @@ See [Querying](docs/querying.md#pre-v70-behavior-changes) and [Migrating from En
 
 ## Upgrading from 4.x
 
-If upgrading from Zonkey 4.x or earlier, use Visual Studio's regex Find/Replace to update `SetFieldValue()` calls:
+Zonkey 4.2 was synchronous and .NET Framework only. Moving to 7.x is a real port — the mapping model survives, but every database call becomes an `await`. See [Upgrading from Zonkey 4.x](docs/upgrading-from-v4.md).
 
-**Find:** `SetFieldValue\(("\w+"), ref (\w+), value\);`
-**Replace:** `SetFieldValue(ref $2, value);`
+The old `zonkey42` package remains on NuGet and is frozen; staying on it is a legitimate choice if you don't need async or modern targets.
 
 ## License
 

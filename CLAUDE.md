@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Zonkey is a .NET ORM library that maps database tables to C# classes. It supports multiple database dialects and targets net8.0, net10.0, and net48 (Zonkey.Text targets netstandard2.0 and net48).
 
-NuGet packages: zonkey.data, zonkey.data.mssql, zonkey.text, zonkey.mocks
+NuGet packages: zonkey.data, zonkey.data.mssql, zonkey.text, zonkey.mocks, plus the zonkey.scaffold dotnet tool
 
 ## Build & Test Commands
 
@@ -38,7 +38,9 @@ Tests use xUnit v3 with a zoo-themed schema (Animal, Species, Exhibit, Zookeeper
 - **src/Zonkey.Data.MsSql** — SQL Server-specific extensions (depends on Microsoft.Data.SqlClient)
 - **src/Zonkey.Text** — CSV/text file reader/writer
 - **src/Zonkey.Mocks** — Mock ADO.NET objects for unit testing
-- **test/Zonkey.Tests** — xUnit v3 test suite (unit + SQLite/MSSQL/PostgreSQL integration)
+- **tools/Zonkey.Scaffold** — `zonkey-scaffold`, the CLI that generates data classes from a live database
+- **test/Zonkey.Tests** — xUnit v3 test suite (unit + SQLite/MSSQL/PostgreSQL/MySQL integration)
+- **test/Zonkey.Scaffold.Tests** — scaffold tests (live-database smoke tests across four providers)
 
 ## Architecture
 
