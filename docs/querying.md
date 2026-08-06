@@ -77,7 +77,7 @@ Only subexpressions that *reference the lambda parameter* are translated to SQL;
 | `a.Name.Equals(s, StringComparison.OrdinalIgnoreCase)` | `UPPER(Name) = UPPER($0)` | |
 | `a.Name.SqlLike(pattern)` | `Name LIKE $0` | Raw pattern, passed through **unescaped** -- caller owns `%`/`_`. |
 | `a.Name.SqlILike(pattern)` | PostgreSQL: `Name ILIKE $0`; other dialects: `UPPER(Name) LIKE UPPER($0)` | Case-insensitive raw pattern. |
-| `list.Contains(a.Field)` | `Field IN (...)` | See [IN Clauses](#in-clauses) for the parameterize/inline policy. |
+| `list.Contains(a.Field)` | `Field IN (...)`, or `Field = $0` for a single value | See [Translation policy](#translation-policy) -- the form depends on list size and dialect. |
 | `a.Field.SqlIn(...)` (subquery overloads) | `Field IN (SELECT ... FROM ... WHERE ...)` | See [Subquery SqlIn](#subquery-sqlin). |
 | `a.DateColumn.Value.Year` / `.Month` / `.Day` / `.Hour` / `.Minute` / `.Second` | ANSI: `EXTRACT(YEAR FROM DateColumn)`; SQL Server: `DATEPART(year, [DateColumn])`; SQLite: `CAST(strftime('%Y', [DateColumn]) AS INTEGER)` | Each date part follows the same per-dialect pattern. |
 | `a.DateColumn.Value.Date` | `CAST(DateColumn AS DATE)` | |
@@ -227,16 +227,63 @@ var ids = new List<int> { 1, 2, 3, 42 };
 await adapter.Fill(products, p => ids.Contains(p.Id));
 ```
 
-### Inlining policy
+### Nulls in the list never match
 
-The translator decides automatically whether values are parameterized or inlined as literals -- there is no type-specific method to choose between:
+A `null` in the list is dropped, and a NULL column value is never returned by an `IN` translation. This is SQL's own semantics -- `col IN (1, NULL)` evaluates `col = NULL` to UNKNOWN, so a NULL row never matches -- and it holds for `Contains` and for the legacy `SqlIn`/`SqlInInt`/`SqlInGuid` alike.
 
-- **64 values or fewer:** one command parameter per value, regardless of type.
-- **More than 64 values of an injection-safe literal type** (`byte`, `short`, `int`, `long`, `Guid`): inlined directly into the SQL text as literals, avoiding the parameter-count limit. Enums are *not* inlined this way -- see the note below.
-- **More than 64 values of any other type** (strings, dates, enums): stay parameterized. Past the dialect's parameter limit (2,100 for SQL Server) this throws `SqlExpressionException` with a hint to use `SplitList`.
-- **Empty list:** renders `1 = 0` (matches no rows) rather than throwing.
+```csharp
+var ids = new int?[] { 1, null, 3 };
+await adapter.Fill(products, p => ids.Contains(p.CategoryId));
+// => (CategoryId IN ($0,$1))    -- rows with a NULL CategoryId are NOT returned
 
-Enum values are always sent as parameters, never inlined as literals, even in large lists -- this keeps PostgreSQL's natively-mapped enum columns working, since the provider (not the translator) decides the enum's wire representation.
+var onlyNull = new int?[] { null };
+await adapter.Fill(products, p => onlyNull.Contains(p.CategoryId));
+// => 1 = 0 /* IN (): empty or all-null list */    -- nothing can match
+```
+
+An empty list, or one holding nothing but nulls, renders a commented constant-false so the reason is visible to a `BeforeExecuteCommand` hook or a profiler. It is deliberately *not* rendered as `col IN (NULL)`: `col = NULL` is UNKNOWN rather than FALSE, so a wrapping `NOT` would yield UNKNOWN, and `!list.Contains(x)` over an empty list would return no rows where it must return all of them.
+
+Note this differs from in-memory LINQ, where `new int?[] { 1, null }.Contains(x)` is `true` for a null `x`. The translation targets SQL and follows SQL. To match NULL rows, say so explicitly:
+
+```csharp
+await adapter.Fill(products, p => ids.Contains(p.CategoryId) || p.CategoryId == null);
+```
+
+### Translation policy
+
+The translator picks the form; there is nothing to configure and no type-specific method to choose between.
+
+**A single value collapses to equality**, on every dialect:
+
+```csharp
+var one = new[] { 42 };
+await adapter.Fill(products, p => one.Contains(p.Id));
+// => (Id = $0)
+```
+
+Not merely tidiness: it shares a cached plan with the hand-written `p.Id == 42` instead of compiling its own, and on PostgreSQL it keeps the value visible to the planner rather than hiding it inside an array. EF Core does the same.
+
+**Two or more values** depends on whether the dialect has a collection parameter:
+
+| list size | PostgreSQL | SQL Server, SQLite, MySQL |
+|---|---|---|
+| 2 -- 64 | `col = ANY($0)` -- one array parameter | `col IN ($0,$1,…)` -- one parameter each |
+| over 64, all integer or `Guid` | `col = ANY($0)` | `col IN (1,2,3,…)` -- inlined literals, no parameters |
+| over 64, any other type | `col = ANY($0)` | `col IN ($0,$1,…)` -- stays parameterized, throws past the dialect's limit |
+
+**Empty list, or nothing but nulls:** `1 = 0 /* IN (): empty or all-null list */` on every dialect. It carries a comment so the reason is visible in a profiler or a `BeforeExecuteCommand` hook.
+
+PostgreSQL binds the whole list as one typed array (`int[] → integer[]`, `string[] → text[]`, `Guid[] → uuid[]`), giving one command text, one cached plan and one parameter at any length, with no parameter ceiling. Element types Npgsql cannot bind as an array -- `byte`, `sbyte`, `ushort`, `uint`, `ulong`, and enums -- fall back to the right-hand column's behavior.
+
+"Integer or `Guid`" is exact: `byte`, `sbyte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `Guid`. Everything else stays parameterized, including `decimal`, `double`, `float`, `bool`, `char`, `DateTime`, `DateTimeOffset`, `TimeSpan`, strings and enums. Floating-point and `decimal` are excluded because inlining them would mean committing to a round-trip-exact text format. Enums are excluded deliberately, so PostgreSQL's natively-mapped enum columns keep working -- the provider, not the translator, decides an enum's wire representation.
+
+#### Why 64
+
+The threshold is not about the parameter cap -- 64 is a small fraction of even the lowest (`MaxParameters` is 2,100 on SQL Server, 32,766 on SQLite, 65,535 on PostgreSQL and MySQL). It bounds **plan-cache churn**.
+
+Each distinct parameter *count* is a distinct query text, so a parameterized `IN` accumulates one cached plan per arity -- capped at 64, and those get reused constantly, since list lengths repeat far more than list contents do. Inlined literals produce one plan per distinct *value set*, which is unbounded. So under the threshold you get bounded, hot, reusable plans; over it, a dialect without a collection parameter trades that away for the ability to exceed the parameter cap.
+
+Where a collection parameter exists there is no trade to make: it is one plan at every size, which is why PostgreSQL uses it from two values up and ignores the threshold entirely.
 
 ### Subquery SqlIn
 
@@ -265,23 +312,23 @@ The original `SqlIn(IEnumerable)`, `SqlInInt`, and `SqlInGuid` extension methods
 
 New code should prefer `list.Contains(field)`.
 
-### Large Lists with SplitList
+### Large Lists with Chunk
 
-For large lists of strings or dates (types that stay parameterized past 64 items and hit the 2,100-parameter limit), use `SplitList` to break them into batches:
+Batching is only ever needed on SQL Server, SQLite and MySQL, and only for types that stay parameterized -- strings, dates, decimals and enums. Integer and `Guid` lists inline as literals past 64 values, and PostgreSQL binds any list as a single array parameter, so neither has a ceiling. For the types that do, batch with `Chunk` from `System.Linq`:
 
 ```csharp
-using Zonkey.Extensions;
-
 var allNames = GetLargeNameList(); // thousands of names
 var results = new List<Product>();
 
-foreach (var chunk in allNames.SplitList(2000))
+foreach (string[] batch in allNames.Chunk(2000))
 {
-    await adapter.Fill(results, p => chunk.Contains(p.Name));
+    await adapter.Fill(results, p => batch.Contains(p.Name));
 }
 ```
 
-`SplitList` is an extension method on `IEnumerable<T>` that returns `IList<IList<T>>`. The default batch size is 2000.
+`Chunk` yields `T[]`, which is exactly what a `Contains` filter wants, and it is lazy -- batches are produced as you consume them.
+
+> **`SplitList` is obsolete on .NET 6 and later.** Zonkey's own `SplitList` predates `Chunk` and does the same job; it returns an eagerly materialized `IList<IList<T>>` rather than a lazy `T[]`. It remains available and non-obsolete on .NET Framework 4.8, where `Chunk` does not exist. New code on a modern target should use `Chunk`.
 
 ---
 

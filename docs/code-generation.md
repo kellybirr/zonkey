@@ -1,108 +1,150 @@
-# Code Generation Tools
+# Code Generation
 
-The `tools/` folder contains code generators that create data class files from database schemas. These are standalone tools, not NuGet packages. They are legacy .NET Framework projects that are not part of `Zonkey.sln` and are not built by `dotnet build`.
+`zonkey-scaffold` generates Zonkey data classes and a `DatabaseWrapper` from a live database. It replaces the two legacy generators (`Zonkey.CodeGen`, a WinForms/SMO tool, and `NpgCodeGen`) with one cross-platform CLI.
 
-## Overview
+The output is a **starting point**. It is meant to be read, renamed, and edited — not regenerated forever. If a class name collides with something in your project, or a column maps to a type you disagree with, change the file.
 
-Two generators are available:
+## Install
 
-- **Zonkey.CodeGen** -- Windows Forms GUI tool, primarily for SQL Server (via SMO)
-- **NpgCodeGen** -- Console tool optimized for PostgreSQL (via Npgsql)
+```bash
+dotnet tool install -g zonkey.scaffold
+```
 
-Both generate C# data classes with `DataItem` and `DataField` attributes, ready to use with `DataClassAdapter`.
+Or run it from the repo without installing:
 
-## SQL Server Code Generator (Zonkey.CodeGen)
+```bash
+dotnet run --project tools/Zonkey.Scaffold -- --help
+```
 
-Located in `tools/Zonkey.CodeGen/`. A Windows Forms application that:
+## Usage
 
-- Connects to SQL Server via SQL Server Management Objects (SMO)
-- Browses servers, databases, tables, and views
-- Generates C# (or VB.NET) data classes with full attribute decoration
-- Configurable options: namespace, partial classes, virtual properties, collection types, nullable handling
+```bash
+zonkey-scaffold --provider pgsql \
+                --connection "Host=localhost;Database=zoo;Username=app;Password=…" \
+                --namespace Zoo.Data \
+                --out ./Data
+```
 
-Features:
+Providers: `sqlite`, `pgsql` (also `postgres`, `postgresql`), `mysql` (also `mariadb`), `mssql` (also `sqlserver`).
 
-- GUI for selecting tables and configuring output
-- Custom property naming via delegate
-- Auto-increment and primary key detection from database schema
-- Row version field detection
-- Schema-aware table naming
-- Output to file system
+### Common options
 
-## PostgreSQL Code Generator (NpgCodeGen)
+| Option | Meaning |
+| --- | --- |
+| `-p`, `--provider` | Database provider |
+| `-c`, `--connection` | ADO.NET connection string |
+| `-n`, `--namespace` | Namespace for generated classes |
+| `-o`, `--out` | Output directory (default: current) |
+| `--schema` | Schema to read; omit for all non-system schemas |
+| `--wrapper-class` | Wrapper class name (default: `AppDatabase`) |
+| `--Language` | `CSharp` (default) or `VB` |
+| `--dry-run` | Report what would be written, write nothing |
 
-Located in `tools/NpgCodeGen/`. A console application that:
+Settings are bound with `IConfiguration`, so **any** member of `ScaffoldOptions` is settable as `--Section:Key value`:
 
-- Queries PostgreSQL `information_schema` for table metadata
-- Generates C# data classes
-- Converts snake_case table/column names to PascalCase
-- Converts plural table names to singular class names
-- Marks auto-increment fields from the schema's `IsAutoIncrement` metadata (explicit sequence-name wiring exists in the source but is commented out)
-- Handles timestamp with/without timezone (`DateTimeKind.Utc` vs `Unspecified`)
-- Supports table prefix/suffix removal from property names
-- Configurable table and field ignore lists
+```bash
+zonkey-scaffold … --IgnoreTables "__*;aspnet_*" \
+                  --Views true \
+                  --Naming:Singularize false \
+                  --Emit:FieldKeyword false \
+                  --Emit:PrivateFieldsAtTop true
+```
 
-Configuration is via constants in the source code. Adjust the connection string, namespace, and naming rules before running.
+The same keys load from a `zonkey.scaffold.json` file in the working directory and from `ZONKEY_SCAFFOLD_*` environment variables. Precedence is file, then environment, then command line.
 
-## Generated Output
+Never put a connection string in the JSON file if the file is committed — pass it on the command line or via `ZONKEY_SCAFFOLD_ConnectionString`.
 
-Both tools produce classes like:
+## What it generates
+
+One file per table, plus one wrapper:
 
 ```csharp
-[DataItem("products", SchemaName = "store")]
-public partial class Product : DataClass
+[DataItem("animals")]
+public partial class Animal : DataClass
 {
-    private int _id;
-    private string _name = "";
-    private decimal _price;
-    private string? _description;
+    public Animal(bool addingNew) : base(addingNew) { }
 
-    public Product(bool addingNew) : base(addingNew) { }
+    [Obsolete("Required by the DataClassAdapter materializer; use Animal(bool addingNew) in code.", true)]
+    public Animal() : this(false) { }
 
-    [Obsolete("Required by the DataClassAdapter materializer; use Product(bool addingNew) in code.", true)]
-    public Product() : this(false) { }
+    [DataField("animal_id", DbType.Int32, false, IsKeyField = true, IsAutoIncrement = true)]
+    public int AnimalId { get => field; set => SetFieldValue(ref field, value); }
 
-    [DataField("id", DbType.Int32, IsKeyField = true, IsAutoIncrement = true)]
-    public virtual int Id { get => _id; set => SetFieldValue(ref _id, value); }
-
-    [DataField("name", DbType.String, false, Length = 100)]
-    public virtual string Name { get => _name; set => SetFieldValue(ref _name, value); }
-
-    [DataField("price", DbType.Decimal, false)]
-    public virtual decimal Price { get => _price; set => SetFieldValue(ref _price, value); }
-
-    [DataField("description", DbType.String, Length = 500)]
-    public virtual string? Description { get => _description; set => SetFieldValue(ref _description, value); }
+    [DataField("name", DbType.String, false, Length = 80)]
+    public string Name { get => field; set => SetFieldValue(ref field, value); } = null!;
 }
 ```
 
-Generated classes use partial classes by default, so you can add custom logic in a separate file that survives regeneration.
+```csharp
+public partial class AppDatabase : DatabaseWrapper
+{
+    public AppDatabase() : base("Default") { }
+    public AppDatabase(DbConnection connection) : base(connection) { }
 
-## When to Use Code Generation
+    public DataClassAdapter<Animal> Animals => Adapter<Animal>();
+}
+```
 
-- Initial setup of a new project with an existing database
-- Adding new tables to an existing project
-- Regenerating after schema changes
+Classes are `partial`, so put your own members in a separate file rather than editing the generated one if you intend to regenerate.
 
-After generation, you can customize the classes (add OnBeforeSave hooks, computed properties, etc.) in a separate partial class file.
+The parameterless constructor is marked `[Obsolete(…, true)]` deliberately: `DataClassAdapter` needs it to materialize rows, but your code should always use `new Animal(true)` for a new row. See [Data Classes](data-classes.md).
 
-## Alternative: Manual Class Creation
+Tables without a primary key, and views, are emitted read-only (`{ get; set; }` auto-properties, no change tracking).
 
-For small projects or when you want full control, write data classes by hand. The attribute syntax is straightforward and well-supported by IDE tooling.
+## Relations
 
-## Runtime Code Generation (ClassFactory)
+`--Emit:Relations true` adds in-memory graph members derived from foreign keys — a `Species` reference on the child, an `Animals` list on the parent:
 
-Separate from the schema-scaffolding tools above, Zonkey also generates a small amount of code at runtime. `Zonkey.ObjectModel.ClassFactory` emits a `DynamicMethod` (just `newobj`/`ret` IL) for each mapped type and caches the resulting factory delegate per type. Fill operations and `DataClassReader` construct one object per row, so a compiled factory keeps `Activator.CreateInstance`-style reflection cost from dominating materialization.
+```csharp
+// Related data. These have no [DataField], so the adapter never reads or writes
+// them — nothing is loaded until you fill them yourself.
+// public.animals.species_id -> public.species
+public Species? Species { get; set; }
+```
 
-Callers can override how objects are created:
+They carry **no `[DataField]`**, so the adapter never selects, inserts, or updates them. Nothing loads them implicitly — Zonkey has no navigation properties and no lazy loading, and the scaffolder does not invent any.
 
-- `ClassFactory.RegisterType(...)` -- supply a custom factory delegate for a type
-- `ClassFactory.RegisterInterface<TInterface, TConcrete>(...)` -- map an interface to a concrete class so it can be materialized
+What it does emit is an explicit loader per relation, in a `{Entity}Extensions` class keyed by the entity being *queried*:
 
-The emitted factory requires a public parameterless constructor. Types without one must have a factory registered with `ClassFactory`, or set `ObjectFactory` on the `DataClassAdapter<T>` instance.
+```csharp
+var orders = new List<Order>();
+await db.Orders.Fill(orders, o => o.PlacedOn >= since);
 
-`DataClassReader<T>` goes a step further with its **fast builder** (on by default): a `DynamicMethod` emitted once per (type, result-set shape) that populates an entire row with straight-line IL -- null-check, convert, and set per mapped column, with all conversion decisions resolved at emit time from the reader's known column types. Conversion failures throw `PropertyReadException` identifying the property. See [Architecture](architecture.md#6-rows-become-objects) for the full walkthrough; `UseFastBuilder = false` selects the per-field reflection path.
+await db.OrderDetails.FillOrderDetailsFor(orders);   // one query, not one per order
+await db.Customers.FillCustomerFor(orders);
+await db.Addresses.FillShipToFor(orders);            // two FKs into one table stay distinct
+await db.Addresses.FillBillToFor(orders);
+```
 
----
+Each method is overloaded for a single owner and for `IEnumerable<T>`, and **you supply the adapter** — so the query runs on your transaction, your timeout, and the wrapper's cached adapter. Nothing constructs a connection or an adapter behind your back.
 
-[Back to documentation index](README.md) | [Data Classes & Attributes](data-classes.md) | [Getting Started](getting-started.md)
+The batched form is one query for any number of owners: distinct keys into a `Contains`, then an in-memory `ToLookup`/dictionary join. Keys are de-duplicated, and owners with a null foreign key are skipped. Scaling is the translator's job — see [Translation policy](querying.md#translation-policy). On PostgreSQL the whole key list binds as one array parameter at any size; on the other dialects integer and `Guid` keys inline as literals past 64 values, while string keys stay parameterized and throw past the dialect's cap with a hint to batch with `Chunk`.
+
+Composite foreign keys can't be expressed as one `IN`, so they get the members but no loader, with a warning.
+
+The parent reference is named from the FK column with its `Id` suffix removed (`species_id` → `Species`), which keeps two keys into the same table distinguishable (`ShipToAddress`, `BillToAddress`). A member whose name collides with a mapped column is skipped with a warning — the column wins.
+
+Foreign keys pointing at tables outside the current run are ignored.
+
+## VB.NET
+
+`--Language VB` emits `.vb` files with the same structure. VB has no `field` keyword, so properties always declare an explicit backing field (`Emit:FieldKeyword` is not reachable), and it has no nullable reference types, so `Emit:NullableRefs` affects value types only.
+
+**One thing that will catch you:** VB prepends the project's `RootNamespace` to every declared namespace. Scaffolding with `--namespace Zoo.Data` into a project whose root namespace is `MyApp` gives you `MyApp.Zoo.Data`. Either clear `<RootNamespace></RootNamespace>` in the vbproj, or pass the namespace you want appended. C# has no such behavior.
+
+## For coding agents
+
+The tool ships a loadable skill covering the workflow and the mistakes that bite. Install it into your project:
+
+```bash
+zonkey-scaffold skill --install          # writes .claude/skills/zonkey-scaffold/SKILL.md
+zonkey-scaffold skill --install --out ./somewhere-else
+```
+
+Re-running it updates the file in place, so you can refresh it after a tool upgrade. The source is [`.claude/skills/zonkey-scaffold/SKILL.md`](../.claude/skills/zonkey-scaffold/SKILL.md), which also means it loads automatically for agents working in this repo.
+
+## Notes
+
+- Type mapping is per provider. Unrecognized column types map to `string` / `DbType.String` and print a warning naming the column — change the generated `DataField` if that is wrong.
+- PostgreSQL folds unquoted identifiers to lower case. A mixed-case table or column created with quotes will not resolve unless you quote identifiers (`AdapterProperty.UseQuotedIdentifiers`).
+- Files are written with a `.g.cs` suffix by default (`--Output:GeneratedSuffix false` to drop it).

@@ -23,7 +23,7 @@ For a high-level introduction, see the [Overview & Philosophy](overview.md).
 - [PostgreSQL Guide](postgresql.md) -- timestamp/timestamptz mapping, case folding, NativeType and provider-specific types
 - [Testing with Zonkey.Mocks](testing.md) -- Mocking adapters and connections for unit tests
 - [Text File Mapping (Zonkey.Text)](text-files.md) -- CSV and fixed-width text file mapping
-- [Code Generation Tools](code-generation.md) -- Generating data classes from database schemas
+- [Code Generation](code-generation.md) -- `zonkey-scaffold`, generating data classes from a live database
 - [Migrating from Entity Framework](migrating-from-ef.md) -- Concept mapping and migration guide
 
 ## NuGet Packages

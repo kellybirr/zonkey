@@ -289,7 +289,10 @@ __pycache__/
 
 # sonar scanning
 .sonarqube
-/.claude
+
+# Claude Code: skills and shared settings are tracked; local state and worktrees are not
+/.claude/settings.local.json
+/.claude/worktrees/
 
 # local planning docs (not part of the published docs)
 docs/superpowers/

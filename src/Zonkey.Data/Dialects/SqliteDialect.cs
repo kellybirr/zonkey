@@ -130,7 +130,7 @@ namespace Zonkey.Dialects
         /// SQLITE_MAX_VARIABLE_NUMBER of modern builds (SQLite 3.32+, including Microsoft.Data.Sqlite's
         /// bundled e_sqlite3). Older native builds behind Mono.Data.Sqlite/System.Data.SQLite may be
         /// compiled with the pre-3.32 default of 999 - on those providers a list within this cap can
-        /// still fail at the provider level instead of surfacing Zonkey's SplitList hint.
+        /// still fail at the provider level instead of surfacing Zonkey's batching hint.
         /// </summary>
         public override int MaxParameters
         {

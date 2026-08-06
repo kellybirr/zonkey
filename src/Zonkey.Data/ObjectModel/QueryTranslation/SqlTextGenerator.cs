@@ -36,7 +36,7 @@ namespace Zonkey.ObjectModel.QueryTranslation
             if (totalParameters > _dialect.MaxParameters)
                 throw new SqlExpressionException(
                     $"This command would use {totalParameters} parameters, exceeding the dialect's limit of " +
-                    $"{_dialect.MaxParameters}. Split the list with SplitList() and run multiple fills.");
+                    $"{_dialect.MaxParameters}. Batch the list with Chunk(size) and run multiple fills.");
 
             return new SqlWhereClause { SqlText = _sb.ToString(), Parameters = _parameters.ToArray() };
         }
@@ -128,7 +128,13 @@ namespace Zonkey.ObjectModel.QueryTranslation
         {
             IReadOnlyList<object> values = n.Values;
 
-            if (ParameterizeLiterals && values.Count > InlineThreshold
+            // A dialect with a collection parameter uses it for anything above a single value: one
+            // command text and one cached plan for every list length, fully parameterized, and no
+            // parameter-count ceiling. The 64 threshold below only exists for dialects that have no
+            // such path, where crossing it trades a bounded number of plans (one per arity) for an
+            // unbounded one (one per distinct value set) in exchange for dodging the parameter cap.
+            // A single value never reaches here — it is collapsed to an equality by the translator.
+            if (ParameterizeLiterals && values.Count > 1
                 && _dialect.SupportsInCollectionParameter(values[0].GetType())
                 && TryBuildTypedArray(values, out Array typedArray))
             {
@@ -143,7 +149,7 @@ namespace Zonkey.ObjectModel.QueryTranslation
                 if (projectedTotal > _dialect.MaxParameters)
                     throw new SqlExpressionException(
                         $"IN list would bring the command to {projectedTotal} parameters of a type that cannot be inlined as literals; " +
-                        $"the parameter limit is {_dialect.MaxParameters}. Split the list with SplitList() and run multiple fills.");
+                        $"the parameter limit is {_dialect.MaxParameters}. Batch the list with Chunk(size) and run multiple fills.");
             }
 
             _sb.Append('(');

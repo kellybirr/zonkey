@@ -153,7 +153,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) folder, written
 - [PostgreSQL Guide](docs/postgresql.md) — timestamps, case folding, and provider-specific types
 - [Testing with Mocks](docs/testing.md) — unit testing with Zonkey.Mocks
 - [Text File Mapping](docs/text-files.md) — CSV and fixed-width files with Zonkey.Text
-- [Code Generation Tools](docs/code-generation.md) — generating data classes from database schemas
+- [Code Generation](docs/code-generation.md) — `zonkey-scaffold`, the CLI that generates data classes from a live database
 - [Migrating from Entity Framework](docs/migrating-from-ef.md) — concept mapping for EF developers
 
 Each source project also has its own README:
@@ -187,7 +187,7 @@ Zonkey 7.0 is a major release. Beyond the target-framework and strong-naming cha
 - **`Recordset.MoveLast` now positions on the last row.** v6 landed on EOF and returned `false`.
 - **Integral-to-enum conversion now throws for out-of-range values** instead of silently wrapping (v6 behavior).
 - **`DataClassReader`'s IL-emitted fast builder is on by default** (`DataClassReader<T>.DefaultUseFastBuilder = true`). Set it to `false` to fall back to the previous per-field reflection path.
-- **Obsoleted**: `SqlIn(IEnumerable)`, `SqlInInt`, `SqlInGuid` — use `list.Contains(field)` instead, which now covers everything they did (and more) via automatic parameterize-or-inline handling. They still work but are marked `[Obsolete]`. The lambda subquery `SqlIn` overloads (`field.SqlIn((T x) => ...)`) are unaffected and remain the supported way to express `IN (SELECT ...)`.
+- **Obsoleted**: `SqlIn(IEnumerable)`, `SqlInInt`, `SqlInGuid` — use `list.Contains(field)` instead, which now covers everything they did (and more): a single value collapses to `=`, PostgreSQL binds the list as one array parameter, and other dialects parameterize or inline automatically. They still work but are marked `[Obsolete]`. The lambda subquery `SqlIn` overloads (`field.SqlIn((T x) => ...)`) are unaffected and remain the supported way to express `IN (SELECT ...)`.
 
 See [Querying](docs/querying.md#pre-v70-behavior-changes) and [Migrating from Entity Framework](docs/migrating-from-ef.md) for more detail on the expression-translation changes.
 

@@ -101,11 +101,9 @@ foreach (var order in orders)
     await lineAdapter.Fill(order.Lines, l => l.OrderId == order.Id);
 ```
 
-The right way is two queries total -- fetch all children for all parents with `SqlInInt`, then stitch with a lookup:
+The right way is two queries total -- fetch all children for all parents with `Contains`, then stitch with a lookup:
 
 ```csharp
-using Zonkey.Extensions;
-
 // 1. Load the parents
 var orders = new List<Order>();
 await db.Adapter<Order>().Fill(orders, o => o.OrderDate >= since);
@@ -114,7 +112,7 @@ await db.Adapter<Order>().Fill(orders, o => o.OrderDate >= since);
 var orderIds = orders.Select(o => o.Id).ToArray();
 var allLines = new List<OrderLine>();
 if (orderIds.Length > 0)
-    await db.Adapter<OrderLine>().Fill(allLines, l => l.OrderId.SqlInInt(orderIds));
+    await db.Adapter<OrderLine>().Fill(allLines, l => orderIds.Contains(l.OrderId));
 
 // 3. Stitch in memory
 var byOrder = allLines.ToLookup(l => l.OrderId);
@@ -122,7 +120,17 @@ foreach (var order in orders)
     order.Lines.AddRange(byOrder[order.Id]);
 ```
 
-`SqlInInt` emits the ids as inline literals, so this scales past parameter-count limits; for very large id sets, batch with `SplitList` (see [Querying](querying.md#large-lists-with-splitlist)). Remember the parser rule: the id array must be a *variable*, not an inline expression.
+The translator decides the form. On PostgreSQL the ids bind as a single array parameter at any size, so this never hits a parameter limit. On SQL Server, SQLite and MySQL, integer and `Guid` ids inline as literals past 64 values and also scale freely; string and date keys stay parameterized and can hit the cap, so batch those with `Chunk` (see [Querying](querying.md#large-lists-with-chunk)). A one-id list collapses to `=`, and an empty one renders a commented `1 = 0` rather than throwing -- so the `Length > 0` guard above is belt-and-braces. Full rules: [Translation policy](querying.md#translation-policy).
+
+> `SqlInInt`/`SqlInGuid`/`SqlIn(IEnumerable)` are `[Obsolete]` as of v7.0 -- `Contains` covers everything they did, plus key types they never supported. The subquery `SqlIn` overloads are unaffected and remain supported.
+
+`zonkey-scaffold --Emit:Relations true` generates this exact pattern for every foreign key, so you do not have to hand-write it:
+
+```csharp
+await db.OrderDetails.FillOrderDetailsFor(orders);   // one query, keys de-duplicated, stitched
+```
+
+See [Code Generation](code-generation.md#relations). The generated methods do nothing you could not write by hand -- they still require you to call them, and they still load nothing implicitly.
 
 ---
 
@@ -224,14 +232,14 @@ public class OrderTag : DataClass
 }
 ```
 
-Composite key, no auto-increment. Linking is inserting a row; unlinking is `DeleteItem` or a filtered `Delete`; "all tags for these orders" is a `SqlInInt` fill on the junction plus a dictionary lookup into the tags -- the same stitching pattern as above.
+Composite key, no auto-increment. Linking is inserting a row; unlinking is `DeleteItem` or a filtered `Delete`; "all tags for these orders" is a `Contains` fill on the junction plus a dictionary lookup into the tags -- the same stitching pattern as above.
 
 ---
 
 ## Summary of the Rules
 
 1. Foreign keys are plain mapped fields; unmapped members hold the in-memory graph.
-2. One parent: two queries. Many parents: two queries -- parents, then `SqlInInt` children, then `ToLookup` stitching. Never a query inside a loop.
+2. One parent: two queries. Many parents: two queries -- parents, then `Contains` children, then `ToLookup` stitching. Never a query inside a loop.
 3. Reference data: load once, index in a dictionary, cache at your own policy.
 4. Joins belong in the database: map read-only classes to views; use `SaveToTable` for write-through.
 5. Save parent-first / delete children-first, inside `WithTransaction`.
@@ -239,5 +247,5 @@ Composite key, no auto-increment. Linking is inserting a row; unlinking is `Dele
 ## See Also
 
 - [Architecture](architecture.md) -- what happens beneath each of these calls
-- [Querying](querying.md) -- `SqlIn` family, parser limitations, pagination
+- [Querying](querying.md) -- `Contains`/`IN` clauses, subquery `SqlIn`, parser limitations, pagination
 - [Migrating from Entity Framework](migrating-from-ef.md) -- where these patterns replace navigation properties
