@@ -14,8 +14,10 @@
 
   <!-- Shared package metadata (a csproj can override any of these) -->
   <PropertyGroup>
-    <Version>7.0.2</Version>
-    <PackageReleaseNotes>Zonkey 7.0.2 adds SqlFilter.IN for the composable filter surface, with the same semantics as the where-expression Contains() translation: an empty or all-null list renders a commented "1 = 0", a single value collapses to an equality, and a multi-value list binds as one typed-array collection parameter on dialects that support it (PostgreSQL: "field = ANY(:pN)") or as individually suffixed parameters ("field IN (:pN_0, :pN_1, ...)") everywhere else.
+    <Version>7.0.3</Version>
+    <PackageReleaseNotes>Zonkey 7.0.3 makes SqlFilter.IN's Value setter functional (replacing the IN list with construction-time normalization; a scalar becomes a single-element list) and caches the collection-parameter typed array so ToString and AddToCommandParams scan the list once.
+
+Zonkey 7.0.2 adds SqlFilter.IN for the composable filter surface, with the same semantics as the where-expression Contains() translation: an empty or all-null list renders a commented "1 = 0", a single value collapses to an equality, and a multi-value list binds as one typed-array collection parameter on dialects that support it (PostgreSQL: "field = ANY(:pN)") or as individually suffixed parameters ("field IN (:pN_0, :pN_1, ...)") everywhere else.
 
 Zonkey 7.0.1 adds symmetric DateOnly/TimeOnly conversions: providers that surface date/time columns as DateOnly/TimeOnly (notably Npgsql 10) now fill DateTime, TimeSpan, and string properties correctly on both materialization paths, DateOnly/TimeOnly property values round-trip to all supported databases, date/time-ish values destined for string properties render as round-trip ISO strings instead of culture-specific text, and TimeSpan properties now fill from string (standard "d.hh:mm:ss" TimeSpan.Parse forms, e.g. text-backed SQLite time columns) and DateTime (time-of-day) sources.
 
