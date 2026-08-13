@@ -222,5 +222,31 @@ namespace Zonkey.Tests.Unit
             var values = Assert.IsType<object[]>(filter.Value);
             Assert.Equal(2, values.Length);
         }
+
+        [Fact]
+        public void IN_ValueSetter_ReplacesTheList()
+        {
+            var filter = SqlFilter.IN("ClientId", new long[] { 1, 2, 3 });
+            filter.Value = new long[] { 9 };
+
+            // collapses to single-value equality with the NEW value bound
+            var sql = filter.ToString(_generic, 0);
+            Assert.Contains("=", sql);
+            Assert.DoesNotContain("IN (", sql);
+
+            using var command = new Zonkey.Mocks.MockDbConnection().CreateCommand();
+            filter.AddToCommandParams(command, _generic, 0);
+            var parm = Assert.Single(command.Parameters.Cast<System.Data.Common.DbParameter>());
+            Assert.Equal(9L, parm.Value);
+        }
+
+        [Fact]
+        public void IN_ValueSetter_ScalarBecomesSingleElementList()
+        {
+            var filter = SqlFilter.IN("ClientId", new long[] { 1, 2 });
+            filter.Value = 42L;
+            var values = Assert.IsType<object[]>(filter.Value);
+            Assert.Equal(42L, Assert.Single(values));
+        }
     }
 }

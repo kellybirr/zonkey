@@ -344,13 +344,33 @@ namespace Zonkey
 
 		private class SqlInFilter : SqlFilter
 		{
-			private readonly object[] _values;
+			private object[] _values;
+
+			// lazily-built typed array for the collection-parameter path, so ToString and
+			// AddToCommandParams don't each rescan the list; reset when Value changes
+			private Array _typedArray;
+			private bool _typedArrayBuilt;
 
 			protected internal SqlInFilter(string fieldName, IEnumerable<object> values)
 				: base(fieldName)
 			{
-				_values = values.Where(v => v != null && v != DBNull.Value).ToArray();
+				SetValues(values);
+			}
+
+			/// <summary>Setting Value replaces the IN list (same normalization as construction);
+			/// anything other than a sequence of values becomes a single-element list.</summary>
+			public override object Value
+			{
+				get { return _values; }
+				set { SetValues((value as System.Collections.IEnumerable)?.Cast<object>() ?? [value]); }
+			}
+
+			private void SetValues(IEnumerable<object> values)
+			{
+				_values = (values ?? []).Where(v => v != null && v != DBNull.Value).ToArray();
 				_value = _values;
+				_typedArray = null;
+				_typedArrayBuilt = false;
 			}
 
 			public override string ToString(SqlDialect dialect, int paramIndex)
@@ -398,8 +418,7 @@ namespace Zonkey
 
 				if (UseCollectionParameter(dialect))
 				{
-					TryBuildTypedArray(out Array typedArray);
-					AddParameter(command, dialect.FormatParameterName(index, command.CommandType), typedArray);
+					AddParameter(command, dialect.FormatParameterName(index, command.CommandType), _typedArray);
 					return;
 				}
 
@@ -418,26 +437,27 @@ namespace Zonkey
 			// one typed-array parameter (e.g. PostgreSql = ANY): one stable plan, no parameter-count limit
 			private bool UseCollectionParameter(SqlDialect dialect)
 				=> dialect.SupportsInCollectionParameter(_values[0].GetType())
-					&& TryBuildTypedArray(out _);
+					&& BuildTypedArrayOnce() != null;
 
-			// mixed-runtime-type lists fall through to individual parameters instead of throwing
-			private bool TryBuildTypedArray(out Array array)
+			// mixed-runtime-type lists fall through to individual parameters instead of throwing;
+			// built once per value set (null = attempted and mixed)
+			private Array BuildTypedArrayOnce()
 			{
+				if (_typedArrayBuilt) return _typedArray;
+				_typedArrayBuilt = true;
+
 				Type elementType = _values[0].GetType();
 				var candidate = Array.CreateInstance(elementType, _values.Length);
 				for (int i = 0; i < _values.Length; i++)
 				{
 					if (_values[i].GetType() != elementType)
-					{
-						array = null;
-						return false;
-					}
+						return null; // _typedArray stays null
 
 					candidate.SetValue(_values[i], i);
 				}
 
-				array = candidate;
-				return true;
+				_typedArray = candidate;
+				return candidate;
 			}
 
 			private static string SubName(int index, int sub)
