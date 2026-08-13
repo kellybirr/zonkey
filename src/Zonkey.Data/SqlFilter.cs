@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
 using System.Text;
 using Zonkey.Dialects;
 
@@ -214,7 +216,23 @@ namespace Zonkey
 			return new SimpleSqlFilter(fieldName, "!~*", regex);
 		}
 
-
+		/// <summary>
+		/// Creates a SQL 'is in list' WHERE clause.
+		/// Behavior matches the where-expression Contains() translation: an empty (or all-null)
+		/// list renders an always-false predicate, a single value collapses to an equality, and a
+		/// multi-value list binds as one typed-array collection parameter on dialects that support
+		/// it (PostgreSql: field = ANY(:pN)) or as individual parameters (field IN (:pN_0, :pN_1, ...))
+		/// everywhere else. Null and DBNull elements are ignored (IN (NULL) never matches).
+		/// </summary>
+		/// <typeparam name="T">The element type of the list.</typeparam>
+		/// <param name="fieldName">Name of the database field.</param>
+		/// <param name="values">The values to compare.</param>
+		/// <returns>A <see cref="Zonkey.SqlFilter"/> object (WHERE fieldName IN (values)).</returns>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1705:LongAcronymsShouldBePascalCased", MessageId = "Member")]
+		public static SqlFilter IN<T>(string fieldName, IEnumerable<T> values)
+		{
+			return new SqlInFilter(fieldName, values?.Cast<object>() ?? throw new ArgumentNullException(nameof(values)));
+		}
 
 		private SqlFilter(string fieldName)
 		{
@@ -322,6 +340,108 @@ namespace Zonkey
 			{
 				return;
 			}
+		} ;
+
+		private class SqlInFilter : SqlFilter
+		{
+			private readonly object[] _values;
+
+			protected internal SqlInFilter(string fieldName, IEnumerable<object> values)
+				: base(fieldName)
+			{
+				_values = values.Where(v => v != null && v != DBNull.Value).ToArray();
+				_value = _values;
+			}
+
+			public override string ToString(SqlDialect dialect, int paramIndex)
+			{
+				if (dialect == null) throw new ArgumentNullException(nameof(dialect));
+
+				// deliberately not `field IN (NULL)`: that is UNKNOWN, not FALSE (see ExpressionTranslator)
+				if (_values.Length == 0)
+					return "1 = 0 /* IN (): empty or all-null list */";
+
+				string field = dialect.FormatFieldName(FieldName);
+
+				// a one-value IN is an equality: shares a cached plan with hand-written equality
+				// filters and keeps the value visible to the PostgreSql planner (same collapse as
+				// the where-expression surface)
+				if (_values.Length == 1)
+					return string.Concat(field, " = ", dialect.FormatParameterName(paramIndex, CommandType.Text));
+
+				if (UseCollectionParameter(dialect))
+					return dialect.RenderInCollectionParameter(field, dialect.FormatParameterName(paramIndex, CommandType.Text));
+
+				var sb = new StringBuilder();
+				sb.Append(field).Append(" IN (");
+				for (int i = 0; i < _values.Length; i++)
+				{
+					if (i > 0) sb.Append(',');
+					sb.Append(dialect.FormatParameterName(SubName(paramIndex, i), CommandType.Text));
+				}
+				sb.Append(')');
+				return sb.ToString();
+			}
+
+			public override void AddToCommandParams(DbCommand command, SqlDialect dialect, int index)
+			{
+				if (command == null) throw new ArgumentNullException(nameof(command));
+				if (dialect == null) throw new ArgumentNullException(nameof(dialect));
+
+				if (_values.Length == 0) return;
+
+				if (_values.Length == 1)
+				{
+					AddParameter(command, dialect.FormatParameterName(index, command.CommandType), _values[0]);
+					return;
+				}
+
+				if (UseCollectionParameter(dialect))
+				{
+					TryBuildTypedArray(out Array typedArray);
+					AddParameter(command, dialect.FormatParameterName(index, command.CommandType), typedArray);
+					return;
+				}
+
+				for (int i = 0; i < _values.Length; i++)
+					AddParameter(command, dialect.FormatParameterName(SubName(index, i), command.CommandType), _values[i]);
+			}
+
+			private static void AddParameter(DbCommand command, string name, object value)
+			{
+				DbParameter newParm = command.CreateParameter();
+				newParm.ParameterName = name;
+				newParm.Value = value;
+				command.Parameters.Add(newParm);
+			}
+
+			// one typed-array parameter (e.g. PostgreSql = ANY): one stable plan, no parameter-count limit
+			private bool UseCollectionParameter(SqlDialect dialect)
+				=> dialect.SupportsInCollectionParameter(_values[0].GetType())
+					&& TryBuildTypedArray(out _);
+
+			// mixed-runtime-type lists fall through to individual parameters instead of throwing
+			private bool TryBuildTypedArray(out Array array)
+			{
+				Type elementType = _values[0].GetType();
+				var candidate = Array.CreateInstance(elementType, _values.Length);
+				for (int i = 0; i < _values.Length; i++)
+				{
+					if (_values[i].GetType() != elementType)
+					{
+						array = null;
+						return false;
+					}
+
+					candidate.SetValue(_values[i], i);
+				}
+
+				array = candidate;
+				return true;
+			}
+
+			private static string SubName(int index, int sub)
+				=> string.Concat("p", index.ToString(System.Globalization.CultureInfo.InvariantCulture), "_", sub.ToString(System.Globalization.CultureInfo.InvariantCulture));
 		} ;
 	}
 }
